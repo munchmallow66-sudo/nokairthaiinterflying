@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { fullApplicationSchema } from "@/schemas/application-schema";
 import { generateApplicationNumber } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
+    const { getPrisma } = await import("@/lib/prisma");
+    const prisma = getPrisma();
     const body = await req.json();
     const validated = fullApplicationSchema.parse(body);
 
@@ -214,6 +215,8 @@ export async function POST(req: Request) {
 
 export async function GET() {
   try {
+    const { getPrisma } = await import("@/lib/prisma");
+    const prisma = getPrisma();
     const applications = await prisma.application.findMany({
       include: {
         student: {

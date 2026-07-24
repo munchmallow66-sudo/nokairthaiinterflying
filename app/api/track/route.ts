@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const runtime = "nodejs";
 
 export async function GET() {
   return NextResponse.json(
@@ -31,6 +30,10 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+
+    // Lazy import prisma to avoid build-time DB connection
+    const { getPrisma } = await import("@/lib/prisma");
+    const prisma = getPrisma();
 
     // Try finding student by nationalId or phone in DB
     let student: any = null;
@@ -74,7 +77,7 @@ export async function POST(req: Request) {
             statusLabelTh: "ผ่านการตรวจเอกสารเรียบร้อยแล้ว",
             statusLabelEn: "Documents Approved & Verified",
             submissionDate: "2026-08-05",
-            stepIndex: 2, // 1: Submitted, 2: Document Verified, 3: Interview, 4: Accepted
+            stepIndex: 2,
             remarks: "เอกสารครบถ้วนแล้ว เจ้าหน้าที่จะแจ้งวันเวลาทดสอบและสัมภาษณ์ทางอีเมล",
             updatedAt: "2026-08-06 10:30 น.",
           },
@@ -88,7 +91,7 @@ export async function POST(req: Request) {
           found: false,
           error: "ไม่พบข้อมูลการสมัครสำหรับเลขบัตรประชาชนนี้ / No application found for this National ID",
         },
-        { status: 444 } // custom or 404
+        { status: 404 }
       );
     }
 
