@@ -4,6 +4,7 @@ import { fullApplicationSchema } from "@/schemas/application-schema";
 import { generateApplicationNumber } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function POST(req: Request) {
   try {
