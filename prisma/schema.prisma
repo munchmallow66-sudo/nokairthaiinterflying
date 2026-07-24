@@ -1,0 +1,330 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  GUEST
+  STUDENT
+  SALES
+  TRAINING_OFFICER
+  FINANCE
+  HR
+  INSTRUCTOR
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum ApplicationStatus {
+  DRAFT
+  SUBMITTED
+  WAITING_DOCUMENTS
+  DOCUMENT_VERIFIED
+  INTERVIEW_SCHEDULED
+  INTERVIEW_PASSED
+  ACCEPTED
+  REJECTED
+  PAYMENT_PENDING
+  PAID
+  ENROLLED
+}
+
+enum DocumentType {
+  APPLICATION_FEE_SLIP
+  PHOTO_1_INCH
+  PHOTO_2_INCH
+  NATIONAL_ID_CERTIFIED
+  TRANSCRIPT_CERTIFIED
+  HOUSE_REGISTRATION_CERTIFIED
+  MEDICAL_CERTIFICATE_CLASS_1
+  CRIMINAL_RECORD_CHECK
+  PASSPORT_PHOTO
+  NATIONAL_ID
+  HOUSE_REGISTRATION
+  TRANSCRIPT
+  GRADUATION_CERTIFICATE
+  MEDICAL_CERTIFICATE
+  PASSPORT
+  TOEIC
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+model User {
+  id            String          @id @default(cuid())
+  name          String?
+  email         String          @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          Role            @default(STUDENT)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  student       Student?
+  activityLogs  ActivityLog[]
+  auditLogs     AuditLog[]
+  adminNotes    AdminNote[]     @relation("AuthorAdminNotes")
+  notifications Notification[]
+
+  @@map("users")
+}
+
+model Student {
+  id             String        @id @default(cuid())
+  userId         String        @unique
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title          String?
+  firstNameTh    String
+  lastNameTh     String
+  firstNameEn    String
+  lastNameEn     String
+  nickname       String?
+  gender         String?
+  birthday       DateTime?
+  age            Int?
+  nationality    String        @default("Thai")
+  religion       String?
+  nationalId     String?       @unique
+  passport       String?
+  phone          String        @unique
+  lineId         String?
+  facebook       String?
+
+  address        Address?
+  education      Education?
+  emergency      EmergencyContact?
+  parent         ParentInfo?
+  medical        MedicalInfo?
+  english        EnglishProficiency?
+  employment     EmploymentInfo?
+
+  applications   Application[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@map("students")
+}
+
+model Address {
+  id             String   @id @default(cuid())
+  studentId      String   @unique
+  student        Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  currentAddress String
+  province       String
+  district       String
+  subdistrict    String
+  postalCode     String
+}
+
+model Education {
+  id             String   @id @default(cuid())
+  studentId      String   @unique
+  student        Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  school         String
+  university     String?
+  degree         String
+  gpax           Float
+  graduationYear Int
+}
+
+model EmergencyContact {
+  id           String   @id @default(cuid())
+  studentId    String   @unique
+  student      Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  name         String
+  relationship String
+  phone        String
+  address      String
+}
+
+model ParentInfo {
+  id          String   @id @default(cuid())
+  studentId   String   @unique
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  fatherName  String?
+  motherName  String?
+  occupation  String?
+  phone       String?
+  address     String?
+}
+
+model MedicalInfo {
+  id                 String   @id @default(cuid())
+  studentId          String   @unique
+  student            Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  height             Float
+  weight             Float
+  bloodType          String
+  medicalConditions  String?
+  allergy            String?
+  medication         String?
+}
+
+model EnglishProficiency {
+  id                String   @id @default(cuid())
+  studentId         String   @unique
+  student           Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  toeicScore        Int?
+  ieltsScore        Float?
+  icaoLevel         Int?
+  otherCertificates String?
+}
+
+model EmploymentInfo {
+  id         String   @id @default(cuid())
+  studentId  String   @unique
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  company    String?
+  position   String?
+  years      Int?
+}
+
+model Course {
+  id           String        @id @default(cuid())
+  slug         String        @unique
+  name         String
+  code         String        @unique
+  description  String
+  price        Float
+  duration     String
+  requirements String[]
+  isPublished  Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  applications Application[]
+
+  @@map("courses")
+}
+
+model Application {
+  id                 String             @id @default(cuid())
+  applicationNumber  String             @unique
+  studentId          String
+  student            Student            @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  courseId           String
+  course             Course             @relation(fields: [courseId], references: [id])
+  branch             String             @default("Bangkok Headquarters")
+  preferredStartDate DateTime?
+  status             ApplicationStatus  @default(SUBMITTED)
+
+  documents          Document[]
+  payments           Payment[]
+  interviews         InterviewSchedule[]
+  adminNotes         AdminNote[]
+  activityLogs       ActivityLog[]
+
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@map("applications")
+}
+
+model Document {
+  id            String       @id @default(cuid())
+  applicationId String
+  application   Application  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  type          DocumentType
+  secureUrl     String
+  publicId      String
+  originalName  String
+  fileSize      Int?
+  isVerified    Boolean      @default(false)
+  uploadedAt    DateTime     @default(now())
+
+  @@map("documents")
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  applicationId String
+  application   Application   @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  amount        Float
+  slipUrl       String
+  slipPublicId  String
+  invoiceNo     String        @unique
+  receiptNo     String?       @unique
+  status        PaymentStatus @default(PENDING)
+  notes         String?
+  verifiedAt    DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("payments")
+}
+
+model InterviewSchedule {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  scheduledAt   DateTime
+  location      String      @default("TIF Headquarters / Online Zoom")
+  interviewer   String
+  result        String?
+  passed        Boolean?
+  notes         String?
+  createdAt     DateTime    @default(now())
+
+  @@map("interview_schedules")
+}
+
+model AdminNote {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  authorId      String
+  author        User        @relation("AuthorAdminNotes", fields: [authorId], references: [id])
+  content       String
+  createdAt     DateTime    @default(now())
+
+  @@map("admin_notes")
+}
+
+model ActivityLog {
+  id            String       @id @default(cuid())
+  userId        String?
+  user          User?        @relation(fields: [userId], references: [id])
+  applicationId String?
+  application   Application? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  action        String
+  details       String
+  createdAt     DateTime     @default(now())
+
+  @@map("activity_logs")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  resource  String
+  ipAddress String?
+  payload   String?
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
+}
