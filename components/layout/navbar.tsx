@@ -6,7 +6,6 @@ import { User, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/ui/brand-logo";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
-import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 import { useLanguage } from "@/lib/i18n/language-context";
 
 export function Navbar() {
@@ -54,7 +53,6 @@ export function Navbar() {
 
           {/* Right Action Buttons */}
           <div className="hidden lg:flex items-center space-x-3 relative z-[60]">
-            <ThemeSwitcher />
             <LanguageSwitcher variant="glass" />
 
             <Link href="/apply">
@@ -66,7 +64,6 @@ export function Navbar() {
 
           {/* Mobile Menu Button */}
           <div className="lg:hidden flex items-center space-x-2 relative z-[60]">
-            <ThemeSwitcher />
             <LanguageSwitcher variant="glass" />
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}

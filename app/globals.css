@@ -54,9 +54,12 @@
 
 /* Aviation & Jet Animations */
 @keyframes planeFloat {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0px) rotate(-45deg) scale(1);
   }
+
   50% {
     transform: translateY(-10px) rotate(-42deg) scale(1.06);
   }
@@ -66,6 +69,7 @@
   0% {
     transform: rotate(0deg);
   }
+
   100% {
     transform: rotate(360deg);
   }
@@ -75,15 +79,20 @@
   0% {
     transform: translateX(-150%) skewX(-25deg);
   }
-  50%, 100% {
+
+  50%,
+  100% {
     transform: translateX(250%) skewX(-25deg);
   }
 }
 
 @keyframes goldPulse {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 15px rgba(200, 162, 74, 0.3);
   }
+
   50% {
     box-shadow: 0 0 35px rgba(200, 162, 74, 0.6);
   }
@@ -123,13 +132,16 @@
   width: 8px;
   height: 8px;
 }
+
 ::-webkit-scrollbar-track {
   background: #0A2342;
 }
+
 ::-webkit-scrollbar-thumb {
   background: #1E3A5F;
   border-radius: 4px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: #C8A24A;
 }

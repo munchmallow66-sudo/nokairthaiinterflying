@@ -6,6 +6,10 @@ export const metadata: Metadata = {
   title: "Thai Inter Flying | Student Admission System",
   description: "Official Student Admission Management System for Thai Inter Flying Aviation Academy Thailand. CAAT ATO Accredited.",
   keywords: ["Thai Inter Flying", "Flight School Thailand", "Pilot Training", "CPL", "PPL", "ATPL", "Aviation Academy"],
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({

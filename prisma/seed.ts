@@ -7,11 +7,11 @@ async function main() {
 
   // Seed Admin Account
   const adminUser = await prisma.user.upsert({
-    where: { email: "admin@thaiinterflying.com" },
+    where: { email: "admin@tif.ac.th" },
     update: {},
     create: {
       name: "Academy Administrator",
-      email: "admin@thaiinterflying.com",
+      email: "admin@tif.ac.th",
       role: "ADMIN",
     },
   });

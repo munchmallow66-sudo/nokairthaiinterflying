@@ -2,45 +2,45 @@ import { z } from "zod";
 
 export const step1Schema = z.object({
   title: z.string().min(1, "Title is required"),
-  firstNameTh: z.string().min(2, "First Name (TH) is required"),
-  lastNameTh: z.string().min(2, "Last Name (TH) is required"),
-  firstNameEn: z.string().min(2, "First Name (EN) is required"),
-  lastNameEn: z.string().min(2, "Last Name (EN) is required"),
+  firstNameTh: z.string().min(1, "First Name (TH) is required"),
+  lastNameTh: z.string().min(1, "Last Name (TH) is required"),
+  firstNameEn: z.string().min(1, "First Name (EN) is required"),
+  lastNameEn: z.string().min(1, "Last Name (EN) is required"),
   nickname: z.string().optional(),
   gender: z.string().min(1, "Gender is required"),
   birthday: z.string().min(1, "Birthday is required"),
-  age: z.coerce.number().min(15, "Age must be at least 15"),
+  age: z.coerce.number().min(1, "Age is required"),
   nationality: z.string().min(1, "Nationality is required"),
   religion: z.string().optional(),
-  nationalId: z.string().length(13, "National ID must be 13 digits").or(z.string().length(0)).optional(),
+  nationalId: z.string().optional(),
   passport: z.string().optional(),
-  phone: z.string().min(9, "Phone number must be at least 9 digits"),
+  phone: z.string().min(8, "Phone number is required"),
   email: z.string().email("Invalid email address"),
   lineId: z.string().optional(),
   facebook: z.string().optional(),
 });
 
 export const step2Schema = z.object({
-  currentAddress: z.string().min(5, "Address is required"),
-  province: z.string().min(2, "Province is required"),
-  district: z.string().min(2, "District is required"),
-  subdistrict: z.string().min(2, "Subdistrict is required"),
-  postalCode: z.string().length(5, "Postal code must be 5 digits"),
+  currentAddress: z.string().min(1, "Address is required"),
+  province: z.string().min(1, "Province is required"),
+  district: z.string().min(1, "District is required"),
+  subdistrict: z.string().min(1, "Subdistrict is required"),
+  postalCode: z.string().min(1, "Postal code is required"),
 });
 
 export const step3Schema = z.object({
-  school: z.string().min(2, "High School/Institution name is required"),
+  school: z.string().min(1, "High School/Institution name is required"),
   university: z.string().optional(),
-  degree: z.string().min(2, "Highest degree is required"),
+  degree: z.string().min(1, "Highest degree is required"),
   gpax: z.coerce.number().min(0.0).max(4.0, "GPAX must be between 0.00 and 4.00"),
   graduationYear: z.coerce.number().min(1970).max(2030, "Invalid graduation year"),
 });
 
 export const step4Schema = z.object({
-  emergencyName: z.string().min(2, "Contact name is required"),
+  emergencyName: z.string().min(1, "Contact name is required"),
   relationship: z.string().min(1, "Relationship is required"),
-  emergencyPhone: z.string().min(9, "Phone number is required"),
-  emergencyAddress: z.string().min(5, "Address is required"),
+  emergencyPhone: z.string().min(8, "Phone number is required"),
+  emergencyAddress: z.string().min(1, "Address is required"),
 });
 
 export const step5Schema = z.object({
@@ -52,8 +52,8 @@ export const step5Schema = z.object({
 });
 
 export const step6Schema = z.object({
-  height: z.coerce.number().min(100, "Height in cm required"),
-  weight: z.coerce.number().min(30, "Weight in kg required"),
+  height: z.coerce.number().min(50, "Height required"),
+  weight: z.coerce.number().min(20, "Weight required"),
   bloodType: z.string().min(1, "Blood type is required"),
   medicalConditions: z.string().optional(),
   allergy: z.string().optional(),
@@ -61,27 +61,30 @@ export const step6Schema = z.object({
 });
 
 export const step7Schema = z.object({
-  toeicScore: z.coerce.number().min(0).max(990).optional(),
-  ieltsScore: z.coerce.number().min(0).max(9.0).optional(),
-  icaoLevel: z.coerce.number().min(1).max(6).optional(),
+  toeicScore: z.coerce.number().optional().nullable(),
+  ieltsScore: z.coerce.number().optional().nullable(),
+  icaoLevel: z.coerce.number().optional().nullable(),
   otherCertificates: z.string().optional(),
 });
 
 export const step8Schema = z.object({
   company: z.string().optional(),
   position: z.string().optional(),
-  years: z.coerce.number().min(0).optional(),
+  years: z.coerce.number().optional().nullable(),
 });
 
 export const step9Schema = z.object({
-  documents: z.array(
-    z.object({
-      type: z.string(),
-      secureUrl: z.string().url("Invalid file URL"),
-      publicId: z.string(),
-      originalName: z.string(),
-    })
-  ).min(1, "At least 1 document must be uploaded"),
+  documents: z
+    .array(
+      z.object({
+        type: z.string(),
+        secureUrl: z.string(),
+        publicId: z.string(),
+        originalName: z.string(),
+      })
+    )
+    .optional()
+    .default([]),
 });
 
 export const fullApplicationSchema = step1Schema

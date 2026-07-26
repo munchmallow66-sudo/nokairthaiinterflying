@@ -40,11 +40,6 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/admin" className="hover:text-tif-gold transition">
-                  {t("officerPortal")}
-                </Link>
-              </li>
-              <li>
                 <Link href="/contact" className="hover:text-tif-gold transition">
                   {t("contact")}
                 </Link>
