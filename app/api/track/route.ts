@@ -83,13 +83,32 @@ export async function POST(req: Request) {
             id: "demo-app-01",
             applicationNumber: displayAppNum,
             courseName: "แบบฟอร์มสมัครเรียนการบินออนไลน์ 9 ขั้นตอน",
-            status: "SUBMITTED",
-            statusLabelTh: "ยื่นใบสมัครแล้ว (รอชำระค่าสมัคร 1,500 บาท)",
-            statusLabelEn: "Submitted (Pending Application Fee 1,500 THB)",
+            status: "WAITING_DOCUMENTS",
+            statusLabelTh: "⚠️ เอกสารบางรายการต้องแนบใหม่ (Re-upload Required)",
+            statusLabelEn: "⚠️ Re-upload Required / Additional Documents Needed",
             submissionDate: new Date().toISOString().split("T")[0],
             stepIndex: 1,
-            remarks: "ยื่นใบสมัครเรียบร้อยแล้ว กรุณาชำระค่าสมัคร 1,500 บาท และแนบสลิปเพื่อเข้าสู่ขั้นตอนการตรวจเอกสารและนัดสอบสัมภาษณ์",
+            remarks: "[แจ้งเอกสารผิด]: ปฏิเสธเอกสาร 'สำเนาบัตรประชาชน' - เหตุผล: รูปถ่ายไม่ชัดเจน กรุณาถ่ายฉบับจริงแล้วอัปโหลดใหม่",
             updatedAt: "อัปเดตล่าสุดวันนี้",
+            documents: [
+              {
+                id: "doc-demo-1",
+                type: "NATIONAL_ID",
+                secureUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=400&q=80",
+                originalName: "National_ID_Card_Blurry.jpg",
+                isVerified: false,
+                isRejected: true,
+                rejectReason: "รูปถ่ายไม่ชัดเจน กรุณาถ่ายฉบับจริงแล้วอัปโหลดใหม่",
+              },
+              {
+                id: "doc-demo-2",
+                type: "PASSPORT_PHOTO",
+                secureUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
+                originalName: "Passport_Photo_1Inch.jpg",
+                isVerified: true,
+                isRejected: false,
+              },
+            ],
           },
         ],
       });
@@ -111,13 +130,32 @@ export async function POST(req: Request) {
             id: "demo-app-01",
             applicationNumber: displayAppNum,
             courseName: "แบบฟอร์มสมัครเรียนการบินออนไลน์ 9 ขั้นตอน",
-            status: "SUBMITTED",
-            statusLabelTh: "ยื่นใบสมัครแล้ว (รอชำระค่าสมัคร 1,500 บาท)",
-            statusLabelEn: "Submitted (Pending Application Fee 1,500 THB)",
+            status: "WAITING_DOCUMENTS",
+            statusLabelTh: "⚠️ เอกสารบางรายการต้องแนบใหม่ (Re-upload Required)",
+            statusLabelEn: "⚠️ Re-upload Required / Additional Documents Needed",
             submissionDate: new Date().toISOString().split("T")[0],
             stepIndex: 1,
-            remarks: "ยื่นใบสมัครเรียบร้อยแล้ว กรุณาชำระค่าสมัคร 1,500 บาท และแนบสลิปเพื่อเข้าสู่ขั้นตอนการตรวจเอกสารและนัดสอบสัมภาษณ์",
+            remarks: "[แจ้งเอกสารผิด]: ปฏิเสธเอกสาร 'สำเนาบัตรประชาชน' - เหตุผล: รูปถ่ายไม่ชัดเจน กรุณาถ่ายฉบับจริงแล้วอัปโหลดใหม่",
             updatedAt: "อัปเดตล่าสุดวันนี้",
+            documents: [
+              {
+                id: "doc-demo-1",
+                type: "NATIONAL_ID",
+                secureUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=400&q=80",
+                originalName: "National_ID_Card_Blurry.jpg",
+                isVerified: false,
+                isRejected: true,
+                rejectReason: "รูปถ่ายไม่ชัดเจน กรุณาถ่ายฉบับจริงแล้วอัปโหลดใหม่",
+              },
+              {
+                id: "doc-demo-2",
+                type: "PASSPORT_PHOTO",
+                secureUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
+                originalName: "Passport_Photo_1Inch.jpg",
+                isVerified: true,
+                isRejected: false,
+              },
+            ],
           },
         ],
       });
@@ -130,11 +168,15 @@ export async function POST(req: Request) {
 
       switch (app.status) {
         case "SUBMITTED":
-        case "WAITING_DOCUMENTS":
         case "PAYMENT_PENDING":
           stepIndex = 1;
           statusLabelTh = "รอดำเนินการตรวจสอบเอกสารและสลิปชำระเงิน";
           statusLabelEn = "Pending Document & Payment Verification";
+          break;
+        case "WAITING_DOCUMENTS":
+          stepIndex = 1;
+          statusLabelTh = "เอกสารบางรายการต้องแนบใหม่ (Re-upload Required)";
+          statusLabelEn = "Re-upload Required / Additional Documents Needed";
           break;
         case "DOCUMENT_VERIFIED":
         case "PAID":
@@ -180,6 +222,7 @@ export async function POST(req: Request) {
         stepIndex,
         remarks: app.interviews?.[0]?.notes || "เจ้าหน้าที่กำลังดำเนินการตามลำดับขั้นตอน",
         updatedAt: app.updatedAt ? (typeof app.updatedAt === 'string' ? app.updatedAt : app.updatedAt.toLocaleString("th-TH")) : "อัปเดตล่าสุดวันนี้",
+        documents: app.documents || student?.documents || [],
       };
     });
 

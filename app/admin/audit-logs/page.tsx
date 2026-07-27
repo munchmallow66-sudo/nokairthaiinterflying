@@ -62,11 +62,7 @@ export default function AuditLogsPage() {
       {/* Top Banner Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-6 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-2xl backdrop-blur-xl">
         <div>
-          <div className="flex items-center space-x-2 mb-1">
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-rose-500/10 text-rose-400 border border-rose-500/30">
-              <Terminal className="w-3 h-3 mr-1" /> {t("securityStreamTag")}
-            </span>
-          </div>
+
           <h1 className="text-2xl lg:text-3xl font-extrabold text-white font-display">
             {t("auditLogsTitle")}
           </h1>

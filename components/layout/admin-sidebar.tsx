@@ -49,7 +49,6 @@ export function AdminSidebar() {
   const adminNavItems = [
     { name: t("adminNavDashboard"), href: "/admin", icon: LayoutDashboard },
     { name: t("adminNavApplications"), href: "/admin/applications", icon: FileText, badge: "Live" },
-    { name: t("adminNavCRM"), href: "/admin/crm", icon: Users },
     { name: t("adminNavPayments"), href: "/admin/payments", icon: CreditCard },
     { name: t("adminNavInterviews"), href: "/admin/interviews", icon: Calendar },
     { name: t("adminNavAuditLogs"), href: "/admin/audit-logs", icon: ShieldAlert },

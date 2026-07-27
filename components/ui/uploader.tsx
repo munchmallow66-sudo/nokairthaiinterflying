@@ -50,11 +50,16 @@ export function Uploader({
 
       setProgress(60);
 
-      // Call API upload route
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+      // Call API upload route with timeout guard
       const res = await fetch("/api/upload", {
         method: "POST",
         body: formData,
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
       if (!res.ok) {
         throw new Error("Upload failed");

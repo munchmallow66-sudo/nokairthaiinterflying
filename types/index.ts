@@ -15,12 +15,20 @@ export interface ApplicationWithDetails {
   updatedAt: Date;
   student: {
     id: string;
+    title?: string | null;
     firstNameTh: string;
     lastNameTh: string;
     firstNameEn: string;
     lastNameEn: string;
     nickname?: string | null;
+    gender?: string | null;
+    birthday?: Date | string | null;
+    age?: number | null;
+    nationality?: string | null;
+    religion?: string | null;
     phone: string;
+    lineId?: string | null;
+    facebook?: string | null;
     nationalId?: string | null;
     passport?: string | null;
     user: {
@@ -82,6 +90,8 @@ export interface ApplicationWithDetails {
     publicId: string;
     originalName: string;
     isVerified: boolean;
+    isRejected?: boolean;
+    rejectReason?: string;
     uploadedAt: Date;
   }[];
   payments: {

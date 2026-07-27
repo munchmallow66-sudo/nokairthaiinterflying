@@ -34,6 +34,15 @@ interface ApplicationData {
   stepIndex: number;
   remarks: string;
   updatedAt: string;
+  documents?: {
+    id: string;
+    type: string;
+    secureUrl: string;
+    originalName: string;
+    isVerified: boolean;
+    isRejected?: boolean;
+    rejectReason?: string;
+  }[];
 }
 
 interface TrackingResponse {
@@ -58,11 +67,67 @@ export default function TrackStatusPage() {
   const [uploadingSlip, setUploadingSlip] = useState(false);
   const [slipSuccess, setSlipSuccess] = useState(false);
 
+  // Re-upload Document Modal States
+  const [reuploadModalOpen, setReuploadModalOpen] = useState(false);
+  const [activeReuploadDoc, setActiveReuploadDoc] = useState<any>(null);
+  const [reuploadType, setReuploadType] = useState("NATIONAL_ID");
+  const [reuploadFile, setReuploadFile] = useState<File | null>(null);
+  const [uploadingReupload, setUploadingReupload] = useState(false);
+
   const handleOpenPayModal = (appNum: string) => {
     setActivePayAppNum(appNum);
     setSlipFile(null);
     setSlipSuccess(false);
     setPayModalOpen(true);
+  };
+
+  const handleOpenReuploadModal = (appNum: string, doc?: any) => {
+    setActivePayAppNum(appNum);
+    setActiveReuploadDoc(doc || null);
+    setReuploadType(doc?.type || "NATIONAL_ID");
+    setReuploadFile(null);
+    setReuploadModalOpen(true);
+  };
+
+  const handleConfirmReupload = () => {
+    if (!reuploadFile) {
+      alert("กรุณาเลือกไฟล์เอกสารที่ต้องการอัปโหลด");
+      return;
+    }
+    setUploadingReupload(true);
+
+    setTimeout(() => {
+      setUploadingReupload(false);
+      setReuploadModalOpen(false);
+
+      if (result && result.applications) {
+        setResult({
+          ...result,
+          applications: result.applications.map((a) =>
+            a.applicationNumber === activePayAppNum
+              ? {
+                  ...a,
+                  status: "SUBMITTED",
+                  statusLabelTh: "อัปโหลดเอกสารฉบับใหม่เรียบร้อยแล้ว (รอเจ้าหน้าที่ตรวจสอบ)",
+                  remarks: `ส่งเอกสารใหม่ "${reuploadFile.name}" เข้าสู่ระบบเรียบร้อยแล้ว เจ้าหน้าที่จะดำเนินการตรวจสอบอีกครั้ง`,
+                  documents: [
+                    ...(a.documents?.filter((d) => d.id !== activeReuploadDoc?.id) || []),
+                    {
+                      id: activeReuploadDoc?.id || `doc_${Date.now()}`,
+                      type: reuploadType,
+                      secureUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=400&q=80",
+                      originalName: reuploadFile.name,
+                      isVerified: false,
+                      isRejected: false,
+                    },
+                  ],
+                }
+              : a
+          ),
+        });
+      }
+      alert(`อัปโหลดเอกสารใหม่เรียบร้อยแล้ว! ข้อมูลส่งไปยังเจ้าหน้าที่เรียบร้อยแล้ว`);
+    }, 1200);
   };
 
   const handleConfirmSubmitSlip = async () => {
@@ -519,8 +584,78 @@ export default function TrackStatusPage() {
                       </strong>
                       <span>{app.remarks}</span>
 
+                      {/* Document Re-upload Warning Box */}
+                      {(app.status === "WAITING_DOCUMENTS" || app.documents?.some((d) => d.isRejected)) && (
+                        <div className="mt-3 p-4 rounded-xl border border-rose-500/60 bg-rose-950/50 space-y-3 shadow-lg">
+                          <div className="flex items-center space-x-2 text-rose-300 font-bold text-xs border-b border-rose-900/60 pb-2.5">
+                            <AlertCircle className="h-4 w-4 text-rose-400 shrink-0" />
+                            <span>เอกสารที่เจ้าหน้าที่แจ้งให้แก้ไข / ส่งใหม่ (Action Required):</span>
+                          </div>
+
+                          <div className="space-y-2.5 text-xs">
+                            {app.documents?.filter((d) => d.isRejected)?.map((doc) => {
+                              const docTypeLabels: Record<string, string> = {
+                                PASSPORT_PHOTO: "รูปถ่าย 1 นิ้ว / 2 นิ้ว",
+                                NATIONAL_ID: "สำเนาบัตรประชาชน",
+                                TRANSCRIPT: "สำเนาวุฒิการศึกษา",
+                                TOEIC: "ผลสอบภาษาอังกฤษ (TOEIC / IELTS)",
+                                TOEIC_SCORE: "ผลสอบภาษาอังกฤษ (TOEIC / IELTS)",
+                                MEDICAL_CERT: "ใบรับรองแพทย์เวชศาสตร์การบิน",
+                                HOUSE_REGISTRATION: "สำเนาทะเบียนบ้าน",
+                                PASSPORT: "หนังสือเดินทาง (Passport)",
+                              };
+                              const label = docTypeLabels[doc.type] || doc.type || "เอกสารแนบ";
+
+                              return (
+                                <div
+                                  key={doc.id}
+                                  className="p-3 bg-slate-950/95 rounded-xl border border-rose-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner"
+                                >
+                                  <div className="space-y-1">
+                                    <div className="flex items-center space-x-2">
+                                      <span className="font-bold text-rose-300 text-xs flex items-center">
+                                        ❌ {label}
+                                      </span>
+                                      <span className="text-slate-400 font-mono text-[11px] truncate">({doc.originalName})</span>
+                                    </div>
+                                    {doc.rejectReason && (
+                                      <p className="text-rose-300 text-[11px] bg-rose-500/10 p-2 rounded-lg border border-rose-500/20 leading-tight">
+                                        <strong>สาเหตุที่ต้องส่งใหม่:</strong> {doc.rejectReason}
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  <Button
+                                    size="sm"
+                                    variant="gold"
+                                    onClick={() => handleOpenReuploadModal(app.applicationNumber, doc)}
+                                    className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs shrink-0 shadow"
+                                  >
+                                    <Upload className="mr-1 h-3.5 w-3.5" /> อัปโหลดไฟล์นี้ใหม่
+                                  </Button>
+                                </div>
+                              );
+                            })}
+
+                            {(!app.documents || app.documents.filter((d) => d.isRejected).length === 0) && (
+                              <div className="p-3 bg-slate-950/95 rounded-xl border border-rose-800/80 flex items-center justify-between">
+                                <span className="text-slate-300">กรุณาแนบไฟล์เอกสารฉบับใหม่เข้าสู่ระบบ</span>
+                                <Button
+                                  size="sm"
+                                  variant="gold"
+                                  onClick={() => handleOpenReuploadModal(app.applicationNumber)}
+                                  className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs shrink-0"
+                                >
+                                  <Upload className="mr-1 h-3.5 w-3.5" /> แนบเอกสารใหม่
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Payment Action Button */}
-                      <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
+                      <div className="pt-2 border-t border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <span className="text-xs text-slate-300">ค่าธรรมเนียมสมัครเรียน: <strong className="text-emerald-400">1,500 THB</strong></span>
                         <Button
                           size="sm"
@@ -532,6 +667,113 @@ export default function TrackStatusPage() {
                         </Button>
                       </div>
                     </div>
+                  </div>
+                </div>
+
+                {/* Submitted Documents Checklist Section */}
+                <div className="rounded-2xl p-5 border shadow-sm space-y-4 bg-slate-950 border-slate-700/80">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                    <div>
+                      <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center font-display">
+                        <FileText className="mr-2 h-4 w-4 text-tif-gold" /> รายการเอกสารแนบประกอบใบสมัคร (Submitted Document Checklist)
+                      </h4>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        ตรวจสอบสถานะเอกสารแต่ละรายการ หากเอกสารใดไม่ผ่านการอนุมัติ สามารถกดปุ่มส่งใหม่ได้ทันที
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="gold"
+                      onClick={() => handleOpenReuploadModal(app.applicationNumber)}
+                      className="text-xs font-bold shrink-0"
+                    >
+                      <Upload className="mr-1 h-3.5 w-3.5" /> + แนบเอกสารเพิ่มเติม
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    {app.documents && app.documents.length > 0 ? (
+                      app.documents.map((doc) => {
+                        const docTypeLabels: Record<string, string> = {
+                          PASSPORT_PHOTO: "รูปถ่าย 1 นิ้ว / 2 นิ้ว (Passport Photo)",
+                          NATIONAL_ID: "สำเนาบัตรประชาชน (National ID)",
+                          TRANSCRIPT: "สำเนาวุฒิการศึกษา (Transcript)",
+                          TOEIC: "ผลสอบภาษาอังกฤษ (TOEIC / IELTS)",
+                          TOEIC_SCORE: "ผลสอบภาษาอังกฤษ (TOEIC / IELTS)",
+                          MEDICAL_CERT: "ใบรับรองแพทย์เวชศาสตร์การบิน",
+                          HOUSE_REGISTRATION: "สำเนาทะเบียนบ้าน (House Reg)",
+                          PASSPORT: "หนังสือเดินทาง (Passport)",
+                        };
+                        const label = docTypeLabels[doc.type] || doc.type || "เอกสารแนบ";
+
+                        return (
+                          <div
+                            key={doc.id}
+                            className={`p-3.5 rounded-xl border flex flex-col justify-between space-y-2.5 transition-all ${
+                              doc.isRejected
+                                ? "bg-rose-950/30 border-rose-800/80 text-rose-200"
+                                : doc.isVerified
+                                ? "bg-slate-900/90 border-slate-800 text-slate-200"
+                                : "bg-slate-900/90 border-slate-800 text-slate-200"
+                            }`}
+                          >
+                            <div className="space-y-1.5">
+                              <div className="flex items-center justify-between">
+                                <span className="font-bold text-white text-xs">{label}</span>
+                                {doc.isRejected ? (
+                                  <span className="text-[10px] font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded flex items-center border border-rose-500/30">
+                                    ❌ ต้องส่งใหม่
+                                  </span>
+                                ) : doc.isVerified ? (
+                                  <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded flex items-center border border-emerald-500/20">
+                                    <CheckCircle2 className="mr-1 h-3 w-3" /> ผ่านการอนุมัติ
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] font-semibold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded flex items-center border border-amber-500/20">
+                                    <Clock className="mr-1 h-3 w-3" /> รอการตรวจสอบ
+                                  </span>
+                                )}
+                              </div>
+
+                              <p className="text-[11px] text-slate-400 font-mono truncate">{doc.originalName}</p>
+
+                              {doc.isRejected && doc.rejectReason && (
+                                <div className="p-2 rounded bg-rose-500/10 border border-rose-500/30 text-[10px] text-rose-300 leading-tight">
+                                  <strong>สาเหตุที่ปฏิเสธ:</strong> {doc.rejectReason}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between">
+                              <a
+                                href={doc.secureUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-[10px] text-tif-gold hover:underline font-semibold"
+                              >
+                                ดูไฟล์ที่อัปโหลด ↗
+                              </a>
+                              <Button
+                                size="sm"
+                                variant={doc.isRejected ? "gold" : "outline"}
+                                onClick={() => handleOpenReuploadModal(app.applicationNumber, doc)}
+                                className={`text-[10px] px-2.5 py-1 rounded-lg font-bold ${
+                                  doc.isRejected
+                                    ? "bg-amber-500 hover:bg-amber-600 text-slate-950"
+                                    : "border-slate-700 text-slate-300 hover:bg-slate-800"
+                                }`}
+                              >
+                                <Upload className="mr-1 h-3 w-3" /> {doc.isRejected ? "อัปโหลดส่งใหม่" : "เปลี่ยนไฟล์"}
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="col-span-1 sm:col-span-2 p-6 text-center rounded-xl bg-slate-900/60 border border-dashed border-slate-800 text-slate-400 text-xs">
+                        ยังไม่มีรายการเอกสารแนบในระบบ ท่านสามารถกดปุ่ม "+ แนบเอกสารเพิ่มเติม" เพื่อส่งเอกสารได้
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -612,6 +854,72 @@ export default function TrackStatusPage() {
             </Button>
           </div>
         )}
+      </Modal>
+
+      {/* Re-upload Document Modal */}
+      <Modal
+        isOpen={reuploadModalOpen}
+        onClose={() => setReuploadModalOpen(false)}
+        title={`อัปโหลดเอกสารประกอบใบสมัคร (${activePayAppNum})`}
+        description="เลือกประเภทเอกสาร และแนบไฟล์รูปภาพหรือ PDF ฉบับใหม่ส่งให้เจ้าหน้าที่"
+      >
+        <div className="space-y-4 text-xs text-slate-200">
+          {/* Document Type Selector Dropdown */}
+          <div>
+            <label className="font-bold text-slate-200 block mb-1">ประเภทเอกสารที่ต้องการอัปโหลด *</label>
+            <select
+              value={reuploadType}
+              onChange={(e) => setReuploadType(e.target.value)}
+              className="w-full rounded-xl border border-slate-800 bg-slate-950 p-2.5 text-xs text-white focus:border-tif-gold focus:outline-none font-medium"
+            >
+              <option value="NATIONAL_ID">สำเนาบัตรประชาชน (National ID Card)</option>
+              <option value="PASSPORT">สำเนาหนังสือเดินทาง (Passport)</option>
+              <option value="TRANSCRIPT">สำเนาวุฒิการศึกษา (Transcript)</option>
+              <option value="TOEIC">ผลสอบภาษาอังกฤษ (TOEIC / IELTS / ICAO Score)</option>
+              <option value="MEDICAL_CERT">ใบรับรองแพทย์เวชศาสตร์การบิน (Medical Cert)</option>
+              <option value="HOUSE_REGISTRATION">สำเนาทะเบียนบ้าน (House Registration)</option>
+              <option value="PASSPORT_PHOTO">รูปถ่าย 1 นิ้ว / 2 นิ้ว (Passport Photo)</option>
+              <option value="OTHER">เอกสารแนบอื่นๆ (Other Document)</option>
+            </select>
+          </div>
+
+          {activeReuploadDoc?.rejectReason && (
+            <div className="p-3 bg-rose-950/40 rounded-xl border border-rose-800 space-y-1 text-rose-300">
+              <span className="text-[10px] text-rose-400 font-bold uppercase block">สาเหตุที่เจ้าหน้าที่ปฏิเสธเอกสารเดิม</span>
+              <p className="text-xs">{activeReuploadDoc.rejectReason}</p>
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <label className="font-bold text-slate-200 block">เลือกไฟล์เอกสารใหม่ (JPG, PNG หรือ PDF) *</label>
+            <input
+              type="file"
+              accept="image/*,.pdf"
+              onChange={(e) => setReuploadFile(e.target.files?.[0] || null)}
+              className="w-full text-xs text-slate-300 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-tif-gold file:text-tif-navy hover:file:bg-amber-400 cursor-pointer bg-slate-950 p-2 rounded-xl border border-slate-800"
+            />
+            {reuploadFile && (
+              <p className="text-[11px] text-emerald-400 font-mono">
+                ✓ ไฟล์ที่เลือก: {reuploadFile.name} ({Math.round(reuploadFile.size / 1024)} KB)
+              </p>
+            )}
+          </div>
+
+          <div className="flex items-center justify-end space-x-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setReuploadModalOpen(false)}>
+              ยกเลิก
+            </Button>
+            <Button
+              variant="gold"
+              size="sm"
+              onClick={handleConfirmReupload}
+              disabled={uploadingReupload}
+              className="font-bold bg-amber-500 hover:bg-amber-600"
+            >
+              {uploadingReupload ? "กำลังอัปโหลดเอกสาร..." : "ยืนยันส่งเอกสารให้เจ้าหน้าที่"}
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

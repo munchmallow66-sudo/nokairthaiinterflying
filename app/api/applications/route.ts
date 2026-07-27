@@ -48,8 +48,8 @@ export async function POST(req: Request) {
     // Generate unique app number
     const appNumber = generateApplicationNumber();
 
-    // Execute Prisma Transaction with increased timeout (30 seconds)
-    const result = await prisma.$transaction(
+    // Execute Prisma Transaction with 3.5s max timeout race for instant UI feedback
+    const dbTransactionPromise = prisma.$transaction(
       async (tx) => {
         // 1. Create User
         const user = await tx.user.create({
@@ -166,10 +166,16 @@ export async function POST(req: Request) {
         return { application, user };
       },
       {
-        maxWait: 10000,
-        timeout: 30000,
+        maxWait: 5000,
+        timeout: 10000,
       }
     );
+
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("DB Connection Timeout")), 3500)
+    );
+
+    const result: any = await Promise.race([dbTransactionPromise, timeoutPromise]);
 
     // Non-critical background logs outside transaction
     try {

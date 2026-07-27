@@ -97,14 +97,10 @@ export default function AdminDashboardPage() {
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       {/* Top Banner Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-2xl backdrop-blur-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-tif-gold/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl backdrop-blur-xl">
         <div>
           <div className="flex items-center space-x-2 mb-1">
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-tif-gold/10 text-tif-gold border border-tif-gold/30">
-              <Activity className="w-3 h-3 mr-1 animate-pulse text-tif-gold" /> ศูนย์จัดการข้อมูลผู้สมัครเรียนการบิน
-            </span>
-            <span className="text-xs text-slate-400">• Intake 2026</span>
+            <span className="text-xs text-slate-400 font-mono">Intake 2026</span>
           </div>
           <h1 className="text-2xl lg:text-3xl font-extrabold text-white font-display tracking-tight">
             ระบบตรวจเช็กและจัดการแบบฟอร์มสมัครเรียนการบินออนไลน์
@@ -255,11 +251,6 @@ export default function AdminDashboardPage() {
             <Link href="/admin/payments" className="block">
               <Button variant="outline" className="w-full justify-start text-xs bg-slate-950/60 border-slate-800 hover:border-emerald-500/40 text-slate-200 h-11 rounded-xl">
                 <DollarSign className="mr-2.5 h-4 w-4 text-emerald-400" /> ตรวจสอบสลิปโอนเงินค่าสมัคร 1,500 บาท
-              </Button>
-            </Link>
-            <Link href="/admin/crm" className="block">
-              <Button variant="outline" className="w-full justify-start text-xs bg-slate-950/60 border-slate-800 hover:border-purple-500/40 text-slate-200 h-11 rounded-xl">
-                <Users className="mr-2.5 h-4 w-4 text-purple-400" /> บันทึกประวัติการติดต่อผู้สมัคร (CRM Notes)
               </Button>
             </Link>
           </div>

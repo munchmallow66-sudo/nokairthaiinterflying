@@ -9,6 +9,16 @@ import {
   FileText,
   Search,
   Filter,
+  LayoutGrid,
+  List,
+  Eye,
+  Edit3,
+  Trash2,
+  Phone,
+  Mail,
+  Calendar,
+  DollarSign,
+  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ApplicationWithDetails } from "@/types";
@@ -32,6 +42,7 @@ export function DataTable({ data, onSelectApplication, onEditApplication, onDele
   const [sortField, setSortField] = React.useState<string>("createdAt");
   const [sortOrder, setSortOrder] = React.useState<"asc" | "desc">("desc");
   const [currentPage, setCurrentPage] = React.useState(1);
+  const [viewMode, setViewMode] = React.useState<"cards" | "table">("cards");
   const pageSize = 8;
 
   // Filter logic
@@ -96,38 +107,38 @@ export function DataTable({ data, onSelectApplication, onEditApplication, onDele
       case "SUBMITTED":
         return (
           <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30">
-            Submitted
+            {t("statusSubmitted")}
           </span>
         );
       case "DOCUMENT_VERIFIED":
         return (
           <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
-            Docs Verified
+            {t("statusDocsVerified")}
           </span>
         );
       case "INTERVIEW_SCHEDULED":
         return (
           <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/30">
-            Interview Scheduled
+            {t("statusInterviewScheduled")}
           </span>
         );
       case "ACCEPTED":
         return (
           <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-tif-gold/10 text-tif-gold border border-tif-gold/30">
-            Accepted
+            {t("statusAccepted")}
           </span>
         );
       case "PAID":
       case "ENROLLED":
         return (
           <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-            {status === "ENROLLED" ? "Enrolled" : "Fee Paid"}
+            {status === "ENROLLED" ? t("statusEnrolled") : t("statusPaid")}
           </span>
         );
       case "REJECTED":
         return (
           <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/30">
-            Rejected
+            {t("statusRejected")}
           </span>
         );
       default:
@@ -180,6 +191,34 @@ export function DataTable({ data, onSelectApplication, onEditApplication, onDele
             </select>
           </div>
 
+          {/* View Mode Toggle Switch */}
+          <div className="flex items-center space-x-1 border border-slate-800 rounded-xl p-1 bg-slate-950/60">
+            <button
+              type="button"
+              onClick={() => setViewMode("cards")}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                viewMode === "cards"
+                  ? "bg-tif-gold text-slate-950 shadow-md"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+              <span>Cards</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("table")}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                viewMode === "table"
+                  ? "bg-tif-gold text-slate-950 shadow-md"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <List className="h-3.5 w-3.5" />
+              <span>Table</span>
+            </button>
+          </div>
+
           {/* Export Buttons */}
           <Button
             variant="outline"
@@ -203,129 +242,200 @@ export function DataTable({ data, onSelectApplication, onEditApplication, onDele
         </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/80 backdrop-blur-xl shadow-xl">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-300">
-            <thead className="bg-slate-950/90 text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-800">
-              <tr>
-                <th
-                  onClick={() => handleSort("appNum")}
-                  className="cursor-pointer px-5 py-4 hover:text-tif-gold transition"
-                >
-                  <div className="flex items-center">
-                    {t("appNumberHeader")} <ArrowUpDown className="ml-1 h-3.5 w-3.5 opacity-60" />
+      {/* Main Content Area */}
+      {viewMode === "cards" ? (
+        /* Executive Cards List Layout */
+        <div className="space-y-3">
+          {paginatedData.length > 0 ? (
+            paginatedData.map((app) => (
+              <div
+                key={app.id}
+                onClick={() => onSelectApplication(app)}
+                className="group relative overflow-hidden rounded-2xl bg-slate-900/90 border border-slate-800 p-4 sm:p-5 shadow-xl hover:border-tif-gold/50 hover:bg-slate-900 transition-all duration-200 cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4"
+              >
+                {/* Left: Avatar & Personal Details */}
+                <div className="flex items-center space-x-4 min-w-0">
+                  <div className="h-12 w-12 rounded-xl bg-tif-gold/10 border border-tif-gold/30 text-tif-gold flex items-center justify-center font-bold text-sm shrink-0 font-mono group-hover:scale-105 transition-transform">
+                    {app.student.firstNameEn ? app.student.firstNameEn.slice(0, 2).toUpperCase() : "ST"}
                   </div>
-                </th>
-                <th
-                  onClick={() => handleSort("name")}
-                  className="cursor-pointer px-5 py-4 hover:text-tif-gold transition"
-                >
-                  <div className="flex items-center">
-                    {t("studentNameHeader")} <ArrowUpDown className="ml-1 h-3.5 w-3.5 opacity-60" />
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-xs font-bold text-tif-gold px-2 py-0.5 rounded-md bg-tif-gold/10 border border-tif-gold/20">
+                        {app.applicationNumber}
+                      </span>
+                      <span className="text-[11px] text-slate-400 font-mono">
+                        {formatDate(app.createdAt)}
+                      </span>
+                    </div>
+                    <h3 className="text-sm font-bold text-white group-hover:text-tif-gold transition-colors truncate">
+                      {app.student.firstNameEn} {app.student.lastNameEn} ({app.student.firstNameTh} {app.student.lastNameTh})
+                    </h3>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400 font-mono">
+                      <span className="flex items-center"><Phone className="mr-1 h-3 w-3 text-slate-500" />{app.student.phone || "-"}</span>
+                      <span className="flex items-center"><Mail className="mr-1 h-3 w-3 text-slate-500" />{app.student.user?.email || "-"}</span>
+                    </div>
                   </div>
-                </th>
-                <th className="px-5 py-4">เบอร์โทรศัพท์ (Phone)</th>
-                <th className="px-5 py-4">ค่าสมัคร (1,500 THB)</th>
-                <th
-                  onClick={() => handleSort("status")}
-                  className="cursor-pointer px-5 py-4 hover:text-tif-gold transition"
-                >
-                  <div className="flex items-center">
-                    {t("statusHeader")} <ArrowUpDown className="ml-1 h-3.5 w-3.5 opacity-60" />
-                  </div>
-                </th>
-                <th
-                  onClick={() => handleSort("createdAt")}
-                  className="cursor-pointer px-5 py-4 hover:text-tif-gold transition"
-                >
-                  <div className="flex items-center">
-                    {t("dateHeader")} <ArrowUpDown className="ml-1 h-3.5 w-3.5 opacity-60" />
-                  </div>
-                </th>
-                <th className="px-5 py-4 text-right">{t("actionHeader")}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/60">
-              {paginatedData.length > 0 ? (
-                paginatedData.map((app) => (
-                  <tr
-                    key={app.id}
-                    className="hover:bg-slate-800/40 transition-colors cursor-pointer"
-                    onClick={() => onSelectApplication(app)}
-                  >
-                    <td className="px-5 py-4 font-mono font-bold text-tif-gold">
-                      {app.applicationNumber}
-                    </td>
-                    <td className="px-5 py-4">
-                      <div>
-                        <p className="font-semibold text-slate-100">
-                          {app.student.firstNameEn} {app.student.lastNameEn} ({app.student.firstNameTh} {app.student.lastNameTh})
-                        </p>
-                        <p className="text-[11px] text-slate-400 font-mono">{app.student.user?.email}</p>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 text-slate-300 font-mono">
-                      {app.student.phone || "-"}
-                    </td>
-                    <td className="px-5 py-4 font-semibold text-emerald-400 font-mono">
+                </div>
+
+                {/* Right / Middle: Badges & Action Buttons */}
+                <div className="flex flex-wrap items-center justify-between md:justify-end gap-3 shrink-0 pt-3 md:pt-0 border-t md:border-t-0 border-slate-800/80">
+                  <div className="flex items-center space-x-2">
+                    <span className="font-mono text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-full">
                       1,500 THB
-                    </td>
-                    <td className="px-5 py-4">{getStatusBadge(app.status)}</td>
-                    <td className="px-5 py-4 text-slate-400 font-mono text-[11px]">
-                      {formatDate(app.createdAt)}
-                    </td>
-                    <td className="px-5 py-4 text-right">
-                      <div className="flex items-center justify-end space-x-1.5" onClick={(e) => e.stopPropagation()}>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => onSelectApplication(app)}
-                          className="text-xs bg-slate-950/60 border-slate-800 hover:border-tif-gold/50 text-slate-200 rounded-xl"
-                        >
-                          Inspect
-                        </Button>
-                        {onEditApplication && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => onEditApplication(app)}
-                            className="text-xs bg-slate-900 border-slate-800 text-tif-gold hover:border-tif-gold rounded-xl"
+                    </span>
+                    <div>{getStatusBadge(app.status)}</div>
+                  </div>
+
+                  <div className="flex items-center space-x-1.5" onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onSelectApplication(app)}
+                      className="h-8 px-3 text-xs bg-slate-950 border-slate-800 text-slate-200 hover:border-tif-gold hover:text-white rounded-xl"
+                    >
+                      <Eye className="mr-1.5 h-3.5 w-3.5 text-tif-gold" /> {t("viewDetailBtn")}
+                    </Button>
+                    {onEditApplication && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => onEditApplication(app)}
+                        className="h-8 px-3 text-xs bg-slate-950 border-slate-800 text-tif-gold hover:border-tif-gold rounded-xl"
+                      >
+                        <Edit3 className="mr-1.5 h-3.5 w-3.5" /> {t("editBtn")}
+                      </Button>
+                    )}
+                    {onDeleteApplication && (
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        onClick={() => onDeleteApplication(app.id)}
+                        className="h-8 px-3 text-xs rounded-xl"
+                      >
+                        <Trash2 className="mr-1.5 h-3.5 w-3.5" /> {t("deleteBtn")}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="p-12 rounded-2xl bg-slate-900/80 border border-slate-800 text-center text-slate-500 text-sm">
+              {t("noAppsFound")}
+            </div>
+          )}
+        </div>
+      ) : (
+        /* Fixed-Width 100% Fit Table Layout */
+        <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/80 backdrop-blur-xl shadow-xl">
+          <div className="w-full">
+            <table className="w-full text-left text-xs text-slate-300 table-fixed border-collapse">
+              <thead className="bg-slate-950/90 text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-800">
+                <tr>
+                  <th
+                    onClick={() => handleSort("appNum")}
+                    className="w-[15%] cursor-pointer px-3 py-3 hover:text-tif-gold transition"
+                  >
+                    <div className="flex items-center">
+                      {t("appNumberHeader")} <ArrowUpDown className="ml-1 h-3 w-3 opacity-60" />
+                    </div>
+                  </th>
+                  <th
+                    onClick={() => handleSort("name")}
+                    className="w-[32%] cursor-pointer px-3 py-3 hover:text-tif-gold transition"
+                  >
+                    <div className="flex items-center">
+                      {t("studentNameHeader")} <ArrowUpDown className="ml-1 h-3 w-3 opacity-60" />
+                    </div>
+                  </th>
+                  <th className="w-[16%] px-3 py-3">{t("phoneLabel")}</th>
+                  <th className="w-[10%] px-3 py-3">{t("appFeeHeader")}</th>
+                  <th
+                    onClick={() => handleSort("status")}
+                    className="w-[14%] cursor-pointer px-3 py-3 hover:text-tif-gold transition"
+                  >
+                    <div className="flex items-center">
+                      {t("statusHeader")} <ArrowUpDown className="ml-1 h-3 w-3 opacity-60" />
+                    </div>
+                  </th>
+                  <th className="w-[13%] px-3 py-3 text-right">{t("actionHeader")}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60">
+                {paginatedData.length > 0 ? (
+                  paginatedData.map((app) => (
+                    <tr
+                      key={app.id}
+                      className="hover:bg-slate-800/40 transition-colors cursor-pointer"
+                      onClick={() => onSelectApplication(app)}
+                    >
+                      <td className="px-3 py-3 font-mono font-bold text-tif-gold truncate">
+                        {app.applicationNumber}
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="min-w-0 truncate">
+                          <p className="font-semibold text-slate-100 truncate">
+                            {app.student.firstNameEn} {app.student.lastNameEn} ({app.student.firstNameTh})
+                          </p>
+                          <p className="text-[11px] text-slate-400 font-mono truncate">{app.student.user?.email}</p>
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 text-slate-300 font-mono truncate">
+                        {app.student.phone || "-"}
+                      </td>
+                      <td className="px-3 py-3 font-semibold text-emerald-400 font-mono truncate">
+                        1,500
+                      </td>
+                      <td className="px-3 py-3">{getStatusBadge(app.status)}</td>
+                      <td className="px-3 py-3 text-right">
+                        <div className="flex items-center justify-end space-x-1" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => onSelectApplication(app)}
+                            title={t("viewDetailBtn")}
+                            className="p-1.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-200 hover:border-tif-gold hover:text-tif-gold transition"
                           >
-                            Edit
-                          </Button>
-                        )}
-                        {onDeleteApplication && (
-                          <Button
-                            size="sm"
-                            variant="danger"
-                            onClick={() => onDeleteApplication(app.id)}
-                            className="text-xs rounded-xl"
-                          >
-                            Delete
-                          </Button>
-                        )}
-                      </div>
+                            <Eye className="h-3.5 w-3.5" />
+                          </button>
+                          {onEditApplication && (
+                            <button
+                              onClick={() => onEditApplication(app)}
+                              title={t("editBtn")}
+                              className="p-1.5 rounded-lg bg-slate-950 border border-slate-800 text-tif-gold hover:border-tif-gold transition"
+                            >
+                              <Edit3 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                          {onDeleteApplication && (
+                            <button
+                              onClick={() => onDeleteApplication(app.id)}
+                              title={t("deleteBtn")}
+                              className="p-1.5 rounded-lg bg-rose-600/20 border border-rose-500/30 text-rose-400 hover:bg-rose-600 hover:text-white transition"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="px-5 py-12 text-center text-slate-500">
+                      {t("noAppsFound")}
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center text-slate-500">
-                    No application records found matching your filters.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Pagination Footer */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400 px-2">
         <p>
-          Showing <span className="font-semibold text-slate-200">{paginatedData.length}</span> of{" "}
-          <span className="font-semibold text-slate-200">{sortedData.length}</span> applications
+          {t("showingAppsText")} <span className="font-semibold text-slate-200">{paginatedData.length}</span> {t("ofText")}{" "}
+          <span className="font-semibold text-slate-200">{sortedData.length}</span> {t("appsUnitText")}
         </p>
         <div className="flex items-center space-x-2">
           <Button
@@ -338,7 +448,7 @@ export function DataTable({ data, onSelectApplication, onEditApplication, onDele
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <span className="font-medium text-slate-300">
-            Page {currentPage} of {totalPages}
+            {t("pageText")} {currentPage} {t("ofText")} {totalPages}
           </span>
           <Button
             variant="outline"

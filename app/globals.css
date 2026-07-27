@@ -41,14 +41,15 @@
 }
 
 .gold-gradient-btn {
-  background: linear-gradient(135deg, #DFBA61 0%, #C8A24A 100%);
-  color: #051329;
-  transition: all 0.3s ease;
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  color: #0F172A;
+  font-weight: 700;
+  transition: all 0.2s ease-in-out;
 }
 
 .gold-gradient-btn:hover {
-  background: linear-gradient(135deg, #E6C572 0%, #DFBA61 100%);
-  box-shadow: 0 10px 25px -5px rgba(200, 162, 74, 0.5);
+  background: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
+  box-shadow: 0 4px 20px -2px rgba(245, 158, 11, 0.4);
   transform: translateY(-1px);
 }
 
