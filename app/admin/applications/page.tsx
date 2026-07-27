@@ -1718,7 +1718,7 @@ export default function StudentApplicationsPage() {
             <div className="space-y-3 animate-in fade-in duration-200">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-semibold text-slate-300">ชื่อ-นามสกุล บิดา (Father's Name)</label>
+                  <label className="font-semibold text-slate-300">ชื่อ-นามสกุล บิดา (Father&apos;s Name)</label>
                   <input
                     value={formFatherName}
                     onChange={(e) => setFormFatherName(e.target.value)}
@@ -1726,7 +1726,7 @@ export default function StudentApplicationsPage() {
                   />
                 </div>
                 <div>
-                  <label className="font-semibold text-slate-300">ชื่อ-นามสกุล มารดา (Mother's Name)</label>
+                  <label className="font-semibold text-slate-300">ชื่อ-นามสกุล มารดา (Mother&apos;s Name)</label>
                   <input
                     value={formMotherName}
                     onChange={(e) => setFormMotherName(e.target.value)}

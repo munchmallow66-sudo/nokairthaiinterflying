@@ -771,7 +771,7 @@ export default function TrackStatusPage() {
                       })
                     ) : (
                       <div className="col-span-1 sm:col-span-2 p-6 text-center rounded-xl bg-slate-900/60 border border-dashed border-slate-800 text-slate-400 text-xs">
-                        ยังไม่มีรายการเอกสารแนบในระบบ ท่านสามารถกดปุ่ม "+ แนบเอกสารเพิ่มเติม" เพื่อส่งเอกสารได้
+                        ยังไม่มีรายการเอกสารแนบในระบบ ท่านสามารถกดปุ่ม &quot;+ แนบเอกสารเพิ่มเติม&quot; เพื่อส่งเอกสารได้
                       </div>
                     )}
                   </div>
