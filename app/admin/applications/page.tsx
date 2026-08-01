@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { DataTable } from "@/components/ui/data-table";
@@ -273,6 +273,11 @@ export default function StudentApplicationsPage() {
   const [extraDocType, setExtraDocType] = React.useState("PASSPORT");
   const [extraDocUrl, setExtraDocUrl] = React.useState("");
   const [extraDocName, setExtraDocName] = React.useState("");
+
+  // Document Review Decision (Pass / Fail with comment)
+  const [reviewModalOpen, setReviewModalOpen] = React.useState(false);
+  const [reviewDecision, setReviewDecision] = React.useState<"PASS" | "FAIL">("PASS");
+  const [reviewComment, setReviewComment] = React.useState("");
 
   const handleOpenDocModal = (doc: any) => {
     setSelectedDoc(doc);
@@ -673,7 +678,7 @@ export default function StudentApplicationsPage() {
         id: "cadet-001",
         name: "Cadet Student Program",
         code: "CADET",
-        price: 1500,
+        price: 1800,
         duration: "Initial Entry",
       },
       documents: [],
@@ -685,6 +690,46 @@ export default function StudentApplicationsPage() {
     addApplication(newApp);
     setAddModalOpen(false);
     alert("เพิ่มใบสมัครใหม่เรียบร้อยแล้ว");
+  };
+
+  // 5. Document Review Decision (Pass → ready for payment, Fail → rejected with comment)
+  const handleOpenReviewModal = (decision: "PASS" | "FAIL") => {
+    setReviewDecision(decision);
+    setReviewComment(decision === "FAIL" ? "เอกสารไม่ครบถ้วน/ไม่ถูกต้อง กรุณาตรวจสอบและส่งใหม่" : "");
+    setReviewModalOpen(true);
+  };
+
+  const handleConfirmReview = () => {
+    if (!selectedApp) return;
+    if (reviewDecision === "FAIL" && !reviewComment.trim()) {
+      alert("กรุณาระบุเหตุผล/คำแนะนำสำหรับผู้สมัคร");
+      return;
+    }
+
+    const newNote = {
+      id: `note_${Date.now()}`,
+      content:
+        reviewDecision === "PASS"
+          ? `[ผ่านการตรวจเอกสาร]: เอกสารครบถ้วนและถูกต้อง ผู้สมัครสามารถชำระค่าสมัคร 1,800 บาทได้`
+          : `[ไม่ผ่านการตรวจเอกสาร]: ${reviewComment}`,
+      createdAt: new Date(),
+      author: {
+        name: "Admin User",
+        email: "admin@tif.ac.th",
+      },
+    };
+
+    updateApplication(selectedApp.id, {
+      status: reviewDecision === "PASS" ? ("DOCUMENT_VERIFIED" as any) : ("REJECTED" as any),
+      adminNotes: [newNote, ...(selectedApp.adminNotes || [])],
+    });
+
+    setReviewModalOpen(false);
+    alert(
+      reviewDecision === "PASS"
+        ? "อนุมัติเอกสารเรียบร้อยแล้ว — ระบบได้เปิดหน้าชำระค่าสมัคร 1,800 บาทให้ผู้สมัครแล้ว"
+        : "ปฏิเสธเอกสารเรียบร้อยแล้ว — ระบบได้แสดงคำแนะนำให้ผู้สมัครแก้ไขแล้ว"
+    );
   };
 
   const handleDeleteApp = (id: string) => {
@@ -1108,12 +1153,78 @@ export default function StudentApplicationsPage() {
                   </div>
                 </div>
 
+                {/* Document Review Decision Bar — Pass / Fail with comment */}
+                {(selectedApp.status === "SUBMITTED" || selectedApp.status === "WAITING_DOCUMENTS") && (
+                  <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-3">
+                    <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
+                      <ShieldCheck className="h-4 w-4 text-tif-gold" />
+                      <span className="text-xs font-bold text-white uppercase tracking-wider">
+                        สรุปผลการตรวจเอกสารเบื้องต้น (Document Review Decision)
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      หลังตรวจสอบเอกสารทั้งหมดแล้ว ให้กดปุ่มเพื่ออัปเดตสถานะให้ผู้สมัครทราบ:
+                      <br />
+                      <strong className="text-emerald-400">ผ่าน</strong> = เปิดหน้าชำระค่าสมัคร 1,800 บาทให้ผู้สมัคร |
+                      <strong className="text-rose-400"> ไม่ผ่าน</strong> = แสดงคำแนะนำ/เหตุผลให้ผู้สมัครแก้ไข
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Button
+                        size="sm"
+                        variant="gold"
+                        onClick={() => handleOpenReviewModal("PASS")}
+                        className="flex-1 font-bold bg-emerald-600 hover:bg-emerald-700 border-emerald-500"
+                      >
+                        <CheckCircle2 className="mr-1.5 h-4 w-4" /> ผ่านการตรวจเอกสาร → เปิดหน้าชำระเงิน
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        onClick={() => handleOpenReviewModal("FAIL")}
+                        className="flex-1 font-bold"
+                      >
+                        <XCircle className="mr-1.5 h-4 w-4" /> ไม่ผ่าน → แจ้งเหตุผล/คำแนะนำ
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Already reviewed status indicator */}
+                {(selectedApp.status === "DOCUMENT_VERIFIED" || selectedApp.status === "REJECTED") && (
+                  <div className={`p-4 rounded-xl border space-y-2 ${
+                    selectedApp.status === "DOCUMENT_VERIFIED"
+                      ? "bg-emerald-950/30 border-emerald-800"
+                      : "bg-rose-950/30 border-rose-800"
+                  }`}>
+                    <div className={`flex items-center gap-2 font-bold text-xs ${
+                      selectedApp.status === "DOCUMENT_VERIFIED" ? "text-emerald-400" : "text-rose-400"
+                    }`}>
+                      {selectedApp.status === "DOCUMENT_VERIFIED" ? (
+                        <><CheckCircle2 className="h-4 w-4" /> ผ่านการตรวจเอกสารแล้ว — ผู้สมัครสามารถชำระค่าสมัคร 1,800 บาทได้</>
+                      ) : (
+                        <><XCircle className="h-4 w-4" /> ไม่ผ่านการตรวจเอกสาร — ได้แจ้งเหตุผลให้ผู้สมัครแล้ว</>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-400">
+                      หากต้องการเปลี่ยนผล สามารถกดปุ่มด้านล่างเพื่อตรวจสอบใหม่
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleOpenReviewModal("PASS")}
+                      className="text-xs font-semibold border-slate-700 text-slate-300 hover:border-tif-gold"
+                    >
+                      ตรวจสอบใหม่ (Re-review)
+                    </Button>
+                  </div>
+                )}
+
                 {selectedApp.documents && selectedApp.documents.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {selectedApp.documents.map((doc) => {
                       const docTypeLabels: Record<string, string> = {
                         // Candidate Application Form keys
-                        APPLICATION_FEE_SLIP: "สลิปชำระเงินค่าสมัคร 1,500 บาท",
+                        APPLICATION_FEE_SLIP: "สลิปชำระเงินค่าสมัคร 1,800 บาท",
                         PHOTO_1_INCH: "รูปถ่าย 1 นิ้ว (Passport Photo 1\")",
                         PHOTO_2_INCH: "รูปถ่าย 2 นิ้ว (Passport Photo 2\")",
                         NATIONAL_ID_CERTIFIED: "สำเนาบัตรประชาชน (รับรองสำเนาถูกต้อง)",
@@ -1651,7 +1762,7 @@ export default function StudentApplicationsPage() {
                   <option value="DOCUMENT_VERIFIED">Docs Verified (ตรวจเอกสารแล้ว)</option>
                   <option value="INTERVIEW_SCHEDULED">Interview Scheduled (นัดสัมภาษณ์แล้ว)</option>
                   <option value="ACCEPTED">Accepted (อนุมัติผลการสมัคร)</option>
-                  <option value="PAID">Paid (ชำระค่าสมัคร 1,500 บาทแล้ว)</option>
+                  <option value="PAID">Paid (ชำระค่าสมัคร 1,800 บาทแล้ว)</option>
                   <option value="ENROLLED">Enrolled (ลงทะเบียนเป็นศิษย์บินแล้ว)</option>
                   <option value="REJECTED">Rejected (ปฏิเสธการสมัคร)</option>
                 </select>
@@ -2178,6 +2289,76 @@ export default function StudentApplicationsPage() {
             </Button>
             <Button variant="gold" size="sm" onClick={handleConfirmAddExtraDoc} className="font-bold">
               เพิ่มเอกสารเข้าสู่ระบบ
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* DOCUMENT REVIEW DECISION MODAL (Pass / Fail with comment) */}
+      <Modal
+        isOpen={reviewModalOpen}
+        onClose={() => setReviewModalOpen(false)}
+        title={
+          reviewDecision === "PASS"
+            ? "ยืนยันผลการตรวจเอกสาร: ผ่าน (Approved)"
+            : "ยืนยันผลการตรวจเอกสาร: ไม่ผ่าน (Rejected)"
+        }
+        description={
+          reviewDecision === "PASS"
+            ? "เอกสารครบถ้วนและถูกต้อง ระบบจะเปิดหน้าชำระค่าสมัคร 1,800 บาทให้ผู้สมัคร"
+            : "กรุณาระบุเหตุผล/คำแนะนำที่ต้องการให้ผู้สมัครทราบและแก้ไข"
+        }
+      >
+        <div className="space-y-4 text-xs">
+          {/* Decision indicator */}
+          <div className={`p-3 rounded-xl border flex items-center gap-2 ${
+            reviewDecision === "PASS"
+              ? "bg-emerald-950/40 border-emerald-800 text-emerald-300"
+              : "bg-rose-950/40 border-rose-800 text-rose-300"
+          }`}>
+            {reviewDecision === "PASS" ? (
+              <><CheckCircle2 className="h-4 w-4" /> ผ่านการตรวจเอกสาร — เปิดหน้าชำระค่าสมัคร 1,800 บาท</>
+            ) : (
+              <><XCircle className="h-4 w-4" /> ไม่ผ่านการตรวจเอกสาร — แจ้งเหตุผลให้ผู้สมัครแก้ไข</>
+            )}
+          </div>
+
+          {/* Comment / Reason field */}
+          <div>
+            <label className="font-semibold text-slate-300 block mb-1">
+              {reviewDecision === "PASS"
+                ? "หมายเหตุเพิ่มเติม (ไม่บังคับ)"
+                : "เหตุผล / คำแนะนำสำหรับผู้สมัคร *"}
+            </label>
+            <textarea
+              rows={4}
+              value={reviewComment}
+              onChange={(e) => setReviewComment(e.target.value)}
+              placeholder={
+                reviewDecision === "PASS"
+                  ? "เช่น เอกสารครบถ้วนถูกต้อง สามารถชำระค่าสมัครได้"
+                  : "เช่น สำเนาบัตรประชาชนไม่ชัดเจน กรุณาอัปโหลดใหม่, ขาดใบรับรองแพทย์, รูปถ่ายไม่ตรงกับเงื่อนไข..."
+              }
+              className="w-full rounded-xl border border-slate-800 bg-slate-950 p-2.5 text-sm text-white focus:border-tif-gold focus:outline-none"
+            />
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex items-center justify-end space-x-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setReviewModalOpen(false)}>
+              ยกเลิก
+            </Button>
+            <Button
+              size="sm"
+              variant="gold"
+              onClick={handleConfirmReview}
+              className={`font-bold ${
+                reviewDecision === "PASS"
+                  ? "bg-emerald-600 hover:bg-emerald-700 border-emerald-500"
+                  : "bg-rose-600 hover:bg-rose-700 border-rose-500"
+              }`}
+            >
+              {reviewDecision === "PASS" ? "ยืนยัน: ผ่านการตรวจเอกสาร" : "ยืนยัน: ไม่ผ่าน + ส่งคำแนะนำ"}
             </Button>
           </div>
         </div>

@@ -20,7 +20,7 @@ const config: Config = {
           goldDark: "#A38032",
           silver: "#E2E8F0",
           slate: "#0F172A",
-          bgLight: "#F8FAFC",
+          bgLight: "#f5f5f5",
         },
         primary: {
           DEFAULT: "#0A2342",

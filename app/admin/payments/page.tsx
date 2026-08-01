@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { Button } from "@/components/ui/button";
@@ -27,8 +27,8 @@ const SAMPLE_PAYMENTS = [
     id: "pay-1",
     appNum: "TIF-2026-8812",
     student: "Somchai Jaidee (สมชาย ใจดี)",
-    feeType: "ค่าสมัครเรียนการบินออนไลน์ 1,500 บาท",
-    amount: 1500,
+    feeType: "ค่าสมัครเรียนการบินออนไลน์ 1,800 บาท",
+    amount: 1800,
     invoiceNo: "INV-2026-0091",
     receiptNo: "RCT-2026-0091",
     status: "VERIFIED",
@@ -39,8 +39,8 @@ const SAMPLE_PAYMENTS = [
     id: "pay-2",
     appNum: "TIF-2026-4401",
     student: "Kanchana Sukhumvit (กาญจนา สุขุมวิท)",
-    feeType: "ค่าสมัครเรียนการบินออนไลน์ 1,500 บาท",
-    amount: 1500,
+    feeType: "ค่าสมัครเรียนการบินออนไลน์ 1,800 บาท",
+    amount: 1800,
     invoiceNo: "INV-2026-0092",
     receiptNo: null,
     status: "PENDING",
@@ -68,7 +68,7 @@ export default function PaymentsPage() {
   // Form states
   const [formAppNum, setFormAppNum] = React.useState("");
   const [formStudent, setFormStudent] = React.useState("");
-  const [formAmount, setFormAmount] = React.useState(1500);
+  const [formAmount, setFormAmount] = React.useState(1800);
   const [formStatus, setFormStatus] = React.useState("PENDING");
 
   const fetchPayments = React.useCallback(() => {
@@ -112,7 +112,7 @@ export default function PaymentsPage() {
   const handleOpenAdd = () => {
     setFormAppNum(`TIF-2026-${Math.floor(1000 + Math.random() * 9000)}`);
     setFormStudent("");
-    setFormAmount(1500);
+    setFormAmount(1800);
     setFormStatus("PENDING");
     setAddModalOpen(true);
   };
@@ -127,7 +127,7 @@ export default function PaymentsPage() {
       id: `pay_${Date.now()}`,
       appNum: formAppNum,
       student: formStudent,
-      feeType: "ค่าสมัครเรียนการบินออนไลน์ 1,500 บาท",
+      feeType: "ค่าสมัครเรียนการบินออนไลน์ 1,800 บาท",
       amount: formAmount,
       invoiceNo: `INV-2026-${Math.floor(1000 + Math.random() * 9000)}`,
       receiptNo: formStatus === "VERIFIED" ? `RCT-2026-${Math.floor(1000 + Math.random() * 9000)}` : null,
@@ -473,7 +473,7 @@ export default function PaymentsPage() {
         isOpen={viewSlipModalOpen}
         onClose={() => setViewSlipModalOpen(false)}
         title={`ตรวจสอบสลิปโอนเงิน (${viewingPay?.appNum || ""})`}
-        description={`ผู้ชำระเงิน: ${viewingPay?.student || ""} | ยอดเงิน: 1,500 THB`}
+        description={`ผู้ชำระเงิน: ${viewingPay?.student || ""} | ยอดเงิน: 1,800 THB`}
       >
         {viewingPay && (
           <div className="space-y-4 text-xs text-slate-200">
@@ -506,7 +506,7 @@ export default function PaymentsPage() {
                   onClick={() => {
                     handleVerify(viewingPay.id);
                     setViewSlipModalOpen(false);
-                    alert(`อนุมัติสลิป 1,500 บาท เรียบร้อยแล้ว`);
+                    alert(`อนุมัติสลิป 1,800 บาท เรียบร้อยแล้ว`);
                   }}
                   className="font-bold shadow-md"
                 >
@@ -525,7 +525,7 @@ export default function PaymentsPage() {
       <Modal
         isOpen={addModalOpen}
         onClose={() => setAddModalOpen(false)}
-        title="เพิ่มรายการชำระเงินค่าสมัคร 1,500 บาท"
+        title="เพิ่มรายการชำระเงินค่าสมัคร 1,800 บาท"
       >
         <div className="space-y-4 text-xs">
           <div>

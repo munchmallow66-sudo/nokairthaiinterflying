@@ -168,10 +168,14 @@ export async function POST(req: Request) {
 
       switch (app.status) {
         case "SUBMITTED":
-        case "PAYMENT_PENDING":
           stepIndex = 1;
-          statusLabelTh = "รอดำเนินการตรวจสอบเอกสารและสลิปชำระเงิน";
-          statusLabelEn = "Pending Document & Payment Verification";
+          statusLabelTh = "รอเจ้าหน้าที่ตรวจสอบเอกสารเบื้องต้น";
+          statusLabelEn = "Pending Initial Document Review by Admin";
+          break;
+        case "PAYMENT_PENDING":
+          stepIndex = 2;
+          statusLabelTh = "เอกสารผ่านการตรวจสอบแล้ว — กรุณาชำระค่าสมัคร 1,800 บาท";
+          statusLabelEn = "Documents Approved — Please Pay 1,800 THB Application Fee";
           break;
         case "WAITING_DOCUMENTS":
           stepIndex = 1;
@@ -179,10 +183,14 @@ export async function POST(req: Request) {
           statusLabelEn = "Re-upload Required / Additional Documents Needed";
           break;
         case "DOCUMENT_VERIFIED":
+          stepIndex = 2;
+          statusLabelTh = "เอกสารผ่านการตรวจสอบแล้ว — กรุณาชำระค่าสมัคร 1,800 บาท";
+          statusLabelEn = "Documents Approved — Please Pay 1,800 THB Application Fee";
+          break;
         case "PAID":
           stepIndex = 2;
-          statusLabelTh = "ผ่านการตรวจสอบเอกสารเรียบร้อยแล้ว (กำลังรอนัดสอบข้อเขียน)";
-          statusLabelEn = "Documents Approved & Verified";
+          statusLabelTh = "ชำระค่าสมัคร 1,800 บาทแล้ว (รอนัดสอบข้อเขียน)";
+          statusLabelEn = "Application Fee Paid — Awaiting Written Exam Schedule";
           break;
         case "WRITTEN_EXAM_SCHEDULED":
         case "WRITTEN_EXAM_PASSED":

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
@@ -286,7 +286,7 @@ export function MultiStepForm() {
         body: JSON.stringify({
           appNum: submitSuccess?.appNum || "TIF-2026-1973",
           studentName: watchedValues?.firstNameTh ? `${watchedValues.firstNameTh} ${watchedValues.lastNameTh}` : "สมชาย ใจดี",
-          amount: 1500,
+          amount: 1800,
           slipUrl: slipDataUrl,
         }),
       });
@@ -321,10 +321,10 @@ export function MultiStepForm() {
         {!showPaymentNow && !slipUploaded ? (
           <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 mb-6 space-y-4 text-center">
             <h4 className="text-base font-bold text-tif-navy">
-              ขั้นตอนถัดไป: ชำระค่าธรรมเนียมสมัครเรียน 1,500 บาท
+              ขั้นตอนถัดไป: ชำระค่าธรรมเนียมสมัครเรียน 1,800 บาท
             </h4>
             <p className="text-xs text-slate-600 leading-relaxed max-w-md mx-auto">
-              เพื่อความรวดเร็วในการจัดตารางสอบสัมภาษณ์และตรวจเวชศาสตร์การบิน คุณสามารถชำระค่าสมัคร 1,500 บาท และแนบสลิปได้ทันที หรือเลือกชำระเงินภายหลัง
+              เพื่อความรวดเร็วในการจัดตารางสอบสัมภาษณ์และตรวจเวชศาสตร์การบิน คุณสามารถชำระค่าสมัคร 1,800 บาท และแนบสลิปได้ทันที หรือเลือกชำระเงินภายหลัง
             </p>
 
             <div className="flex flex-col sm:flex-row justify-center gap-3 pt-2">
@@ -334,7 +334,7 @@ export function MultiStepForm() {
                 onClick={() => setShowPaymentNow(true)}
                 className="font-bold shadow-md text-xs sm:text-sm"
               >
-                <CreditCard className="mr-2 h-4 w-4" /> ชำระเงินและแนบสลิปทันที (Pay 1,500 THB Now)
+                <CreditCard className="mr-2 h-4 w-4" /> ชำระเงินและแนบสลิปทันที (Pay 1,800 THB Now)
               </Button>
               <Button
                 variant="outline"
@@ -355,7 +355,7 @@ export function MultiStepForm() {
               ส่งสลิปโอนเงินเรียบร้อยแล้ว!
             </h4>
             <p className="text-xs text-emerald-700">
-              เจ้าหน้าที่สถาบัน Thai Inter Flying ได้รับสลิปค่าสมัคร 1,500 บาท ของหมายเลขใบสมัคร <strong className="font-mono">{submitSuccess.appNum}</strong> เรียบร้อยแล้ว
+              เจ้าหน้าที่สถาบัน Thai Inter Flying ได้รับสลิปค่าสมัคร 1,800 บาท ของหมายเลขใบสมัคร <strong className="font-mono">{submitSuccess.appNum}</strong> เรียบร้อยแล้ว
             </p>
           </div>
         ) : (
@@ -363,7 +363,7 @@ export function MultiStepForm() {
           <div className="bg-slate-900 text-slate-100 border border-slate-800 rounded-2xl p-6 mb-6 space-y-6 animate-in fade-in duration-300">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h4 className="text-sm font-bold text-tif-gold flex items-center">
-                <CreditCard className="mr-2 h-4 w-4 text-tif-gold" /> ชำระค่าสมัคร 1,500 บาท ผ่าน QR PromptPay หรือ โอนเงินผ่านธนาคาร
+                <CreditCard className="mr-2 h-4 w-4 text-tif-gold" /> ชำระค่าสมัคร 1,800 บาท ผ่าน QR PromptPay หรือ โอนเงินผ่านธนาคาร
               </h4>
               <button
                 type="button"
@@ -381,12 +381,12 @@ export function MultiStepForm() {
                   Scan QR PromptPay
                 </span>
                 <img
-                  src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=ThaiInterFlying_ApplicationFee_1500THB"
-                  alt="PromptPay QR Code 1500 THB"
+                  src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=ThaiInterFlying_ApplicationFee_1800THB"
+                  alt="PromptPay QR Code 1800 THB"
                   className="w-40 h-40 mx-auto rounded-lg border"
                 />
                 <p className="text-xs font-bold text-tif-navy font-mono">
-                  จำนวนเงิน: 1,500.00 บาท
+                  จำนวนเงิน: 1,800.00 บาท
                 </p>
               </div>
 

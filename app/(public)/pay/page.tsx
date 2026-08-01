@@ -48,8 +48,8 @@ export default function PaymentPage() {
         appNum: appNumber.trim().toUpperCase().includes("TIF") ? appNumber.trim().toUpperCase() : `TIF-2026-8812`,
         studentName: "สมชาย ใจดี (Somchai Jaidee)",
         phone: "081-999-8888",
-        status: "รอชำระค่าสมัคร 1,500 บาท",
-        amount: 1500,
+        status: "รอชำระค่าสมัคร 1,800 บาท",
+        amount: 1800,
       });
     }, 800);
   };
@@ -74,7 +74,7 @@ export default function PaymentPage() {
         body: JSON.stringify({
           appNum: foundApp?.appNum || "TIF-2026-1973",
           studentName: foundApp?.studentName || "สมชาย ใจดี",
-          amount: 1500,
+          amount: 1800,
           slipUrl: slipDataUrl,
         }),
       });
@@ -88,7 +88,7 @@ export default function PaymentPage() {
   };
 
   return (
-    <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8 bg-tif-navyDark text-slate-100 relative overflow-hidden">
+    <div className="min-h-screen pt-28 pb-16 px-4 sm:px-6 lg:px-8 bg-[#f5f5f5] text-slate-900 relative overflow-hidden">
       {/* Background Glow */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-tif-gold/15 rounded-full blur-[140px] pointer-events-none" />
 
@@ -100,7 +100,7 @@ export default function PaymentPage() {
             <span>Thai Inter Flying Admission Payment</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold font-display text-white tracking-tight">
-            ชำระค่าธรรมเนียมสมัครเรียน 1,500 บาท
+            ชำระค่าธรรมเนียมสมัครเรียน 1,800 บาท
           </h1>
           <p className="text-sm max-w-xl mx-auto text-slate-300 font-medium">
             กรอกหมายเลขใบสมัคร (Application Number) หรือเลขบัตรประชาชนเพื่อค้นหาและแนบสลิปชำระเงิน
@@ -147,7 +147,7 @@ export default function PaymentPage() {
 
               <div className="bg-slate-950 border border-slate-800 p-4 rounded-2xl text-right">
                 <span className="text-[10px] text-slate-400 block uppercase font-bold">ยอดเงินที่ต้องชำระ</span>
-                <span className="text-2xl font-bold text-emerald-400 font-mono">1,500 THB</span>
+                <span className="text-2xl font-bold text-emerald-400 font-mono">1,800 THB</span>
               </div>
             </div>
 
@@ -172,15 +172,15 @@ export default function PaymentPage() {
                 {/* QR PromptPay */}
                 <div className="bg-white p-5 rounded-2xl text-slate-900 text-center space-y-2 shadow-xl">
                   <span className="text-xs font-extrabold uppercase tracking-wider text-slate-600 block">
-                    สแกน QR PromptPay ชำระเงิน 1,500 บาท
+                    สแกน QR PromptPay ชำระเงิน 1,800 บาท
                   </span>
                   <img
-                    src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=ThaiInterFlying_ApplicationFee_1500THB"
+                    src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=ThaiInterFlying_ApplicationFee_1800THB"
                     alt="PromptPay QR Code"
                     className="w-48 h-48 mx-auto rounded-xl border border-slate-200 p-1"
                   />
                   <p className="text-xs font-bold text-tif-navy font-mono">
-                    ยอดชำระ: 1,500.00 บาท
+                    ยอดชำระ: 1,800.00 บาท
                   </p>
                 </div>
 
@@ -215,7 +215,7 @@ export default function PaymentPage() {
                     onClick={handleUploadSlip}
                     disabled={uploading}
                   >
-                    {uploading ? "กำลังส่งสลิป..." : "ยืนยันส่งสลิปค่าสมัคร 1,500 บาท"}
+                    {uploading ? "กำลังส่งสลิป..." : "ยืนยันส่งสลิปค่าสมัคร 1,800 บาท"}
                   </Button>
                 </div>
               </div>

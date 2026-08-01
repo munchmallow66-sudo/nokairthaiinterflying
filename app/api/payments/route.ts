@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
@@ -8,8 +8,8 @@ let paymentsStore: any[] = [
     id: "pay-1",
     appNum: "TIF-2026-8812",
     student: "Somchai Jaidee (สมชาย ใจดี)",
-    feeType: "ค่าสมัครเรียนการบินออนไลน์ 1,500 บาท",
-    amount: 1500,
+    feeType: "ค่าสมัครเรียนการบินออนไลน์ 1,800 บาท",
+    amount: 1800,
     invoiceNo: "INV-2026-0091",
     receiptNo: "RCT-2026-0091",
     status: "VERIFIED",
@@ -20,8 +20,8 @@ let paymentsStore: any[] = [
     id: "pay-2",
     appNum: "TIF-2026-4401",
     student: "Kanchana Sukhumvit (กาญจนา สุขุมวิท)",
-    feeType: "ค่าสมัครเรียนการบินออนไลน์ 1,500 บาท",
-    amount: 1500,
+    feeType: "ค่าสมัครเรียนการบินออนไลน์ 1,800 บาท",
+    amount: 1800,
     invoiceNo: "INV-2026-0092",
     receiptNo: null,
     status: "PENDING",
@@ -48,8 +48,8 @@ export async function GET() {
         id: p.id,
         appNum: p.application?.applicationNumber || "TIF-2026-XXXX",
         student: p.application?.student ? `${p.application.student.firstNameTh} ${p.application.student.lastNameTh}` : "ผู้สมัครศิษย์บิน",
-        feeType: "ค่าสมัครเรียนการบินออนไลน์ 1,500 บาท",
-        amount: Number(p.amount) || 1500,
+        feeType: "ค่าสมัครเรียนการบินออนไลน์ 1,800 บาท",
+        amount: Number(p.amount) || 1800,
         invoiceNo: p.invoiceNumber || `INV-2026-${Math.floor(1000 + Math.random() * 9000)}`,
         receiptNo: p.receiptNumber || null,
         status: p.status === "VERIFIED" || p.status === "APPROVED" ? "VERIFIED" : "PENDING",
@@ -93,8 +93,8 @@ export async function POST(req: Request) {
       id: `pay_${Date.now()}`,
       appNum: appNum || `TIF-2026-${Math.floor(1000 + Math.random() * 9000)}`,
       student: studentName || "ผู้สมัครศิษย์บิน",
-      feeType: "ค่าสมัครเรียนการบินออนไลน์ 1,500 บาท",
-      amount: amount || 1500,
+      feeType: "ค่าสมัครเรียนการบินออนไลน์ 1,800 บาท",
+      amount: amount || 1800,
       invoiceNo: `INV-2026-${Math.floor(1000 + Math.random() * 9000)}`,
       receiptNo: null,
       status: "PENDING",

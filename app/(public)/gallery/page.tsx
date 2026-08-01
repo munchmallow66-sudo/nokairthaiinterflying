@@ -25,7 +25,7 @@ const GALLERY_ITEMS = [
 
 export default function GalleryPage() {
   return (
-    <div className="py-16 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-12">
+    <div className="pt-28 pb-16 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-12">
       <div className="text-center max-w-3xl mx-auto space-y-4">
         <span className="text-xs font-bold uppercase tracking-widest text-tif-gold block">
           Fleet & Campus

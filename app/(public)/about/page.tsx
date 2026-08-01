@@ -2,7 +2,7 @@ import { Plane, ShieldCheck, Award, MapPin } from "lucide-react";
 
 export default function AboutPage() {
   return (
-    <div className="py-16 space-y-16 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div className="pt-28 pb-16 space-y-16 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       {/* Header */}
       <div className="text-center max-w-3xl mx-auto space-y-4">
         <span className="text-xs font-bold uppercase tracking-widest text-tif-gold block">

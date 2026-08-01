@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import {
@@ -187,7 +187,7 @@ export function DataTable({ data, onSelectApplication, onEditApplication, onDele
               <option value="DOCUMENT_VERIFIED" className="bg-slate-900 text-slate-200">Docs Verified</option>
               <option value="INTERVIEW_SCHEDULED" className="bg-slate-900 text-slate-200">Interview Scheduled</option>
               <option value="ACCEPTED" className="bg-slate-900 text-slate-200">Accepted</option>
-              <option value="PAID" className="bg-slate-900 text-slate-200">Fee Paid (1,500 THB)</option>
+              <option value="PAID" className="bg-slate-900 text-slate-200">Fee Paid (1,800 THB)</option>
             </select>
           </div>
 
@@ -281,7 +281,7 @@ export function DataTable({ data, onSelectApplication, onEditApplication, onDele
                 <div className="flex flex-wrap items-center justify-between md:justify-end gap-3 shrink-0 pt-3 md:pt-0 border-t md:border-t-0 border-slate-800/80">
                   <div className="flex items-center space-x-2">
                     <span className="font-mono text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-full">
-                      1,500 THB
+                      1,800 THB
                     </span>
                     <div>{getStatusBadge(app.status)}</div>
                   </div>
@@ -384,7 +384,7 @@ export function DataTable({ data, onSelectApplication, onEditApplication, onDele
                         {app.student.phone || "-"}
                       </td>
                       <td className="px-3 py-3 font-semibold text-emerald-400 font-mono truncate">
-                        1,500
+                        1,800
                       </td>
                       <td className="px-3 py-3">{getStatusBadge(app.status)}</td>
                       <td className="px-3 py-3 text-right">

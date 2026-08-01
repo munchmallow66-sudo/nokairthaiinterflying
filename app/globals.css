@@ -6,15 +6,24 @@
 
 @layer base {
   body {
-    @apply bg-tif-navyDark text-slate-100 font-sans antialiased selection:bg-tif-gold selection:text-tif-navyDark;
+    @apply bg-[#f5f5f5] text-slate-900 font-sans antialiased selection:bg-tif-gold selection:text-tif-navyDark;
   }
 }
 
 .glass-nav {
-  background: rgba(10, 35, 66, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(200, 162, 74, 0.2);
+  background: rgba(10, 35, 66, 0.88);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(200, 162, 74, 0.35);
+  box-shadow: 0 15px 35px -10px rgba(5, 19, 41, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
+}
+
+.glass-pill-nav {
+  background: rgba(10, 35, 66, 0.88);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border: 1px solid rgba(200, 162, 74, 0.35);
+  box-shadow: 0 20px 40px -10px rgba(5, 19, 41, 0.6), inset 0 1px 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .glass-card {
@@ -51,6 +60,95 @@
   background: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
   box-shadow: 0 4px 20px -2px rgba(245, 158, 11, 0.4);
   transform: translateY(-1px);
+}
+
+/* Typography Entrance & Ultra High-End Kinetic Animations */
+@keyframes textSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(28px);
+    filter: blur(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes goldShimmerBeam {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.gold-shimmer-text {
+  background: linear-gradient(
+    90deg,
+    #F59E0B 0%,
+    #FFF0C3 25%,
+    #DFBA61 50%,
+    #FFF0C3 75%,
+    #C8A24A 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: goldShimmerBeam 4s linear infinite;
+}
+
+@keyframes flightLineDraw {
+  0% {
+    width: 0%;
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    width: 100%;
+    opacity: 1;
+  }
+}
+
+.animate-flight-line {
+  animation: flightLineDraw 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes wordReveal3D {
+  0% {
+    opacity: 0;
+    transform: translateY(120%) rotateX(-35deg) scale(0.92);
+    filter: blur(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0%) rotateX(0deg) scale(1);
+    filter: blur(0px);
+  }
+}
+
+.animate-word-3d {
+  display: inline-block;
+  transform-origin: bottom center;
+  animation: wordReveal3D 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-hero-title {
+  animation: textSlideUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-hero-desc {
+  opacity: 0;
+  animation: textSlideUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.25s forwards;
+}
+
+.animate-hero-cta {
+  opacity: 0;
+  animation: textSlideUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.45s forwards;
 }
 
 /* Aviation & Jet Animations */
@@ -111,6 +209,31 @@
   animation: shimmerSweep 4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
+/* Editorial & SaaS Premium Styles */
+.editorial-bento-card {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 10px 40px -10px rgba(10, 35, 66, 0.05), inset 0 1px 0 0 rgba(255, 255, 255, 0.8);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.editorial-bento-card:hover {
+  border-color: rgba(200, 162, 74, 0.6);
+  box-shadow: 0 20px 50px -15px rgba(10, 35, 66, 0.12), 0 0 25px rgba(200, 162, 74, 0.15);
+  transform: translateY(-3px);
+}
+
+.editorial-number-watermark {
+  font-family: 'Cinzel', serif;
+  font-weight: 800;
+  color: rgba(10, 35, 66, 0.04);
+  line-height: 1;
+  user-select: none;
+  pointer-events: none;
+}
+
 .animate-gold-pulse {
   animation: goldPulse 3s ease-in-out infinite;
 }
@@ -145,4 +268,35 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: #C8A24A;
+}
+
+/* Apple Aesthetic Ambient Background Utilities */
+.apple-bg-pattern {
+  background-color: #fafafa;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(200, 162, 74, 0.04) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(14, 116, 144, 0.04) 0px, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(245, 158, 11, 0.03) 0px, transparent 50%),
+    radial-gradient(at 80% 100%, rgba(10, 35, 66, 0.04) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(200, 162, 74, 0.03) 0px, transparent 50%);
+}
+
+.apple-grid-lines {
+  background-image: 
+    linear-gradient(to right, rgba(15, 23, 42, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(15, 23, 42, 0.035) 1px, transparent 1px);
+  background-size: 3.5rem 3.5rem;
+}
+
+.apple-noise-overlay {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.035'/%3E%3C/svg%3E");
+}
+
+/* Glassmorphic card refinement */
+.glass-apple-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 10px 40px -10px rgba(10, 35, 66, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
 }

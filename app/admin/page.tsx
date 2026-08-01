@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import Link from "next/link";
@@ -35,7 +35,7 @@ export default function AdminDashboardPage() {
       id: "app-1",
       appNum: "TIF-2026-8812",
       name: "Somchai Jaidee (สมชาย ใจดี)",
-      feeInfo: "ค่าสมัครเรียน 1,500 บาท",
+      feeInfo: "ค่าสมัครเรียน 1,800 บาท",
       status: "SUBMITTED",
       date: "2026-07-24",
     },
@@ -43,7 +43,7 @@ export default function AdminDashboardPage() {
       id: "app-2",
       appNum: "TIF-2026-4401",
       name: "Kanchana Sukhumvit (กาญจนา สุขุมวิท)",
-      feeInfo: "ค่าสมัครเรียน 1,500 บาท",
+      feeInfo: "ค่าสมัครเรียน 1,800 บาท",
       status: "DOCUMENT_VERIFIED",
       date: "2026-07-23",
     },
@@ -51,7 +51,7 @@ export default function AdminDashboardPage() {
       id: "app-3",
       appNum: "TIF-2026-1092",
       name: "Thanakorn Wong (ธนกร วงศ์)",
-      feeInfo: "ค่าสมัครเรียน 1,500 บาท",
+      feeInfo: "ค่าสมัครเรียน 1,800 บาท",
       status: "INTERVIEW_SCHEDULED",
       date: "2026-07-22",
     },
@@ -59,7 +59,7 @@ export default function AdminDashboardPage() {
       id: "app-4",
       appNum: "TIF-2026-9043",
       name: "Nattapong Kittisak (ณัฐพงษ์ กิตติศักดิ์)",
-      feeInfo: "ค่าสมัครเรียน 1,500 บาท",
+      feeInfo: "ค่าสมัครเรียน 1,800 บาท",
       status: "PAID",
       date: "2026-07-21",
     },
@@ -70,7 +70,7 @@ export default function AdminDashboardPage() {
       case "PAID":
         return (
           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-            <CheckCircle2 className="w-3 h-3 mr-1" /> ชำระค่าสมัคร 1,500 บาทแล้ว
+            <CheckCircle2 className="w-3 h-3 mr-1" /> ชำระค่าสมัคร 1,800 บาทแล้ว
           </span>
         );
       case "INTERVIEW_SCHEDULED":
@@ -106,7 +106,7 @@ export default function AdminDashboardPage() {
             ระบบตรวจเช็กและจัดการแบบฟอร์มสมัครเรียนการบินออนไลน์
           </h1>
           <p className="text-xs lg:text-sm text-slate-400 mt-1">
-            สำหรับเจ้าหน้าที่ตรวจสอบความถูกต้องของข้อมูลใบสมัคร 9 ขั้นตอน สลิปชำระเงินค่าสมัคร 1,500 บาท และจัดตารางสอบสัมภาษณ์
+            สำหรับเจ้าหน้าที่ตรวจสอบความถูกต้องของข้อมูลใบสมัคร 9 ขั้นตอน สลิปชำระเงินค่าสมัคร 1,800 บาท และจัดตารางสอบสัมภาษณ์
           </p>
         </div>
         <div className="flex items-center space-x-3 shrink-0">
@@ -155,7 +155,7 @@ export default function AdminDashboardPage() {
         {/* Total Revenue */}
         <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition shadow-xl group">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">ยอดรวมค่าสมัคร 1,500 บาท</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">ยอดรวมค่าสมัคร 1,800 บาท</span>
             <div className="p-2.5 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20 group-hover:scale-110 transition-transform">
               <DollarSign className="h-4 w-4" />
             </div>
@@ -250,7 +250,7 @@ export default function AdminDashboardPage() {
             </Link>
             <Link href="/admin/payments" className="block">
               <Button variant="outline" className="w-full justify-start text-xs bg-slate-950/60 border-slate-800 hover:border-emerald-500/40 text-slate-200 h-11 rounded-xl">
-                <DollarSign className="mr-2.5 h-4 w-4 text-emerald-400" /> ตรวจสอบสลิปโอนเงินค่าสมัคร 1,500 บาท
+                <DollarSign className="mr-2.5 h-4 w-4 text-emerald-400" /> ตรวจสอบสลิปโอนเงินค่าสมัคร 1,800 บาท
               </Button>
             </Link>
           </div>
@@ -267,7 +267,7 @@ export default function AdminDashboardPage() {
             <div className="space-y-2 text-xs">
               <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/50 border border-slate-800/60">
                 <span className="text-slate-200 font-medium">ค่าธรรมเนียมสมัครเรียน</span>
-                <span className="text-emerald-400 font-semibold text-[11px]">1,500 THB</span>
+                <span className="text-emerald-400 font-semibold text-[11px]">1,800 THB</span>
               </div>
               <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/50 border border-slate-800/60">
                 <span className="text-slate-200 font-medium">แบบฟอร์มสมัครออนไลน์</span>
