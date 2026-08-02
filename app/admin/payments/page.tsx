@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { Button } from "@/components/ui/button";
@@ -384,10 +384,10 @@ export default function PaymentsPage() {
           ))}
         </div>
       ) : (
-        /* Fixed Width Table Layout */
+        /* Fixed Width Table Layout with Mobile Scroll Support */
         <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/80 backdrop-blur-xl shadow-xl">
-          <div className="w-full">
-            <table className="w-full text-left text-xs text-slate-300 table-fixed border-collapse">
+          <div className="w-full overflow-x-auto">
+            <table className="w-full text-left text-xs text-slate-300 min-w-[700px] border-collapse">
               <thead className="bg-slate-950/90 text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-800">
                 <tr>
                   <th className="w-[15%] px-3 py-3">{t("invoiceNoLabel")}</th>

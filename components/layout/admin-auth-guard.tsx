@@ -61,9 +61,9 @@ export function AdminAuthGuard({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#070D1B] text-slate-100 selection:bg-tif-gold selection:text-slate-950">
+    <div className="flex flex-col lg:flex-row min-h-screen bg-[#070D1B] text-slate-100 selection:bg-tif-gold selection:text-slate-950">
       <AdminSidebar />
-      <main className="flex-1 p-6 lg:p-8 overflow-y-auto max-w-[1600px] mx-auto w-full">{children}</main>
+      <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto max-w-[1600px] mx-auto w-full">{children}</main>
     </div>
   );
 }

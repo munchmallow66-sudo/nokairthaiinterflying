@@ -29,7 +29,7 @@ export const step2Schema = z.object({
 });
 
 export const step3Schema = z.object({
-  school: z.string().min(1, "High School/Institution name is required"),
+  school: z.string().optional(),
   university: z.string().optional(),
   degree: z.string().min(1, "Highest degree is required"),
   gpax: z.coerce.number().min(0.0).max(4.0, "GPAX must be between 0.00 and 4.00"),

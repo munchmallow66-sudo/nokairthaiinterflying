@@ -1,4 +1,31 @@
-import { Role, ApplicationStatus, DocumentType, PaymentStatus } from "@prisma/client";
+import { Role, DocumentType, PaymentStatus } from "@prisma/client";
+
+export type ApplicationStatus =
+  | "ONLINE_REGISTRATION"
+  | "SUBMITTED"
+  | "DOCS_UNDER_REVIEW"
+  | "DOCS_PASSED"
+  | "APPLICATION_FEE_PAID"
+  | "OPEN_HOUSE_ATTENDED"
+  | "PHYSICAL_DOCS_SUBMITTED"
+  | "WRITTEN_EXAM"
+  | "WRITTEN_EXAM_PASSED"
+  | "INTERVIEW_SCHEDULED"
+  | "INTERVIEW_PASSED"
+  | "MEDICAL_CHECK_CLASS_1"
+  | "ACCEPTANCE_CONFIRMED"
+  | "CONTRACT_SIGNED"
+  | "TUITION_FIRST_INSTALLMENT_PAID"
+  | "ORIENTATION"
+  | "PILOT_JOURNEY_BEGUN"
+  | "DRAFT"
+  | "WAITING_DOCUMENTS"
+  | "DOCUMENT_VERIFIED"
+  | "ACCEPTED"
+  | "REJECTED"
+  | "PAYMENT_PENDING"
+  | "PAID"
+  | "ENROLLED";
 
 export type UserRole = Role;
 export type AppStatus = ApplicationStatus;
@@ -131,3 +158,31 @@ export interface SearchFilterParams {
   sortBy?: string;
   sortOrder?: "asc" | "desc";
 }
+
+export interface WorkflowStepDef {
+  step: number;
+  key: ApplicationStatus;
+  titleTh: string;
+  titleEn: string;
+  badgeClass: string;
+}
+
+export const PILOT_WORKFLOW_STEPS: WorkflowStepDef[] = [
+  { step: 1, key: "ONLINE_REGISTRATION", titleTh: "เปิดรับสมัครออนไลน์", titleEn: "Online Application Open", badgeClass: "bg-blue-500/10 text-blue-400 border-blue-500/30" },
+  { step: 2, key: "SUBMITTED", titleTh: "กรอกใบสมัคร + แนบเอกสาร", titleEn: "Submitted & Attached Docs", badgeClass: "bg-amber-500/10 text-amber-400 border-amber-500/30" },
+  { step: 3, key: "DOCS_UNDER_REVIEW", titleTh: "ตรวจเอกสารเบื้องต้น", titleEn: "Docs Under Review", badgeClass: "bg-orange-500/10 text-orange-400 border-orange-500/30" },
+  { step: 4, key: "DOCS_PASSED", titleTh: "ผ่านการตรวจเอกสาร", titleEn: "Docs Passed", badgeClass: "bg-cyan-500/10 text-cyan-400 border-cyan-500/30" },
+  { step: 5, key: "APPLICATION_FEE_PAID", titleTh: "ชำระค่าสมัคร 1,800 บาท", titleEn: "App Fee Paid (1,800 THB)", badgeClass: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" },
+  { step: 6, key: "OPEN_HOUSE_ATTENDED", titleTh: "เข้าร่วม Open House", titleEn: "Attended Open House", badgeClass: "bg-indigo-500/10 text-indigo-400 border-indigo-500/30" },
+  { step: 7, key: "PHYSICAL_DOCS_SUBMITTED", titleTh: "ส่งเอกสารตัวจริง", titleEn: "Physical Docs Submitted", badgeClass: "bg-sky-500/10 text-sky-400 border-sky-500/30" },
+  { step: 8, key: "WRITTEN_EXAM", titleTh: "สอบข้อเขียน", titleEn: "Written Exam", badgeClass: "bg-violet-500/10 text-violet-400 border-violet-500/30" },
+  { step: 9, key: "WRITTEN_EXAM_PASSED", titleTh: "ประกาศผล (ผ่านสอบข้อเขียน)", titleEn: "Written Exam Passed", badgeClass: "bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/30" },
+  { step: 10, key: "INTERVIEW_SCHEDULED", titleTh: "สัมภาษณ์", titleEn: "Interview Scheduled", badgeClass: "bg-purple-500/10 text-purple-400 border-purple-500/30" },
+  { step: 11, key: "INTERVIEW_PASSED", titleTh: "ประกาศผล (ผ่านสัมภาษณ์)", titleEn: "Interview Passed", badgeClass: "bg-teal-500/10 text-teal-400 border-teal-500/30" },
+  { step: 12, key: "MEDICAL_CHECK_CLASS_1", titleTh: "ตรวจสุขภาพ Class 1", titleEn: "Class 1 Medical Check", badgeClass: "bg-pink-500/10 text-pink-400 border-pink-500/30" },
+  { step: 13, key: "ACCEPTANCE_CONFIRMED", titleTh: "ยืนยันสิทธิ์", titleEn: "Acceptance Confirmed", badgeClass: "bg-tif-gold/10 text-tif-gold border-tif-gold/30" },
+  { step: 14, key: "CONTRACT_SIGNED", titleTh: "ลงนามสัญญา", titleEn: "Contract Signed", badgeClass: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" },
+  { step: 15, key: "TUITION_FIRST_INSTALLMENT_PAID", titleTh: "ชำระค่าเรียนงวดแรก", titleEn: "1st Installment Paid", badgeClass: "bg-green-500/10 text-green-400 border-green-500/30" },
+  { step: 16, key: "ORIENTATION", titleTh: "ปฐมนิเทศ", titleEn: "Orientation", badgeClass: "bg-blue-600/10 text-blue-300 border-blue-500/30" },
+  { step: 17, key: "PILOT_JOURNEY_BEGUN", titleTh: "เริ่มเส้นทางนักบิน", titleEn: "Start Pilot Journey", badgeClass: "bg-amber-400/20 text-amber-300 border-amber-400/50" },
+];

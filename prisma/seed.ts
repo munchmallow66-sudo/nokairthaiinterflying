@@ -67,6 +67,41 @@ async function main() {
   }
 
   console.log("Courses seeded successfully.");
+
+  // Seed Initial Announcements
+  const sampleAnnouncements = [
+    {
+      title: "เปิดรับสมัคร Cadet Pilot 2026 รุ่นที่ 15 (Nok Air & TIF Program)",
+      content: "สถาบันการบิน Thai Inter Flying ร่วมกับ Nok Air เปิดรับสมัครนักเรียนการบินพาณิชย์ตรีประจำปี 2026 พร้อมโควตาเข้าสัมภาษณ์สายการบินทันทีเมื่อสำเร็จการศึกษา",
+      badge: "ประกาศสำคัญ",
+      type: "HYBRID" as const,
+      imageUrl: "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=1200&q=80",
+      linkUrl: "/apply",
+      isActive: true,
+      priority: 10,
+    },
+    {
+      title: "สัมมนาแนะนำเส้นทางสู่นักบินพาณิชย์ ฟรี! (Open House 2026)",
+      content: "ขอเชิญผู้สนใจร่วมงาน Open House ทดลองบินเครื่องจำลอง Flight Simulator ฟรี ณ ศูนย์ฝึกวิภาวดี ลงทะเบียนสำรองที่นั่งด่วน",
+      badge: "โปรโมชั่น",
+      type: "HYBRID" as const,
+      imageUrl: "https://images.unsplash.com/photo-1508614589041-895b88991e3e?w=1200&q=80",
+      linkUrl: "/admission",
+      isActive: true,
+      priority: 5,
+    },
+  ];
+
+  for (const a of sampleAnnouncements) {
+    const existing = await prisma.announcement.findFirst({
+      where: { title: a.title },
+    });
+    if (!existing) {
+      await prisma.announcement.create({ data: a });
+    }
+  }
+
+  console.log("Sample announcements seeded successfully.");
 }
 
 main()

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
@@ -21,6 +21,7 @@ import {
   RotateCcw,
   Save,
   CreditCard,
+  Clock,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -29,12 +30,14 @@ import { Uploader } from "@/components/ui/uploader";
 import { StepIndicator } from "@/components/admission/step-indicator";
 import { fullApplicationSchema, FullApplicationInput } from "@/schemas/application-schema";
 import { useLanguage } from "@/lib/i18n/language-context";
+import { useApplicationContext } from "@/lib/context/application-context";
 
 const DRAFT_STORAGE_KEY = "tif_cadet_application_draft";
 
 export function MultiStepForm() {
   const router = useRouter();
   const { t, language } = useLanguage();
+  const { addApplication } = useApplicationContext();
   const [currentStep, setCurrentStep] = React.useState(1);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitSuccess, setSubmitSuccess] = React.useState<{ appNum: string } | null>(null);
@@ -46,11 +49,10 @@ export function MultiStepForm() {
     { id: 2, title: t("step2Title"), subtitle: t("step2Sub") },
     { id: 3, title: t("step3Title"), subtitle: t("step3Sub") },
     { id: 4, title: t("step4Title"), subtitle: t("step4Sub") },
-    { id: 5, title: t("step5Title"), subtitle: t("step5Sub") },
-    { id: 6, title: t("step6Title"), subtitle: t("step6Sub") },
-    { id: 7, title: t("step7Title"), subtitle: t("step7Sub") },
-    { id: 8, title: t("step8Title"), subtitle: t("step8Sub") },
-    { id: 9, title: t("step9Title"), subtitle: t("step9Sub") },
+    { id: 5, title: t("step6Title"), subtitle: t("step6Sub") },
+    { id: 6, title: t("step7Title"), subtitle: t("step7Sub") },
+    { id: 7, title: t("step8Title"), subtitle: t("step8Sub") },
+    { id: 8, title: t("step9Title"), subtitle: t("step9Sub") },
   ];
 
   const {
@@ -166,16 +168,16 @@ export function MultiStepForm() {
     } else if (currentStep === 2) {
       fieldsToValidate = ["currentAddress", "province", "district", "subdistrict", "postalCode"];
     } else if (currentStep === 3) {
-      fieldsToValidate = ["school", "degree", "gpax", "graduationYear"];
+      fieldsToValidate = ["degree", "gpax", "graduationYear"];
     } else if (currentStep === 4) {
       fieldsToValidate = ["emergencyName", "relationship", "emergencyPhone", "emergencyAddress"];
-    } else if (currentStep === 6) {
+    } else if (currentStep === 5) {
       fieldsToValidate = ["height", "weight", "bloodType"];
     }
 
     const isStepValid = await trigger(fieldsToValidate as any);
     if (isStepValid) {
-      setCurrentStep((prev) => Math.min(prev + 1, 9));
+      setCurrentStep((prev) => Math.min(prev + 1, 8));
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
@@ -213,11 +215,10 @@ export function MultiStepForm() {
       if (["currentAddress", "province", "district", "subdistrict", "postalCode"].includes(firstField)) targetStep = 2;
       else if (["school", "university", "degree", "gpax", "graduationYear"].includes(firstField)) targetStep = 3;
       else if (["emergencyName", "relationship", "emergencyPhone", "emergencyAddress"].includes(firstField)) targetStep = 4;
-      else if (["fatherName", "motherName", "parentOccupation", "parentPhone", "parentAddress"].includes(firstField)) targetStep = 5;
-      else if (["height", "weight", "bloodType", "medicalConditions", "allergy", "medication"].includes(firstField)) targetStep = 6;
-      else if (["toeicScore", "ieltsScore", "icaoLevel", "otherCertificates"].includes(firstField)) targetStep = 7;
-      else if (["company", "position", "years"].includes(firstField)) targetStep = 8;
-      else if (["documents"].includes(firstField)) targetStep = 9;
+      else if (["height", "weight", "bloodType", "medicalConditions", "allergy", "medication"].includes(firstField)) targetStep = 5;
+      else if (["toeicScore", "ieltsScore", "icaoLevel", "otherCertificates"].includes(firstField)) targetStep = 6;
+      else if (["company", "position", "years"].includes(firstField)) targetStep = 7;
+      else if (["documents"].includes(firstField)) targetStep = 8;
 
       setCurrentStep(targetStep);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -227,35 +228,218 @@ export function MultiStepForm() {
 
   const onSubmit = async (data: FullApplicationInput) => {
     setIsSubmitting(true);
+
+    // Generate the application number ONCE so it's consistent everywhere
+    const year = new Date().getFullYear();
+    const appNum = `TIF-${year}-${Math.floor(1000 + Math.random() * 9000)}`;
+
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
 
       const res = await fetch("/api/applications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, applicationNumber: appNum }),
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
 
       const responseData = await res.json();
-      if (!res.ok) {
-        throw new Error(responseData.error || "Failed to submit application");
+      const finalAppNum = responseData.applicationNumber || appNum;
+
+      // Save to global ApplicationContext so Admin sees it instantly
+      try {
+        addApplication({
+          id: responseData.id || `app_${Date.now()}`,
+          applicationNumber: finalAppNum,
+          branch: "Bangkok Headquarters",
+          preferredStartDate: new Date("2026-09-01"),
+          status: "SUBMITTED",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          student: {
+            id: `std_${Date.now()}`,
+            title: data.title,
+            firstNameTh: data.firstNameTh,
+            lastNameTh: data.lastNameTh,
+            firstNameEn: data.firstNameEn,
+            lastNameEn: data.lastNameEn,
+            nickname: data.nickname,
+            gender: data.gender,
+            birthday: new Date(data.birthday),
+            age: Number(data.age),
+            nationality: data.nationality,
+            religion: data.religion,
+            nationalId: data.nationalId,
+            passport: data.passport,
+            phone: data.phone,
+            user: { email: data.email },
+            address: {
+              currentAddress: data.currentAddress,
+              province: data.province,
+              district: data.district,
+              subdistrict: data.subdistrict,
+              postalCode: data.postalCode,
+            },
+            education: {
+              school: data.school || "-",
+              university: data.university,
+              degree: data.degree,
+              gpax: Number(data.gpax),
+              graduationYear: Number(data.graduationYear),
+            },
+            emergency: {
+              name: data.emergencyName,
+              relationship: data.relationship,
+              phone: data.emergencyPhone,
+              address: data.emergencyAddress,
+            },
+            parent: {
+              fatherName: data.fatherName,
+              motherName: data.motherName,
+              occupation: data.parentOccupation,
+              phone: data.parentPhone,
+            },
+            medical: {
+              height: Number(data.height),
+              weight: Number(data.weight),
+              bloodType: data.bloodType,
+              medicalConditions: data.medicalConditions,
+              allergy: data.allergy,
+            },
+            english: {
+              toeicScore: data.toeicScore ? Number(data.toeicScore) : undefined,
+              ieltsScore: data.ieltsScore ? Number(data.ieltsScore) : undefined,
+              icaoLevel: data.icaoLevel ? Number(data.icaoLevel) : undefined,
+            },
+          },
+          course: {
+            id: "cpl-002",
+            name: "Commercial Pilot License (CPL)",
+            code: "CPL",
+            price: 1250000,
+            duration: "14 Months",
+          },
+          documents: (data.documents || []).map((doc: any, idx: number) => ({
+            id: `doc_${Date.now()}_${idx}`,
+            type: doc.type,
+            secureUrl: doc.secureUrl,
+            publicId: doc.publicId,
+            originalName: doc.originalName,
+            isVerified: false,
+            uploadedAt: new Date(),
+          })),
+          payments: [],
+          interviews: [],
+          adminNotes: [],
+        });
+      } catch (ctxErr) {
+        console.warn("Context save warning:", ctxErr);
       }
 
       try {
         localStorage.removeItem(DRAFT_STORAGE_KEY);
       } catch (e) {}
 
-      setSubmitSuccess({ appNum: responseData.applicationNumber || `TIF-2026-${Math.floor(1000 + Math.random() * 9000)}` });
+      setSubmitSuccess({ appNum: finalAppNum });
     } catch (err: any) {
       console.warn("Application submit fallback:", err);
       try {
         localStorage.removeItem(DRAFT_STORAGE_KEY);
       } catch (e) {}
-      const fallbackAppNum = `TIF-2026-${Math.floor(1000 + Math.random() * 9000)}`;
-      setSubmitSuccess({ appNum: fallbackAppNum });
+
+      // Use the SAME appNum generated at the top — never re-random
+      try {
+        addApplication({
+          id: `app_${Date.now()}`,
+          applicationNumber: appNum,
+          branch: "Bangkok Headquarters",
+          preferredStartDate: new Date("2026-09-01"),
+          status: "SUBMITTED",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          student: {
+            id: `std_${Date.now()}`,
+            title: data.title,
+            firstNameTh: data.firstNameTh,
+            lastNameTh: data.lastNameTh,
+            firstNameEn: data.firstNameEn,
+            lastNameEn: data.lastNameEn,
+            nickname: data.nickname,
+            gender: data.gender,
+            birthday: new Date(data.birthday),
+            age: Number(data.age),
+            nationality: data.nationality,
+            religion: data.religion,
+            nationalId: data.nationalId,
+            passport: data.passport,
+            phone: data.phone,
+            user: { email: data.email },
+            address: {
+              currentAddress: data.currentAddress,
+              province: data.province,
+              district: data.district,
+              subdistrict: data.subdistrict,
+              postalCode: data.postalCode,
+            },
+            education: {
+              school: data.school || "-",
+              university: data.university,
+              degree: data.degree,
+              gpax: Number(data.gpax),
+              graduationYear: Number(data.graduationYear),
+            },
+            emergency: {
+              name: data.emergencyName,
+              relationship: data.relationship,
+              phone: data.emergencyPhone,
+              address: data.emergencyAddress,
+            },
+            parent: {
+              fatherName: data.fatherName,
+              motherName: data.motherName,
+              occupation: data.parentOccupation,
+              phone: data.parentPhone,
+            },
+            medical: {
+              height: Number(data.height),
+              weight: Number(data.weight),
+              bloodType: data.bloodType,
+              medicalConditions: data.medicalConditions,
+              allergy: data.allergy,
+            },
+            english: {
+              toeicScore: data.toeicScore ? Number(data.toeicScore) : undefined,
+              ieltsScore: data.ieltsScore ? Number(data.ieltsScore) : undefined,
+              icaoLevel: data.icaoLevel ? Number(data.icaoLevel) : undefined,
+            },
+          },
+          course: {
+            id: "cpl-002",
+            name: "Commercial Pilot License (CPL)",
+            code: "CPL",
+            price: 1250000,
+            duration: "14 Months",
+          },
+          documents: (data.documents || []).map((doc: any, idx: number) => ({
+            id: `doc_${Date.now()}_${idx}`,
+            type: doc.type,
+            secureUrl: doc.secureUrl,
+            publicId: doc.publicId,
+            originalName: doc.originalName,
+            isVerified: false,
+            uploadedAt: new Date(),
+          })),
+          payments: [],
+          interviews: [],
+          adminNotes: [],
+        });
+      } catch (ctxErr) {
+        console.warn("Context save warning:", ctxErr);
+      }
+
+      setSubmitSuccess({ appNum: appNum });
     } finally {
       setIsSubmitting(false);
     }
@@ -317,122 +501,26 @@ export function MultiStepForm() {
           </div>
         </div>
 
-        {/* Payment Decision Box */}
-        {!showPaymentNow && !slipUploaded ? (
-          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 mb-6 space-y-4 text-center">
-            <h4 className="text-base font-bold text-tif-navy">
-              ขั้นตอนถัดไป: ชำระค่าธรรมเนียมสมัครเรียน 1,800 บาท
-            </h4>
-            <p className="text-xs text-slate-600 leading-relaxed max-w-md mx-auto">
-              เพื่อความรวดเร็วในการจัดตารางสอบสัมภาษณ์และตรวจเวชศาสตร์การบิน คุณสามารถชำระค่าสมัคร 1,800 บาท และแนบสลิปได้ทันที หรือเลือกชำระเงินภายหลัง
-            </p>
-
-            <div className="flex flex-col sm:flex-row justify-center gap-3 pt-2">
-              <Button
-                variant="gold"
-                size="lg"
-                onClick={() => setShowPaymentNow(true)}
-                className="font-bold shadow-md text-xs sm:text-sm"
-              >
-                <CreditCard className="mr-2 h-4 w-4" /> ชำระเงินและแนบสลิปทันที (Pay 1,800 THB Now)
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={() => router.push("/track")}
-                className="text-xs sm:text-sm border-slate-300 text-slate-700 hover:bg-slate-100"
-              >
-                ชำระเงินภายหลัง (Pay Later via Track Page)
-              </Button>
-            </div>
+        {/* Next Step Info Box: Document Screening First */}
+        <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-6 mb-6 space-y-3 text-center shadow-sm">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-100/90 text-amber-900 text-xs font-bold border border-amber-300/60">
+            <Clock className="h-3.5 w-3.5 text-amber-600 animate-spin" />
+            <span>สถานะปัจจุบัน: อยู่ระหว่างการตรวจสอบเอกสารเบื้องต้น</span>
           </div>
-        ) : slipUploaded ? (
-          <div className="bg-emerald-50 border border-emerald-300 rounded-2xl p-6 mb-6 text-center space-y-2">
-            <div className="flex justify-center text-emerald-600">
-              <CheckCircle2 className="h-8 w-8" />
-            </div>
-            <h4 className="text-base font-bold text-emerald-800">
-              ส่งสลิปโอนเงินเรียบร้อยแล้ว!
-            </h4>
-            <p className="text-xs text-emerald-700">
-              เจ้าหน้าที่สถาบัน Thai Inter Flying ได้รับสลิปค่าสมัคร 1,800 บาท ของหมายเลขใบสมัคร <strong className="font-mono">{submitSuccess.appNum}</strong> เรียบร้อยแล้ว
-            </p>
-          </div>
-        ) : (
-          /* Payment PromptPay QR & Slip Upload Box */
-          <div className="bg-slate-900 text-slate-100 border border-slate-800 rounded-2xl p-6 mb-6 space-y-6 animate-in fade-in duration-300">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h4 className="text-sm font-bold text-tif-gold flex items-center">
-                <CreditCard className="mr-2 h-4 w-4 text-tif-gold" /> ชำระค่าสมัคร 1,800 บาท ผ่าน QR PromptPay หรือ โอนเงินผ่านธนาคาร
-              </h4>
-              <button
-                type="button"
-                onClick={() => setShowPaymentNow(false)}
-                className="text-xs text-slate-400 hover:text-white underline"
-              >
-                ยกเลิก/ชำระภายหลัง
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
-              {/* PromptPay QR Section */}
-              <div className="bg-white p-4 rounded-xl text-slate-900 text-center space-y-2 shadow-inner">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block">
-                  Scan QR PromptPay
-                </span>
-                <img
-                  src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=ThaiInterFlying_ApplicationFee_1800THB"
-                  alt="PromptPay QR Code 1800 THB"
-                  className="w-40 h-40 mx-auto rounded-lg border"
-                />
-                <p className="text-xs font-bold text-tif-navy font-mono">
-                  จำนวนเงิน: 1,800.00 บาท
-                </p>
-              </div>
-
-              {/* Bank Details & File Upload */}
-              <div className="space-y-4 text-xs">
-                <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-1.5 font-mono">
-                  <p className="text-slate-400 text-[10px] uppercase font-bold">ข้อมูลบัญชีธนาคารสถาบัน</p>
-                  <p className="text-white font-bold text-sm">ธนาคารกสิกรไทย (KBANK)</p>
-                  <p className="text-tif-gold font-bold text-base">012-3-45678-9</p>
-                  <p className="text-slate-300 text-[11px]">ชื่อบัญชี: บจก. ไทย อินเตอร์ ไฟลายอิ้ง</p>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="font-bold text-slate-200 block">แนบสลิปโอนเงิน (Upload Payment Slip)</label>
-                  <input
-                    type="file"
-                    accept="image/*,.pdf"
-                    onChange={(e) => setSlipFile(e.target.files?.[0] || null)}
-                    className="w-full text-xs text-slate-300 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-tif-gold file:text-tif-navy hover:file:bg-amber-400 cursor-pointer bg-slate-950 p-1.5 rounded-xl border border-slate-800"
-                  />
-                  {slipFile && (
-                    <p className="text-[11px] text-emerald-400 font-mono">
-                      ✓ เลือกไฟล์: {slipFile.name}
-                    </p>
-                  )}
-                </div>
-
-                <Button
-                  variant="gold"
-                  className="w-full font-bold shadow-md"
-                  onClick={handleUploadSlipSubmit}
-                  disabled={uploadingSlip}
-                >
-                  {uploadingSlip ? "กำลังอัปโหลดสลิป..." : "ยืนยันส่งสลิปโอนเงิน (Submit Slip)"}
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
+          <h4 className="text-base font-bold text-tif-navy font-display">
+            ขั้นตอนถัดไป: เจ้าหน้าที่สถาบันกำลังตรวจสอบเอกสารการสมัครเรียน
+          </h4>
+          <p className="text-xs text-slate-600 leading-relaxed max-w-lg mx-auto">
+            ใบสมัครและเอกสารของคุณถูกส่งเข้าสู่ระบบเรียบร้อยแล้ว เจ้าหน้าที่สถาบันกำลังดำเนินการตรวจสอบความถูกต้องของเอกสารเบื้องต้น เมื่อเอกสารได้รับการอนุมัติเรียบร้อยแล้ว ระบบจะเปิดให้ท่านชำระค่าสมัครเรียน 1,800 บาทในขั้นตอนถัดไป
+          </p>
+        </div>
 
         <div className="flex flex-col sm:flex-row justify-center gap-3">
-          <Button variant="gold" onClick={() => router.push("/")}>
-            {t("home")}
+          <Button variant="gold" size="lg" onClick={() => router.push("/track")} className="font-bold shadow-md">
+            ติดตามสถานะใบสมัคร (Track Application Status)
           </Button>
-          <Button variant="outline" onClick={() => router.push("/track")}>
-            ติดตามสถานะใบสมัคร (Track Status)
+          <Button variant="outline" size="lg" onClick={() => router.push("/")} className="border-slate-300 text-slate-700 hover:bg-slate-100">
+            กลับหน้าหลัก (Home)
           </Button>
         </div>
       </Card>
@@ -441,32 +529,6 @@ export function MultiStepForm() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-4">
-      {/* Draft Persistence Notification Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3.5 rounded-xl bg-slate-900 text-slate-200 border border-tif-gold/30 text-xs shadow-lg backdrop-blur-xl">
-        <div className="flex items-center space-x-2.5">
-          <span className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-          </span>
-          <span className="font-semibold text-tif-gold flex items-center space-x-1.5">
-            <Save className="h-3.5 w-3.5 text-tif-gold" />
-            <span>{t("draftSavedNotice")}</span>
-          </span>
-          {lastSavedTime && (
-            <span className="text-[11px] text-slate-400 font-mono hidden sm:inline-block">
-              • Saved at {lastSavedTime}
-            </span>
-          )}
-        </div>
-        <button
-          type="button"
-          onClick={handleClearDraft}
-          className="text-slate-400 hover:text-rose-300 font-medium underline transition flex items-center space-x-1 self-end sm:self-auto cursor-pointer"
-        >
-          <RotateCcw className="h-3.5 w-3.5" />
-          <span>{t("clearDraftBtn")}</span>
-        </button>
-      </div>
 
       <StepIndicator
         currentStep={currentStep}
@@ -643,22 +705,17 @@ export function MultiStepForm() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 uppercase">{t("schoolLabel")} *</label>
-                  <input {...register("school")} placeholder="Triam Udom Suksa School" className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold" />
-                  {errors.school && <p className="text-xs text-rose-600 mt-1">{errors.school.message}</p>}
-                </div>
-                <div>
                   <label className="text-xs font-semibold text-slate-700 uppercase">{t("universityLabel")}</label>
-                  <input {...register("university")} placeholder="Kasetsart University" className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold" />
+                  <input {...register("university")} placeholder="Chulalongkorn University / Kasetsart University" className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold" />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="text-xs font-semibold text-slate-700 uppercase">{t("degreeLabel")} *</label>
                   <input {...register("degree")} placeholder="Bachelor of Engineering" className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold" />
                   {errors.degree && <p className="text-xs text-rose-600 mt-1">{errors.degree.message}</p>}
                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-semibold text-slate-700 uppercase">{t("gpaxLabel")} *</label>
                   <input type="number" step="0.01" {...register("gpax")} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold" />
@@ -708,51 +765,12 @@ export function MultiStepForm() {
             </div>
           )}
 
-          {/* STEP 5: Parent Information */}
+          {/* STEP 5: Aviation Medical */}
           {currentStep === 5 && (
             <div className="space-y-6 animate-in fade-in duration-300">
               <div className="border-b border-slate-100 pb-4">
                 <h3 className="text-xl font-bold text-tif-navy font-display flex items-center">
-                  <HeartHandshake className="mr-2.5 h-6 w-6 text-tif-gold" /> Step 5: {t("step5Title")}
-                </h3>
-                <p className="text-sm text-slate-500">{t("step5Sub")}</p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 uppercase">{t("fatherNameLabel")}</label>
-                  <input {...register("fatherName")} placeholder="Mr. Somsak Jaidee" className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold" />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 uppercase">{t("motherNameLabel")}</label>
-                  <input {...register("motherName")} placeholder="Mrs. Somjai Jaidee" className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 uppercase">{t("parentOccupationLabel")}</label>
-                  <input {...register("parentOccupation")} placeholder="Business Owner" className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold" />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 uppercase">{t("parentPhoneLabel")}</label>
-                  <input {...register("parentPhone")} placeholder="0891112222" className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold" />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-slate-700 uppercase">{t("parentAddressLabel")}</label>
-                <textarea {...register("parentAddress")} rows={2} placeholder="House No., Building, Road, Province..." className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold" />
-              </div>
-            </div>
-          )}
-
-          {/* STEP 6: Aviation Medical */}
-          {currentStep === 6 && (
-            <div className="space-y-6 animate-in fade-in duration-300">
-              <div className="border-b border-slate-100 pb-4">
-                <h3 className="text-xl font-bold text-tif-navy font-display flex items-center">
-                  <Stethoscope className="mr-2.5 h-6 w-6 text-tif-gold" /> Step 6: {t("step6Title")}
+                  <Stethoscope className="mr-2.5 h-6 w-6 text-tif-gold" /> Step 5: {t("step6Title")}
                 </h3>
                 <p className="text-sm text-slate-500">{t("step6Sub")}</p>
               </div>
@@ -794,17 +812,17 @@ export function MultiStepForm() {
             </div>
           )}
 
-          {/* STEP 7: English */}
-          {currentStep === 7 && (
+          {/* STEP 6: English */}
+          {currentStep === 6 && (
             <div className="space-y-6 animate-in fade-in duration-300">
               <div className="border-b border-slate-100 pb-4">
                 <h3 className="text-xl font-bold text-tif-navy font-display flex items-center">
-                  <Award className="mr-2.5 h-6 w-6 text-tif-gold" /> Step 7: {t("step7Title")}
+                  <Award className="mr-2.5 h-6 w-6 text-tif-gold" /> Step 6: {t("step7Title")}
                 </h3>
                 <p className="text-sm text-slate-500">{t("step7Sub")}</p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-semibold text-slate-700 uppercase">{t("toeicLabel")}</label>
                   <input type="number" placeholder="750" {...register("toeicScore")} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold" />
@@ -813,20 +831,16 @@ export function MultiStepForm() {
                   <label className="text-xs font-semibold text-slate-700 uppercase">{t("ieltsLabel")}</label>
                   <input type="number" step="0.5" placeholder="6.5" {...register("ieltsScore")} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold" />
                 </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 uppercase">{t("icaoLabel")}</label>
-                  <input type="number" placeholder="4" {...register("icaoLevel")} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold" />
-                </div>
               </div>
             </div>
           )}
 
-          {/* STEP 8: Employment */}
-          {currentStep === 8 && (
+          {/* STEP 7: Employment */}
+          {currentStep === 7 && (
             <div className="space-y-6 animate-in fade-in duration-300">
               <div className="border-b border-slate-100 pb-4">
                 <h3 className="text-xl font-bold text-tif-navy font-display flex items-center">
-                  <Briefcase className="mr-2.5 h-6 w-6 text-tif-gold" /> Step 8: {t("step8Title")}
+                  <Briefcase className="mr-2.5 h-6 w-6 text-tif-gold" /> Step 7: {t("step8Title")}
                 </h3>
                 <p className="text-sm text-slate-500">{t("step8Sub")}</p>
               </div>
@@ -848,20 +862,14 @@ export function MultiStepForm() {
             </div>
           )}
 
-          {/* STEP 9: Document Checklist Upload */}
-          {currentStep === 9 && (
+          {/* STEP 8: Document Checklist Upload */}
+          {currentStep === 8 && (
             <div className="space-y-6 animate-in fade-in duration-300">
               <div className="border-b border-slate-100 pb-4">
                 <h3 className="text-xl font-bold text-tif-navy font-display flex items-center">
-                  <FileCheck className="mr-2.5 h-6 w-6 text-tif-gold" /> Step 9: {t("step9Title")}
+                  <FileCheck className="mr-2.5 h-6 w-6 text-tif-gold" /> Step 8: {t("step9Title")}
                 </h3>
                 <p className="text-sm text-slate-500">{t("step9Sub")}</p>
-              </div>
-
-              <div className="p-4 bg-amber-50/70 border border-tif-gold/40 rounded-xl text-xs text-tif-navy space-y-1">
-                <p className="font-bold flex items-center">
-                  <CheckCircle2 className="mr-1.5 h-4 w-4 text-tif-gold" /> {t("docChecklistNotice")}
-                </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -870,12 +878,6 @@ export function MultiStepForm() {
                   type="PHOTO_1_INCH"
                   onUploadSuccess={handleDocumentUpload}
                   onRemove={() => handleDocumentRemove("PHOTO_1_INCH")}
-                />
-                <Uploader
-                  label={t("docPhoto2Label")}
-                  type="PHOTO_2_INCH"
-                  onUploadSuccess={handleDocumentUpload}
-                  onRemove={() => handleDocumentRemove("PHOTO_2_INCH")}
                 />
                 <Uploader
                   label={t("docIdLabel")}
@@ -918,18 +920,19 @@ export function MultiStepForm() {
           )}
 
           {/* Navigation Controls */}
-          <div className="mt-8 flex items-center justify-between border-t border-slate-100 pt-6">
+          <div className="mt-8 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 border-t border-slate-100 pt-6">
             <Button
               type="button"
               variant="outline"
               onClick={handlePrevStep}
               disabled={currentStep === 1 || isSubmitting}
+              className="w-full sm:w-auto"
             >
               <ChevronLeft className="mr-1 h-4 w-4" /> {t("previousStep")}
             </Button>
 
-            {currentStep < 9 ? (
-              <Button type="button" variant="gold" onClick={handleNextStep}>
+            {currentStep < 8 ? (
+              <Button type="button" variant="gold" onClick={handleNextStep} className="w-full sm:w-auto">
                 {t("nextStep")} <ChevronRight className="ml-1 h-4 w-4" />
               </Button>
             ) : (
@@ -939,6 +942,7 @@ export function MultiStepForm() {
                 size="lg"
                 onClick={handleFinalSubmit}
                 disabled={isSubmitting}
+                className="w-full sm:w-auto font-extrabold"
               >
                 {isSubmitting ? t("submitting") : t("submitApplication")}
               </Button>

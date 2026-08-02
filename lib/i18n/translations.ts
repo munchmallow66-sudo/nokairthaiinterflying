@@ -28,7 +28,7 @@ export const translations = {
     startAdmission: "สมัครเรียน",
     portalDesk: "ระบบนักเรียน",
 
-    intakeOpen: "เปิดรับสมัครปี 2026",
+    intakeOpen: "เปิดรับสมัคร",
     cplCourseTitle: "หลักสูตรนักบินพาณิชย์ CPL + IR",
     cplCourseSub: "เส้นทางลัดสู่นักบินพาณิชย์การบิน",
     simulatorFeature: "เครื่องฝึกบินจำลอง Diamond DA42 เครื่องยนต์คู่",
@@ -313,7 +313,7 @@ export const translations = {
 
     // Step 3 Labels
     schoolLabel: "ชื่อโรงเรียนมัธยมศึกษา",
-    universityLabel: "ชื่อมหาวิทยาลัย (ถ้ามี)",
+    universityLabel: "ชื่อมหาวิทยาลัย",
     degreeLabel: "วุฒิการศึกษา",
     gpaxLabel: "เกรดเฉลี่ยสะสม (GPAX)",
     graduationYearLabel: "ปีที่สำเร็จการศึกษา",
@@ -350,15 +350,14 @@ export const translations = {
     yearsLabel: "จำนวนปีที่ทำงาน",
 
     // Document Checklist Labels (Step 9)
-    docChecklistNotice: "การชำระค่าสมัครเรียน 1,800 บาท และแนบเอกสารรับรองสำเนาถูกต้อง",
-    docSlipLabel: "1. สลิปการชำระเงินค่าสมัคร (1,800 บาท)",
-    docPhoto1Label: "2. รูปถ่าย 1 นิ้ว (จำนวน 12 รูป)",
-    docPhoto2Label: "3. รูปถ่าย 2 นิ้ว (จำนวน 12 รูป)",
-    docIdLabel: "4. สำเนาบัตรประชาชน (รับรองสำเนาถูกต้อง)",
-    docDegreeLabel: "5. สำเนาวุฒิการศึกษา (รับรองสำเนาถูกต้อง)",
-    docHouseLabel: "6. สำเนาทะเบียนบ้าน (รับรองสำเนาถูกต้อง)",
-    docMedicalLabel: "7. ใบสำคัญแพทย์ Class 1 (Medical Certificate Class 1)",
-    docCriminalLabel: "8. ผลตรวจประวัติอาชญากรรม (ถ้ามี)",
+    docSlipLabel: "สลิปการชำระเงินค่าสมัคร (1,800 บาท)",
+    docPhoto1Label: "1. รูปถ่าย 1.5 นิ้ว *",
+    docPhoto2Label: "รูปถ่าย 2 นิ้ว",
+    docIdLabel: "2. สำเนาบัตรประชาชน (รับรองสำเนาถูกต้อง) *",
+    docDegreeLabel: "3. สำเนาวุฒิการศึกษา (รับรองสำเนาถูกต้อง) *",
+    docHouseLabel: "4. สำเนาทะเบียนบ้าน (รับรองสำเนาถูกต้อง) *",
+    docMedicalLabel: "5. ใบสำคัญแพทย์ Class 1 (Medical Certificate Class 1) *",
+    docCriminalLabel: "6. ผลตรวจประวัติอาชญากรรม *",
 
     // Form Navigation Buttons
     previousStep: "ย้อนกลับ",
@@ -442,10 +441,25 @@ export const translations = {
     nameThLabel: "ชื่อ (ภาษาไทย)",
     nameEnLabel: "ชื่อ (ภาษาอังกฤษ)",
 
-    // Status Badges
-    statusSubmitted: "ยื่นใบสมัครแล้ว",
+    // Status Badges (17 Steps Pilot Workflow)
+    statusOnlineRegistration: "1. เปิดรับสมัครออนไลน์",
+    statusSubmitted: "2. กรอกใบสมัคร + แนบเอกสาร",
+    statusDocsUnderReview: "3. ตรวจเอกสารเบื้องต้น",
+    statusDocsPassed: "4. ผ่านการตรวจเอกสาร",
+    statusApplicationFeePaid: "5. ชำระค่าสมัคร 1,800 บาท",
+    statusOpenHouseAttended: "6. เข้าร่วม Open House",
+    statusPhysicalDocsSubmitted: "7. ส่งเอกสารตัวจริง",
+    statusWrittenExam: "8. สอบข้อเขียน",
+    statusWrittenExamPassed: "9. ประกาศผล (ผ่านสอบข้อเขียน)",
+    statusInterviewScheduled: "10. สัมภาษณ์",
+    statusInterviewPassed: "11. ประกาศผล (ผ่านสัมภาษณ์)",
+    statusMedicalCheckClass1: "12. ตรวจสุขภาพ Class 1",
+    statusAcceptanceConfirmed: "13. ยืนยันสิทธิ์",
+    statusContractSigned: "14. ลงนามสัญญา",
+    statusTuitionFirstInstallmentPaid: "15. ชำระค่าเรียนงวดแรก",
+    statusOrientation: "16. ปฐมนิเทศ",
+    statusPilotJourneyBegun: "17. เริ่มเส้นทางนักบิน",
     statusDocsVerified: "ตรวจเอกสารแล้ว",
-    statusInterviewScheduled: "นัดสัมภาษณ์แล้ว",
     statusAccepted: "อนุมัติการสมัคร",
     statusPaid: "ชำระค่าสมัครแล้ว",
     statusEnrolled: "ลงทะเบียนแล้ว",
@@ -592,7 +606,7 @@ export const translations = {
     startAdmission: "Apply",
     portalDesk: "Student Portal Desk",
 
-    intakeOpen: "Intake 2026 Open",
+    intakeOpen: "Admission Open",
     cplCourseTitle: "Integrated CPL + IR Course",
     cplCourseSub: "Fast-track Commercial Pilot Career",
     simulatorFeature: "Dual-Engine Diamond DA42 Simulator",
@@ -877,7 +891,7 @@ export const translations = {
 
     // Step 3 Labels
     schoolLabel: "High School Name",
-    universityLabel: "University Name (Optional)",
+    universityLabel: "University Name",
     degreeLabel: "Degree Qualification",
     gpaxLabel: "Cumulative GPAX",
     graduationYearLabel: "Graduation Year",
@@ -914,15 +928,14 @@ export const translations = {
     yearsLabel: "Years of Service",
 
     // Document Checklist Labels (Step 9)
-    docChecklistNotice: "THB 1,800 Application Fee Slip & Signed Certified Document Copies",
-    docSlipLabel: "1. Application Fee Transfer Slip (1,800 THB)",
-    docPhoto1Label: "2. 1\" Inch Photographs (12 photos file)",
-    docPhoto2Label: "3. 2\" Inch Photographs (12 photos file)",
-    docIdLabel: "4. Certified Copy of National ID Card",
-    docDegreeLabel: "5. Certified Copy of Educational Qualification",
-    docHouseLabel: "6. Certified Copy of House Registration",
-    docMedicalLabel: "7. Class 1 Aviation Medical Certificate",
-    docCriminalLabel: "8. Criminal Record Check Result (Optional)",
+    docSlipLabel: "Application Fee Transfer Slip (1,800 THB)",
+    docPhoto1Label: "1. 1.5\" Inch Photographs *",
+    docPhoto2Label: "2\" Inch Photographs",
+    docIdLabel: "2. Certified Copy of National ID Card *",
+    docDegreeLabel: "3. Certified Copy of Educational Qualification *",
+    docHouseLabel: "4. Certified Copy of House Registration *",
+    docMedicalLabel: "5. Class 1 Aviation Medical Certificate *",
+    docCriminalLabel: "6. Criminal Record Check Result *",
 
     // Form Navigation Buttons
     previousStep: "Previous",
@@ -1006,10 +1019,25 @@ export const translations = {
     nameThLabel: "Thai Name",
     nameEnLabel: "English Name",
 
-    // Status Badges
-    statusSubmitted: "Submitted",
+    // Status Badges (17 Steps Pilot Workflow)
+    statusOnlineRegistration: "1. Online Registration Open",
+    statusSubmitted: "2. Form Submitted & Docs Attached",
+    statusDocsUnderReview: "3. Initial Docs Verification",
+    statusDocsPassed: "4. Initial Screening Passed",
+    statusApplicationFeePaid: "5. App Fee Paid (1,800 THB)",
+    statusOpenHouseAttended: "6. Attended Open House",
+    statusPhysicalDocsSubmitted: "7. Original Docs Submitted",
+    statusWrittenExam: "8. Written Exam",
+    statusWrittenExamPassed: "9. Written Exam Passed",
+    statusInterviewScheduled: "10. Interview Scheduled",
+    statusInterviewPassed: "11. Interview Passed",
+    statusMedicalCheckClass1: "12. Class 1 Medical Check",
+    statusAcceptanceConfirmed: "13. Acceptance Confirmed",
+    statusContractSigned: "14. Contract Signed",
+    statusTuitionFirstInstallmentPaid: "15. 1st Tuition Installment Paid",
+    statusOrientation: "16. Orientation",
+    statusPilotJourneyBegun: "17. Start Pilot Journey",
     statusDocsVerified: "Docs Verified",
-    statusInterviewScheduled: "Interview Scheduled",
     statusAccepted: "Accepted",
     statusPaid: "Fee Paid",
     statusEnrolled: "Enrolled",

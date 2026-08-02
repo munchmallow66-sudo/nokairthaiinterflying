@@ -24,14 +24,14 @@ export function BrandLogo({
   };
 
   const textSizeMap = {
-    sm: "text-sm",
-    md: "text-base",
-    lg: "text-xl",
-    xl: "text-2xl",
+    sm: "text-[11px] min-[380px]:text-xs sm:text-sm",
+    md: "text-sm sm:text-base",
+    lg: "text-lg sm:text-xl",
+    xl: "text-xl sm:text-2xl",
   };
 
   return (
-    <div className={cn("inline-flex items-center space-x-3 group", className)}>
+    <div className={cn("inline-flex items-center space-x-2 sm:space-x-3 group min-w-0", className)}>
       {/* Official TIF Emblem Image */}
       <img
         src="/logo.png"
@@ -44,10 +44,10 @@ export function BrandLogo({
 
       {/* Brand Text */}
       {showText && (
-        <div className="flex flex-col">
+        <div className="flex flex-col min-w-0">
           <span
             className={cn(
-              "font-extrabold tracking-wider font-display uppercase leading-none",
+              "font-extrabold tracking-wider font-display uppercase leading-none whitespace-nowrap",
               variant === "dark" ? "text-tif-navy" : "text-white",
               textSizeMap[size]
             )}

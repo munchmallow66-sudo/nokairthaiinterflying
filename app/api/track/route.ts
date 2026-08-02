@@ -167,52 +167,100 @@ export async function POST(req: Request) {
       let statusLabelEn = "Application Submitted";
 
       switch (app.status) {
+        case "ONLINE_REGISTRATION":
+          stepIndex = 1;
+          statusLabelTh = "1/17: เปิดรับสมัครออนไลน์";
+          statusLabelEn = "1/17: Online Application Open";
+          break;
         case "SUBMITTED":
-          stepIndex = 1;
-          statusLabelTh = "รอเจ้าหน้าที่ตรวจสอบเอกสารเบื้องต้น";
-          statusLabelEn = "Pending Initial Document Review by Admin";
-          break;
-        case "PAYMENT_PENDING":
           stepIndex = 2;
-          statusLabelTh = "เอกสารผ่านการตรวจสอบแล้ว — กรุณาชำระค่าสมัคร 1,800 บาท";
-          statusLabelEn = "Documents Approved — Please Pay 1,800 THB Application Fee";
+          statusLabelTh = "2/17: กรอกใบสมัคร + แนบเอกสารเรียบร้อยแล้ว";
+          statusLabelEn = "2/17: Application Submitted & Documents Attached";
           break;
+        case "DOCS_UNDER_REVIEW":
         case "WAITING_DOCUMENTS":
-          stepIndex = 1;
-          statusLabelTh = "เอกสารบางรายการต้องแนบใหม่ (Re-upload Required)";
-          statusLabelEn = "Re-upload Required / Additional Documents Needed";
-          break;
-        case "DOCUMENT_VERIFIED":
-          stepIndex = 2;
-          statusLabelTh = "เอกสารผ่านการตรวจสอบแล้ว — กรุณาชำระค่าสมัคร 1,800 บาท";
-          statusLabelEn = "Documents Approved — Please Pay 1,800 THB Application Fee";
-          break;
-        case "PAID":
-          stepIndex = 2;
-          statusLabelTh = "ชำระค่าสมัคร 1,800 บาทแล้ว (รอนัดสอบข้อเขียน)";
-          statusLabelEn = "Application Fee Paid — Awaiting Written Exam Schedule";
-          break;
-        case "WRITTEN_EXAM_SCHEDULED":
-        case "WRITTEN_EXAM_PASSED":
           stepIndex = 3;
-          statusLabelTh = "ผ่านการทดสอบข้อเขียนภายในสถาบัน (กำลังรอนัดสอบสัมภาษณ์)";
-          statusLabelEn = "Internal Written Exam Completed";
+          statusLabelTh = "3/17: อยู่ระหว่างการตรวจเอกสารเบื้องต้นโดยเจ้าหน้าที่";
+          statusLabelEn = "3/17: Initial Document Review in Progress";
+          break;
+        case "DOCS_PASSED":
+        case "DOCUMENT_VERIFIED":
+          stepIndex = 4;
+          statusLabelTh = "4/17: ผ่านการตรวจเอกสารเบื้องต้น (พร้อมชำระค่าสมัคร)";
+          statusLabelEn = "4/17: Initial Docs Screening Passed";
+          break;
+        case "APPLICATION_FEE_PAID":
+        case "PAID":
+        case "PAYMENT_PENDING":
+          stepIndex = 5;
+          statusLabelTh = "5/17: ชำระค่าสมัคร 1,800 บาทเรียบร้อยแล้ว";
+          statusLabelEn = "5/17: Application Fee (1,800 THB) Paid";
+          break;
+        case "OPEN_HOUSE_ATTENDED":
+          stepIndex = 6;
+          statusLabelTh = "6/17: เข้าร่วมกิจกรรม Open House เรียบร้อยแล้ว";
+          statusLabelEn = "6/17: Attended Open House Event";
+          break;
+        case "PHYSICAL_DOCS_SUBMITTED":
+          stepIndex = 7;
+          statusLabelTh = "7/17: ส่งเอกสารตัวจริงให้เจ้าหน้าที่เรียบร้อยแล้ว";
+          statusLabelEn = "7/17: Physical Original Documents Submitted";
+          break;
+        case "WRITTEN_EXAM":
+          stepIndex = 8;
+          statusLabelTh = "8/17: กำหนดวันสอบข้อเขียน";
+          statusLabelEn = "8/17: Written Examination Scheduled";
+          break;
+        case "WRITTEN_EXAM_PASSED":
+          stepIndex = 9;
+          statusLabelTh = "9/17: ประกาศผล — ผ่านการสอบข้อเขียน";
+          statusLabelEn = "9/17: Written Exam Result — Passed";
           break;
         case "INTERVIEW_SCHEDULED":
-          stepIndex = 4;
-          statusLabelTh = "นัดหมายเข้ารับการสอบสัมภาษณ์ / เวชศาสตร์การบิน";
-          statusLabelEn = "Interview & Medical Exam Scheduled";
+          stepIndex = 10;
+          statusLabelTh = "10/17: กำหนดวันสอบสัมภาษณ์";
+          statusLabelEn = "10/17: Interview Scheduled";
           break;
-        case "ACCEPTED":
-        case "ENROLLED":
         case "INTERVIEW_PASSED":
-          stepIndex = 5;
-          statusLabelTh = "ผ่านการคัดเลือกเข้าศึกษาหลักสูตรนักบินพาณิชย์";
-          statusLabelEn = "Accepted into Cadet Pilot Program";
+          stepIndex = 11;
+          statusLabelTh = "11/17: ประกาศผล — ผ่านการสอบสัมภาษณ์";
+          statusLabelEn = "11/17: Interview Result — Passed";
+          break;
+        case "MEDICAL_CHECK_CLASS_1":
+          stepIndex = 12;
+          statusLabelTh = "12/17: เข้ารับการตรวจสุขภาพ Class 1 เวชศาสตร์การบิน";
+          statusLabelEn = "12/17: Class 1 Aviation Medical Check";
+          break;
+        case "ACCEPTANCE_CONFIRMED":
+        case "ACCEPTED":
+          stepIndex = 13;
+          statusLabelTh = "13/17: ยืนยันสิทธิ์เข้าศึกษาเรียบร้อยแล้ว";
+          statusLabelEn = "13/17: Seat Acceptance Confirmed";
+          break;
+        case "CONTRACT_SIGNED":
+          stepIndex = 14;
+          statusLabelTh = "14/17: ลงนามสัญญาการฝึกอบรมศิษย์บิน";
+          statusLabelEn = "14/17: Flight Training Contract Signed";
+          break;
+        case "TUITION_FIRST_INSTALLMENT_PAID":
+          stepIndex = 15;
+          statusLabelTh = "15/17: ชำระค่าเรียนงวดแรกเรียบร้อยแล้ว";
+          statusLabelEn = "15/17: 1st Tuition Fee Installment Paid";
+          break;
+        case "ORIENTATION":
+          stepIndex = 16;
+          statusLabelTh = "16/17: ปฐมนิเทศศิษย์บินใหม่";
+          statusLabelEn = "16/17: Cadet Student Orientation";
+          break;
+        case "PILOT_JOURNEY_BEGUN":
+        case "ENROLLED":
+          stepIndex = 17;
+          statusLabelTh = "17/17: เริ่มต้นเส้นทางนักบินอาชีพ! (Pilot Journey Begun)";
+          statusLabelEn = "17/17: Start Pilot Journey!";
           break;
         case "REJECTED":
           stepIndex = 0;
-          statusLabelTh = "ไม่ผ่านการคัดเลือก";
+          statusLabelTh = "ไม่ผ่านการคัดเลือก (Rejected)";
           statusLabelEn = "Application Not Successful";
           break;
         default:

@@ -27,12 +27,15 @@ import { useLanguage } from "@/lib/i18n/language-context";
 import { ScrollReveal } from "@/components/ui/scroll-reveal";
 import { Card3D } from "@/components/ui/card-3d";
 import { Mascot3D } from "@/components/ui/mascot-3d";
+import { AnnouncementPopup } from "@/components/home/announcement-popup";
 
 export default function HomePage() {
   const { t } = useLanguage();
 
   return (
     <div className="min-h-screen flex flex-col bg-[#f5f5f5] selection:bg-tif-gold selection:text-tif-navyDark overflow-x-hidden">
+      {/* Announcement Modal Popup overlay */}
+      <AnnouncementPopup />
       {/* ================================================================ */}
       {/* 1. HERO — Full-bleed 3D Interactive Storytelling Experience      */}
       {/* ================================================================ */}
@@ -59,24 +62,9 @@ export default function HomePage() {
             
             {/* Left Column: Storytelling Headline & CTAs (col-7) */}
             <div className="lg:col-span-7 space-y-8">
-              {/* Live Telemetry Badge */}
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-                className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-tif-gold/10 border border-tif-gold/30 text-tif-gold backdrop-blur-md shadow-lg"
-              >
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-tif-gold opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-tif-gold" />
-                </span>
-                <span className="text-[11px] font-extrabold uppercase tracking-widest font-mono">
-                  {t("intakeOpen") || "Nok Air Cadet Pilot Program • 2026 Admission Open"}
-                </span>
-              </motion.div>
 
               {/* 3D Kinetic Headline with Metallic Gold Shimmer */}
-              <h1 className="text-4xl sm:text-5xl lg:text-[3.75rem] font-extrabold tracking-tight font-display leading-[1.15] text-white [perspective:1000px]">
+              <h1 className="text-3xl min-[380px]:text-4xl sm:text-5xl lg:text-[3.75rem] font-extrabold tracking-tight font-display leading-[1.15] text-white [perspective:1000px]">
                 <span className="block animate-word-3d" style={{ animationDelay: "0.1s" }}>
                   {t("heroTitle").includes("ด้วย")
                     ? t("heroTitle").split("ด้วย")[0]

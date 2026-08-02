@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { DataTable } from "@/components/ui/data-table";
@@ -6,7 +6,7 @@ import { Drawer } from "@/components/ui/drawer";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ApplicationWithDetails } from "@/types";
+import { ApplicationWithDetails, PILOT_WORKFLOW_STEPS } from "@/types";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import {
   User,
@@ -33,6 +33,10 @@ import {
   PhoneCall,
   Edit3,
   Trash2,
+  Sparkles,
+  ChevronLeft,
+  ChevronRight,
+  Check,
 } from "lucide-react";
 
 const SAMPLE_APPLICATIONS: ApplicationWithDetails[] = [
@@ -240,6 +244,11 @@ export default function StudentApplicationsPage() {
   } = useApplicationContext();
 
   const [selectedApp, setSelectedApp] = React.useState<ApplicationWithDetails | null>(null);
+
+  const currentStepIndex = React.useMemo(() => {
+    if (!selectedApp) return -1;
+    return PILOT_WORKFLOW_STEPS.findIndex((s) => s.key === selectedApp.status);
+  }, [selectedApp]);
 
   // Sync selectedApp with latest global context state
   React.useEffect(() => {
@@ -832,41 +841,117 @@ export default function StudentApplicationsPage() {
                 </div>
               </div>
 
-              {/* Status Bar Dropdown & Quick Selector */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/70 p-3 rounded-xl border border-slate-800">
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs font-semibold text-slate-400">สถานะปัจจุบัน:</span>
-                  <span className={`text-xs font-extrabold uppercase px-2.5 py-1 rounded-lg border ${
-                    selectedApp.status === "DOCUMENT_VERIFIED"
-                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                      : selectedApp.status === "ACCEPTED" || selectedApp.status === "PAID"
-                      ? "bg-purple-500/10 text-purple-400 border-purple-500/30"
-                      : selectedApp.status === "REJECTED"
-                      ? "bg-rose-500/10 text-rose-400 border-rose-500/30"
-                      : "bg-amber-500/10 text-amber-400 border-amber-500/30"
-                  }`}>
-                    {selectedApp.status}
-                  </span>
-                  <span className="text-[11px] text-slate-500 font-mono">
-                    (ยื่นเมื่อ {formatDate(selectedApp.createdAt)})
-                  </span>
+              {/* 17-Step Pilot Admission Workflow Pipeline & Stepper */}
+              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 shadow-xl space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+                  <div className="flex items-center space-x-2">
+                    <Sparkles className="h-4 w-4 text-tif-gold animate-pulse" />
+                    <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                      ความคืบหน้าขั้นตอนการรับสมัคร (17 ขั้นตอนนักบิน)
+                    </h4>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-[11px] text-slate-400 font-medium">ขั้นตอนปัจจุบัน:</span>
+                    <span className="text-xs font-extrabold text-tif-gold bg-tif-gold/10 px-3 py-1 rounded-full border border-tif-gold/30">
+                      {currentStepIndex >= 0 ? `${currentStepIndex + 1} / 17 (${Math.round(((currentStepIndex + 1) / 17) * 100)}%)` : selectedApp.status}
+                    </span>
+                  </div>
                 </div>
 
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs text-slate-400 font-semibold">เปลี่ยนสถานะ:</span>
-                  <select
-                    value={selectedApp.status}
-                    onChange={(e) => handleUpdateStatus(e.target.value as any)}
-                    className="bg-slate-900 text-xs font-semibold text-slate-200 border border-slate-700 rounded-lg px-2.5 py-1.5 focus:border-tif-gold focus:outline-none cursor-pointer"
-                  >
-                    <option value="SUBMITTED">1. Submitted (ยื่นใบสมัครแล้ว)</option>
-                    <option value="WAITING_DOCUMENTS">2. Waiting Docs (รอเอกสารเพิ่มเติม)</option>
-                    <option value="DOCUMENT_VERIFIED">3. Docs Verified (อนุมัติเอกสารแล้ว)</option>
-                    <option value="INTERVIEW_SCHEDULED">4. Interview Scheduled (นัดสัมภาษณ์แล้ว)</option>
-                    <option value="ACCEPTED">5. Accepted (ผ่านการคัดเลือก)</option>
-                    <option value="PAID">6. Paid (ชำระค่าสมัครแล้ว)</option>
-                    <option value="REJECTED">7. Rejected (ไม่อนุมัติ)</option>
-                  </select>
+                {/* Progress Bar */}
+                <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-800">
+                  <div
+                    className="bg-gradient-to-r from-tif-gold via-amber-400 to-emerald-400 h-full transition-all duration-500 rounded-full"
+                    style={{ width: `${currentStepIndex >= 0 ? Math.max(((currentStepIndex + 1) / 17) * 100, 6) : 0}%` }}
+                  />
+                </div>
+
+                {/* Quick Step Advance Controls & Dropdown Selector */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs text-slate-400 font-semibold shrink-0">เปลี่ยนสถานะ:</span>
+                    <select
+                      value={selectedApp.status}
+                      onChange={(e) => handleUpdateStatus(e.target.value as any)}
+                      className="bg-slate-950 text-xs font-bold text-slate-100 border border-slate-700 rounded-lg px-3 py-1.5 focus:border-tif-gold focus:outline-none cursor-pointer max-w-[280px]"
+                    >
+                      {PILOT_WORKFLOW_STEPS.map((s) => (
+                        <option key={s.key} value={s.key} className="bg-slate-900 text-slate-200">
+                          {s.step}. {s.titleTh} ({s.titleEn})
+                        </option>
+                      ))}
+                      <option value="REJECTED" className="bg-slate-900 text-rose-400">❌ ปฏิเสธการสมัคร (Rejected)</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center space-x-2 shrink-0">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={currentStepIndex <= 0}
+                      onClick={() => {
+                        if (currentStepIndex > 0) {
+                          handleUpdateStatus(PILOT_WORKFLOW_STEPS[currentStepIndex - 1].key);
+                        }
+                      }}
+                      className="text-xs bg-slate-950 border-slate-800 text-slate-300 hover:text-white"
+                    >
+                      <ChevronLeft className="h-3.5 w-3.5 mr-1" /> ขั้นก่อนหน้า
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      variant="gold"
+                      disabled={currentStepIndex < 0 || currentStepIndex >= 16}
+                      onClick={() => {
+                        if (currentStepIndex >= 0 && currentStepIndex < 16) {
+                          handleUpdateStatus(PILOT_WORKFLOW_STEPS[currentStepIndex + 1].key);
+                        }
+                      }}
+                      className="text-xs font-bold shadow-md shadow-tif-gold/10"
+                    >
+                      อนุมัติขั้นถัดไป <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* 17 Steps Pipeline Visual Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 lg:grid-cols-9 gap-1.5 pt-1 max-h-[180px] overflow-y-auto pr-1">
+                  {PILOT_WORKFLOW_STEPS.map((stepDef, idx) => {
+                    const isPassed = currentStepIndex >= 0 && idx < currentStepIndex;
+                    const isCurrent = currentStepIndex >= 0 && idx === currentStepIndex;
+
+                    return (
+                      <button
+                        key={stepDef.key}
+                        type="button"
+                        onClick={() => handleUpdateStatus(stepDef.key)}
+                        className={`p-2 rounded-xl border text-left transition-all relative flex flex-col justify-between ${
+                          isCurrent
+                            ? "bg-tif-gold/20 border-tif-gold text-white font-bold ring-2 ring-tif-gold/30 shadow-lg shadow-tif-gold/20 scale-[1.02]"
+                            : isPassed
+                            ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300 hover:border-emerald-400"
+                            : "bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                            isCurrent ? "bg-tif-gold text-slate-950" : isPassed ? "bg-emerald-500/20 text-emerald-300" : "bg-slate-800 text-slate-400"
+                          }`}>
+                            #{stepDef.step}
+                          </span>
+                          {isPassed ? (
+                            <CheckCircle2 className="h-3 w-3 text-emerald-400 shrink-0" />
+                          ) : isCurrent ? (
+                            <Sparkles className="h-3 w-3 text-tif-gold shrink-0 animate-pulse" />
+                          ) : null}
+                        </div>
+                        <p className="text-[10px] font-medium leading-tight line-clamp-2">
+                          {stepDef.titleTh}
+                        </p>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -1752,19 +1837,18 @@ export default function StudentApplicationsPage() {
               </div>
 
               <div>
-                <label className="font-semibold text-slate-300">สถานะใบสมัคร (Application Status)</label>
+                <label className="font-semibold text-slate-300">สถานะใบสมัคร (Application Status - 17 ขั้นตอน)</label>
                 <select
                   value={formStatus}
                   onChange={(e) => setFormStatus(e.target.value)}
                   className="mt-1 w-full rounded-xl border border-slate-800 bg-slate-950 p-2.5 text-white font-medium"
                 >
-                  <option value="SUBMITTED">Submitted (ยื่นใบสมัครแล้ว)</option>
-                  <option value="DOCUMENT_VERIFIED">Docs Verified (ตรวจเอกสารแล้ว)</option>
-                  <option value="INTERVIEW_SCHEDULED">Interview Scheduled (นัดสัมภาษณ์แล้ว)</option>
-                  <option value="ACCEPTED">Accepted (อนุมัติผลการสมัคร)</option>
-                  <option value="PAID">Paid (ชำระค่าสมัคร 1,800 บาทแล้ว)</option>
-                  <option value="ENROLLED">Enrolled (ลงทะเบียนเป็นศิษย์บินแล้ว)</option>
-                  <option value="REJECTED">Rejected (ปฏิเสธการสมัคร)</option>
+                  {PILOT_WORKFLOW_STEPS.map((s) => (
+                    <option key={s.key} value={s.key}>
+                      {s.step}. {s.titleTh} ({s.titleEn})
+                    </option>
+                  ))}
+                  <option value="REJECTED" className="text-rose-400">❌ ปฏิเสธการสมัคร (Rejected)</option>
                 </select>
               </div>
             </div>

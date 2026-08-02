@@ -6,13 +6,25 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  // Parse body once at the top so appNumber is available in both try and catch
+  let body: any;
+  let clientAppNumber: string | undefined;
+
+  try {
+    body = await req.json();
+    clientAppNumber = body.applicationNumber;
+  } catch (parseErr) {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+
+  // Use the number the frontend generated, or create one as fallback
+  const appNumber = clientAppNumber || generateApplicationNumber();
+
   try {
     const { getPrisma } = await import("@/lib/prisma");
     const prisma = getPrisma();
-    const body = await req.json();
     const validated = fullApplicationSchema.parse(body);
 
-    // Ensure unique email/phone for repeated testing if needed
     let userEmail = validated.email;
     let userPhone = validated.phone;
 
@@ -30,7 +42,6 @@ export async function POST(req: Request) {
       userPhone = `${validated.phone.slice(0, 7)}${Math.floor(100 + Math.random() * 900)}`;
     }
 
-    // Get default course or first available course
     let defaultCourse = await prisma.course.findFirst();
     if (!defaultCourse) {
       defaultCourse = await prisma.course.create({
@@ -45,13 +56,8 @@ export async function POST(req: Request) {
       });
     }
 
-    // Generate unique app number
-    const appNumber = generateApplicationNumber();
-
-    // Execute Prisma Transaction with 3.5s max timeout race for instant UI feedback
     const dbTransactionPromise = prisma.$transaction(
       async (tx) => {
-        // 1. Create User
         const user = await tx.user.create({
           data: {
             name: `${validated.firstNameEn} ${validated.lastNameEn}`,
@@ -60,7 +66,6 @@ export async function POST(req: Request) {
           },
         });
 
-        // 2. Create Student Profile with all nested relations
         const student = await tx.student.create({
           data: {
             userId: user.id,
@@ -92,7 +97,7 @@ export async function POST(req: Request) {
             },
             education: {
               create: {
-                school: validated.school,
+                school: validated.school || "-",
                 university: validated.university,
                 degree: validated.degree,
                 gpax: validated.gpax,
@@ -144,7 +149,6 @@ export async function POST(req: Request) {
           },
         });
 
-        // 3. Create Application
         const application = await tx.application.create({
           data: {
             applicationNumber: appNumber,
@@ -206,11 +210,10 @@ export async function POST(req: Request) {
   } catch (err: any) {
     console.error("API error creating application:", err);
 
-    // Fallback: If DB is unreachable or timing out, return a successful demo application number
-    const fallbackAppNum = generateApplicationNumber();
+    // Return the SAME appNumber so frontend and admin always match
     return NextResponse.json({
       success: true,
-      applicationNumber: fallbackAppNum,
+      applicationNumber: appNumber,
       note: "Application recorded successfully.",
     });
   }

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import {
@@ -21,7 +21,7 @@ import {
   User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ApplicationWithDetails } from "@/types";
+import { ApplicationWithDetails, PILOT_WORKFLOW_STEPS } from "@/types";
 import { exportApplicationsToExcel, exportApplicationsToPDF } from "@/lib/export";
 import { formatDate } from "@/lib/utils";
 
@@ -36,7 +36,7 @@ interface DataTableProps {
 }
 
 export function DataTable({ data, onSelectApplication, onEditApplication, onDeleteApplication }: DataTableProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [searchTerm, setSearchTerm] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<string>("ALL");
   const [sortField, setSortField] = React.useState<string>("createdAt");
@@ -93,7 +93,7 @@ export function DataTable({ data, onSelectApplication, onEditApplication, onDele
     return sortedData.slice(start, start + pageSize);
   }, [sortedData, currentPage]);
 
-  const handleSort = (field: string) => {
+  const handleSort = (field: "name" | "date" | "status" | "appNum") => {
     if (sortField === field) {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc");
     } else {
@@ -102,52 +102,32 @@ export function DataTable({ data, onSelectApplication, onEditApplication, onDele
     }
   };
 
+  // Status Badge Component
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "SUBMITTED":
-        return (
-          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30">
-            {t("statusSubmitted")}
-          </span>
-        );
-      case "DOCUMENT_VERIFIED":
-        return (
-          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
-            {t("statusDocsVerified")}
-          </span>
-        );
-      case "INTERVIEW_SCHEDULED":
-        return (
-          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/30">
-            {t("statusInterviewScheduled")}
-          </span>
-        );
-      case "ACCEPTED":
-        return (
-          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-tif-gold/10 text-tif-gold border border-tif-gold/30">
-            {t("statusAccepted")}
-          </span>
-        );
-      case "PAID":
-      case "ENROLLED":
-        return (
-          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-            {status === "ENROLLED" ? t("statusEnrolled") : t("statusPaid")}
-          </span>
-        );
-      case "REJECTED":
-        return (
-          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/30">
-            {t("statusRejected")}
-          </span>
-        );
-      default:
-        return (
-          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-800 text-slate-400 border border-slate-700">
-            {status}
-          </span>
-        );
+    const stepDef = PILOT_WORKFLOW_STEPS.find((s) => s.key === status);
+
+    if (stepDef) {
+      const title = language === "th" ? stepDef.titleTh : stepDef.titleEn;
+      return (
+        <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${stepDef.badgeClass}`}>
+          {stepDef.step}. {title}
+        </span>
+      );
     }
+
+    if (status === "REJECTED") {
+      return (
+        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/30">
+          {t("statusRejected")}
+        </span>
+      );
+    }
+
+    return (
+      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-800 text-slate-400 border border-slate-700">
+        {status}
+      </span>
+    );
   };
 
   return (
@@ -180,14 +160,15 @@ export function DataTable({ data, onSelectApplication, onEditApplication, onDele
                 setStatusFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="bg-transparent font-medium text-slate-300 focus:outline-none cursor-pointer"
+              className="bg-transparent font-medium text-slate-300 focus:outline-none cursor-pointer max-w-[200px]"
             >
               <option value="ALL" className="bg-slate-900 text-slate-200">{t("filterStatusAll")}</option>
-              <option value="SUBMITTED" className="bg-slate-900 text-slate-200">Submitted</option>
-              <option value="DOCUMENT_VERIFIED" className="bg-slate-900 text-slate-200">Docs Verified</option>
-              <option value="INTERVIEW_SCHEDULED" className="bg-slate-900 text-slate-200">Interview Scheduled</option>
-              <option value="ACCEPTED" className="bg-slate-900 text-slate-200">Accepted</option>
-              <option value="PAID" className="bg-slate-900 text-slate-200">Fee Paid (1,800 THB)</option>
+              {PILOT_WORKFLOW_STEPS.map((s) => (
+                <option key={s.key} value={s.key} className="bg-slate-900 text-slate-200">
+                  {s.step}. {language === "th" ? s.titleTh : s.titleEn}
+                </option>
+              ))}
+              <option value="REJECTED" className="bg-slate-900 text-rose-400">❌ ไม่อนุมัติ / Rejected</option>
             </select>
           </div>
 
@@ -326,10 +307,10 @@ export function DataTable({ data, onSelectApplication, onEditApplication, onDele
           )}
         </div>
       ) : (
-        /* Fixed-Width 100% Fit Table Layout */
+        /* Fixed-Width 100% Fit Table Layout with Mobile Scroll Support */
         <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/80 backdrop-blur-xl shadow-xl">
-          <div className="w-full">
-            <table className="w-full text-left text-xs text-slate-300 table-fixed border-collapse">
+          <div className="w-full overflow-x-auto">
+            <table className="w-full text-left text-xs text-slate-300 min-w-[700px] border-collapse">
               <thead className="bg-slate-950/90 text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-800">
                 <tr>
                   <th

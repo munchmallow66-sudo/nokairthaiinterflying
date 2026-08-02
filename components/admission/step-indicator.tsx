@@ -17,7 +17,7 @@ export function StepIndicator({ currentStep, steps, onStepClick }: StepIndicator
   return (
     <div className="w-full bg-white p-4 rounded-2xl border border-slate-200 shadow-sm mb-8">
       {/* Desktop Stepper */}
-      <div className="hidden lg:grid grid-cols-9 gap-2">
+      <div className="hidden lg:grid grid-cols-8 gap-2">
         {steps.map((step) => {
           const isCompleted = currentStep > step.id;
           const isCurrent = currentStep === step.id;
@@ -56,14 +56,14 @@ export function StepIndicator({ currentStep, steps, onStepClick }: StepIndicator
       <div className="lg:hidden flex items-center justify-between">
         <div>
           <span className="text-xs font-bold text-tif-gold uppercase tracking-wider block">
-            {language === "th" ? `ขั้นตอนที่ ${currentStep} จาก 9` : `Step ${currentStep} of 9`}
+            {language === "th" ? `ขั้นตอนที่ ${currentStep} จาก ${steps.length}` : `Step ${currentStep} of ${steps.length}`}
           </span>
           <h4 className="text-base font-bold text-tif-navy font-display">
             {steps[currentStep - 1]?.title}: {steps[currentStep - 1]?.subtitle}
           </h4>
         </div>
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-tif-navy text-tif-gold font-bold text-sm">
-          {currentStep}/9
+          {currentStep}/{steps.length}
         </div>
       </div>
     </div>

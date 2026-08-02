@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/lib/i18n/language-context";
+import { compressImageIfNeeded } from "@/lib/image-compressor";
 
 export default function PaymentPage() {
   const { t } = useLanguage();
@@ -194,16 +195,32 @@ export default function PaymentPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="font-bold text-slate-200 block">แนบสลิปโอนเงิน (Upload Payment Slip) *</label>
+                    <label className="font-bold text-slate-200 block">แนบสลิปโอนเงิน (Upload Payment Slip - Auto Compress to 5MB) *</label>
                     <input
                       type="file"
                       accept="image/*,.pdf"
-                      onChange={(e) => setSlipFile(e.target.files?.[0] || null)}
+                      onChange={async (e) => {
+                        let selected = e.target.files?.[0];
+                        if (!selected) return;
+
+                        if (selected.size > 5 * 1024 * 1024 && selected.type.startsWith("image/")) {
+                          selected = await compressImageIfNeeded(selected, 5 * 1024 * 1024);
+                        }
+
+                        if (selected.size > 5 * 1024 * 1024) {
+                          alert("ขนาดไฟล์สลิปเกิน 5MB กรุณาเลือกไฟล์ที่มีขนาดไม่เกิน 5MB");
+                          e.target.value = "";
+                          setSlipFile(null);
+                          return;
+                        }
+                        setSlipFile(selected);
+                      }}
                       className="w-full text-xs text-slate-300 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-tif-gold file:text-tif-navy hover:file:bg-amber-400 cursor-pointer bg-slate-950 p-2 rounded-xl border border-slate-800"
                     />
+                    <span className="text-[11px] text-slate-400 block">รองรับไฟล์ JPG, PNG, PDF (รูปภาพขนาดใหญ่จะถูกย่อขนาดลงให้อัตโนมัติไม่เกิน 5MB)</span>
                     {slipFile && (
                       <p className="text-[11px] text-emerald-400 font-mono">
-                        ✓ เลือกไฟล์: {slipFile.name}
+                        ✓ เลือกไฟล์: {slipFile.name} ({Math.round(slipFile.size / 1024)} KB)
                       </p>
                     )}
                   </div>

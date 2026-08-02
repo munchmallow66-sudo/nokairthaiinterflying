@@ -20,12 +20,28 @@ enum Role {
 }
 
 enum ApplicationStatus {
-  DRAFT
+  ONLINE_REGISTRATION
   SUBMITTED
-  WAITING_DOCUMENTS
-  DOCUMENT_VERIFIED
+  DOCS_UNDER_REVIEW
+  DOCS_PASSED
+  APPLICATION_FEE_PAID
+  OPEN_HOUSE_ATTENDED
+  PHYSICAL_DOCS_SUBMITTED
+  WRITTEN_EXAM
+  WRITTEN_EXAM_PASSED
   INTERVIEW_SCHEDULED
   INTERVIEW_PASSED
+  MEDICAL_CHECK_CLASS_1
+  ACCEPTANCE_CONFIRMED
+  CONTRACT_SIGNED
+  TUITION_FIRST_INSTALLMENT_PAID
+  ORIENTATION
+  PILOT_JOURNEY_BEGUN
+
+  // Legacy/Fallback statuses
+  DRAFT
+  WAITING_DOCUMENTS
+  DOCUMENT_VERIFIED
   ACCEPTED
   REJECTED
   PAYMENT_PENDING
@@ -328,3 +344,29 @@ model AuditLog {
 
   @@map("audit_logs")
 }
+
+enum AnnouncementType {
+  TEXT
+  IMAGE
+  HYBRID
+}
+
+model Announcement {
+  id            String           @id @default(cuid())
+  title         String
+  content       String?
+  imageUrl      String?
+  imagePublicId String?
+  linkUrl       String?
+  badge         String?
+  type          AnnouncementType @default(TEXT)
+  isActive      Boolean          @default(true)
+  priority      Int              @default(0)
+  startDate     DateTime?
+  endDate       DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@map("announcements")
+}
+

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import Link from "next/link";
@@ -17,10 +17,11 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { PILOT_WORKFLOW_STEPS } from "@/types";
 import { useLanguage } from "@/lib/i18n/language-context";
 
 export default function AdminDashboardPage() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const [stats] = React.useState({
     todayApplications: 4,
@@ -44,7 +45,7 @@ export default function AdminDashboardPage() {
       appNum: "TIF-2026-4401",
       name: "Kanchana Sukhumvit (กาญจนา สุขุมวิท)",
       feeInfo: "ค่าสมัครเรียน 1,800 บาท",
-      status: "DOCUMENT_VERIFIED",
+      status: "DOCS_PASSED",
       date: "2026-07-23",
     },
     {
@@ -60,38 +61,27 @@ export default function AdminDashboardPage() {
       appNum: "TIF-2026-9043",
       name: "Nattapong Kittisak (ณัฐพงษ์ กิตติศักดิ์)",
       feeInfo: "ค่าสมัครเรียน 1,800 บาท",
-      status: "PAID",
+      status: "APPLICATION_FEE_PAID",
       date: "2026-07-21",
     },
   ];
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "PAID":
-        return (
-          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-            <CheckCircle2 className="w-3 h-3 mr-1" /> ชำระค่าสมัคร 1,800 บาทแล้ว
-          </span>
-        );
-      case "INTERVIEW_SCHEDULED":
-        return (
-          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/30">
-            <Calendar className="w-3 h-3 mr-1" /> นัดสัมภาษณ์แล้ว
-          </span>
-        );
-      case "DOCUMENT_VERIFIED":
-        return (
-          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
-            <ShieldCheck className="w-3 h-3 mr-1" /> ตรวจเอกสารแล้ว
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30">
-            <Clock className="w-3 h-3 mr-1" /> ยื่นใบสมัครแล้ว
-          </span>
-        );
+    const stepDef = PILOT_WORKFLOW_STEPS.find((s) => s.key === status);
+    if (stepDef) {
+      const title = language === "th" ? stepDef.titleTh : stepDef.titleEn;
+      return (
+        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${stepDef.badgeClass}`}>
+          <CheckCircle2 className="w-3 h-3 mr-1" /> {stepDef.step}. {title}
+        </span>
+      );
     }
+
+    return (
+      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+        <Clock className="w-3 h-3 mr-1" /> {status}
+      </span>
+    );
   };
 
   return (
@@ -106,7 +96,7 @@ export default function AdminDashboardPage() {
             ระบบตรวจเช็กและจัดการแบบฟอร์มสมัครเรียนการบินออนไลน์
           </h1>
           <p className="text-xs lg:text-sm text-slate-400 mt-1">
-            สำหรับเจ้าหน้าที่ตรวจสอบความถูกต้องของข้อมูลใบสมัคร 9 ขั้นตอน สลิปชำระเงินค่าสมัคร 1,800 บาท และจัดตารางสอบสัมภาษณ์
+            สำหรับเจ้าหน้าที่ตรวจสอบความถูกต้องของข้อมูลใบสมัครและติดตามความคืบหน้า 17 ขั้นตอนเส้นทางนักบิน
           </p>
         </div>
         <div className="flex items-center space-x-3 shrink-0">

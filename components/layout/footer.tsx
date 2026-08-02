@@ -81,8 +81,8 @@ export function Footer() {
 
         {/* Bottom Legal Row */}
         <div className="border-t border-slate-800/80 pt-8 flex flex-col md:flex-row items-center justify-between text-xs text-slate-400 gap-4">
-          <p>© {new Date().getFullYear()} {t("allRightsReserved")}</p>
-          <div className="flex flex-wrap space-x-6 text-slate-400 font-medium">
+          <p className="text-center md:text-left">© {new Date().getFullYear()} {t("allRightsReserved")}</p>
+          <div className="flex flex-wrap items-center justify-center sm:justify-end gap-4 sm:gap-6 text-slate-400 font-medium">
             <a href="#" className="hover:text-tif-gold transition-colors">Privacy Policy</a>
             <a href="#" className="hover:text-tif-gold transition-colors">Terms of Training</a>
             <a href="#" className="hover:text-tif-gold transition-colors">CAAT License</a>

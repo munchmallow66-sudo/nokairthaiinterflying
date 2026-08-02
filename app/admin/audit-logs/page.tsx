@@ -93,7 +93,7 @@ export default function AuditLogsPage() {
       {/* Main Table */}
       <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/80 backdrop-blur-xl shadow-xl">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-300">
+          <table className="w-full text-left text-xs text-slate-300 min-w-[700px]">
             <thead className="bg-slate-950/90 text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-800">
               <tr>
                 <th className="px-5 py-4">{t("timestampHeader")}</th>

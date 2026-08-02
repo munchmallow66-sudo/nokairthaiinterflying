@@ -21,6 +21,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { useLanguage } from "@/lib/i18n/language-context";
+import { PILOT_WORKFLOW_STEPS } from "@/types";
+import { compressImageIfNeeded } from "@/lib/image-compressor";
+import { useApplicationContext } from "@/lib/context/application-context";
 
 interface ApplicationData {
   id: string;
@@ -69,6 +72,7 @@ const getDocTypeLabel = (type: string, t: (key: any) => string): string => {
 
 export default function TrackStatusPage() {
   const { t, language } = useLanguage();
+  const { applications: ctxApps } = useApplicationContext();
   const [nationalId, setNationalId] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<TrackingResponse | null>(null);
@@ -206,6 +210,83 @@ export default function TrackStatusPage() {
     setLoading(true);
     setResult(null);
 
+    // 1. Search from ApplicationContext (localStorage) first
+    const queryUpper = queryValue.toUpperCase();
+    const queryDigits = queryValue.replace(/\D/g, "");
+
+    const localMatches = ctxApps.filter((app) => {
+      // Match by application number
+      if (app.applicationNumber?.toUpperCase() === queryUpper) return true;
+      // Match by national ID
+      if (queryDigits.length > 0 && app.student?.nationalId === queryDigits) return true;
+      // Match by phone
+      if (queryDigits.length > 0 && app.student?.phone === queryDigits) return true;
+      return false;
+    });
+
+    if (localMatches.length > 0) {
+      const firstMatch = localMatches[0];
+      const student = firstMatch.student;
+      const studentName = student
+        ? `${student.title || ""} ${student.firstNameTh || student.firstNameEn || ""} ${student.lastNameTh || student.lastNameEn || ""} (${student.firstNameEn || ""} ${student.lastNameEn || ""})`.trim()
+        : "ไม่ทราบชื่อ";
+
+      const getStatusInfo = (status: string) => {
+        switch (status) {
+          case "SUBMITTED": return { stepIndex: 1, labelTh: "ยื่นใบสมัครแล้ว (อยู่ระหว่างตรวจสอบเอกสาร)", labelEn: "Application Submitted (Document Review Pending)" };
+          case "DOCS_UNDER_REVIEW":
+          case "WAITING_DOCUMENTS": return { stepIndex: 2, labelTh: "อยู่ระหว่างการตรวจเอกสารเบื้องต้น", labelEn: "Initial Document Review in Progress" };
+          case "DOCS_PASSED":
+          case "DOCUMENT_VERIFIED": return { stepIndex: 3, labelTh: "ผ่านการตรวจเอกสาร (พร้อมชำระค่าสมัคร 1,800 บาท)", labelEn: "Documents Verified (Ready for Application Fee)" };
+          case "APPLICATION_FEE_PAID":
+          case "PAID": return { stepIndex: 4, labelTh: "ชำระค่าสมัคร 1,800 บาทเรียบร้อยแล้ว", labelEn: "Application Fee (1,800 THB) Paid" };
+          case "WRITTEN_EXAM": return { stepIndex: 5, labelTh: "สอบข้อเขียน", labelEn: "Written Examination" };
+          case "INTERVIEW_SCHEDULED":
+          case "INTERVIEW_PASSED": return { stepIndex: 6, labelTh: "สอบสัมภาษณ์", labelEn: "Interview" };
+          case "MEDICAL_CHECK_CLASS_1": return { stepIndex: 7, labelTh: "ตรวจสุขภาพ Class 1", labelEn: "Medical Check Class 1" };
+          case "CONTRACT_SIGNED":
+          case "ACCEPTED": return { stepIndex: 8, labelTh: "ทำสัญญา & ปฐมนิเทศ", labelEn: "Contract & Orientation" };
+          case "REJECTED": return { stepIndex: 0, labelTh: "ไม่ผ่านการคัดเลือก", labelEn: "Application Not Successful" };
+          default: return { stepIndex: 1, labelTh: "ยื่นใบสมัครแล้ว", labelEn: "Application Submitted" };
+        }
+      };
+
+      const applications: ApplicationData[] = localMatches.map((app) => {
+        const info = getStatusInfo(app.status);
+        return {
+          id: app.id,
+          applicationNumber: app.applicationNumber,
+          courseName: "แบบฟอร์มสมัครเรียนการบินออนไลน์ 8 ขั้นตอน",
+          status: app.status,
+          statusLabelTh: info.labelTh,
+          statusLabelEn: info.labelEn,
+          submissionDate: app.createdAt ? new Date(app.createdAt).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+          stepIndex: info.stepIndex,
+          remarks: "เจ้าหน้าที่กำลังดำเนินการตามลำดับขั้นตอน",
+          updatedAt: app.updatedAt ? new Date(app.updatedAt).toLocaleString("th-TH") : "อัปเดตล่าสุดวันนี้",
+          documents: (app.documents || []).map((doc: any) => ({
+            id: doc.id || `doc_${Date.now()}`,
+            type: doc.type,
+            secureUrl: doc.secureUrl || "",
+            originalName: doc.originalName || doc.type,
+            isVerified: doc.isVerified || false,
+            isRejected: doc.isRejected || false,
+            rejectReason: doc.rejectReason,
+          })),
+        };
+      });
+
+      setResult({
+        found: true,
+        studentName,
+        nationalId: student?.nationalId || queryDigits || "-",
+        applications,
+      });
+      setLoading(false);
+      return;
+    }
+
+    // 2. Fallback: call API (for DB-backed data)
     try {
       const res = await fetch("/api/track", {
         method: "POST",
@@ -392,96 +473,119 @@ export default function TrackStatusPage() {
                 </div>
               </div>
 
-              {/* Progress Timeline — Horizontal connected steps */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <span className="text-xs font-bold tracking-[0.15em] text-tif-gold uppercase">
-                    {t("progressLabel")}
+              {/* 8 Essential Student Milestone Timeline */}
+              <div className="space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold tracking-[0.15em] text-tif-gold uppercase">
+                      {t("progressLabel")} (สถานะขั้นตอนการคัดเลือกนักบิน)
+                    </span>
+                  </div>
+                  <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 shrink-0">
+                    ขั้นตอนปัจจุบัน: {app.stepIndex || 1} จาก 17 ({Math.round(((app.stepIndex || 1) / 17) * 100)}%)
                   </span>
-                  <span className="h-px flex-1 bg-slate-200" />
                 </div>
 
-                {/* Desktop: Horizontal timeline */}
-                <div className="hidden md:block relative">
-                  {/* Connecting line */}
-                  <div className="absolute top-5 left-[10%] right-[10%] h-px bg-slate-200" />
+                {/* Horizontal Stepper Grid (8 Key Milestones) */}
+                <div className="relative">
+                  {/* Connecting Line behind icons */}
+                  <div className="absolute top-5 left-[6%] right-[6%] h-0.5 bg-slate-200 hidden md:block" />
                   <div
-                    className="absolute top-5 left-[10%] h-px bg-emerald-500 transition-all duration-500"
-                    style={{ width: `calc(${Math.max(0, app.stepIndex - 1) * 20}%)` }}
+                    className="absolute top-5 left-[6%] h-0.5 bg-emerald-500 transition-all duration-500 hidden md:block"
+                    style={{
+                      width: `${
+                        (app.stepIndex || 1) <= 2
+                          ? 0
+                          : (app.stepIndex || 1) <= 4
+                          ? 12
+                          : (app.stepIndex || 1) <= 5
+                          ? 26
+                          : (app.stepIndex || 1) <= 7
+                          ? 40
+                          : (app.stepIndex || 1) <= 9
+                          ? 54
+                          : (app.stepIndex || 1) <= 11
+                          ? 68
+                          : (app.stepIndex || 1) <= 12
+                          ? 82
+                          : 88
+                      }%`,
+                    }}
                   />
 
-                  <div className="grid grid-cols-5 gap-2 relative">
-                    {steps.map((step, idx) => {
-                      const stepNum = idx + 1;
-                      const isComplete = app.stepIndex >= stepNum;
-                      const isNext = app.stepIndex === stepNum - 1;
-                      const Icon = step.icon;
+                  {/* 8 Milestone Items Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 relative z-10">
+                    {[
+                      { num: 1, labelTh: "1. ยื่นใบสมัคร", labelEn: "Application", icon: FileText, maxStep: 2 },
+                      { num: 2, labelTh: "2. ตรวจเอกสาร", labelEn: "Docs Review", icon: CheckCircle2, maxStep: 4 },
+                      { num: 3, labelTh: "3. ชำระค่าสมัคร 1,800 บาท", labelEn: "App Fee (1,800 THB)", icon: CreditCard, maxStep: 5 },
+                      { num: 4, labelTh: "4. ส่งเอกสารตัวจริง", labelEn: "Original Docs", icon: Upload, maxStep: 7 },
+                      { num: 5, labelTh: "5. สอบข้อเขียน", labelEn: "Written Exam", icon: PenTool, maxStep: 9 },
+                      { num: 6, labelTh: "6. สอบสัมภาษณ์", labelEn: "Interview", icon: User, maxStep: 11 },
+                      { num: 7, labelTh: "7. ตรวจสุขภาพ Class 1", labelEn: "Medical Check", icon: Award, maxStep: 12 },
+                      { num: 8, labelTh: "8. ทำสัญญา & ปฐมนิเทศ", labelEn: "Contract & Start", icon: Sparkles, maxStep: 17 },
+                    ].map((milestone) => {
+                      const curStep = app.stepIndex || 1;
+                      const isComplete = curStep > milestone.maxStep || (milestone.num === 8 && curStep === 17);
+                      const isCurrent =
+                        (milestone.num === 1 && curStep <= 2) ||
+                        (milestone.num === 2 && curStep >= 3 && curStep <= 4) ||
+                        (milestone.num === 3 && curStep === 5) ||
+                        (milestone.num === 4 && curStep >= 6 && curStep <= 7) ||
+                        (milestone.num === 5 && curStep >= 8 && curStep <= 9) ||
+                        (milestone.num === 6 && curStep >= 10 && curStep <= 11) ||
+                        (milestone.num === 7 && curStep === 12) ||
+                        (milestone.num === 8 && curStep >= 13);
+
+                      const Icon = milestone.icon;
+                      const isFeeStep = milestone.num === 3;
 
                       return (
-                        <div key={idx} className="flex flex-col items-center text-center space-y-2.5">
+                        <div
+                          key={milestone.num}
+                          className={`flex flex-col items-center text-center p-2.5 rounded-xl border transition-all ${
+                            isCurrent
+                              ? isFeeStep
+                                ? "bg-amber-50 border-amber-400 text-amber-900 shadow-md ring-2 ring-amber-400/30"
+                                : "bg-tif-gold/10 border-tif-gold text-tif-navy shadow-md ring-2 ring-tif-gold/20"
+                              : isComplete
+                              ? "bg-emerald-50/50 border-emerald-200 text-emerald-900"
+                              : "bg-white border-slate-200 text-slate-400"
+                          }`}
+                        >
                           <div
-                            className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all relative z-10 ${
+                            className={`w-9 h-9 rounded-full flex items-center justify-center border-2 transition-all mb-1.5 ${
                               isComplete
-                                ? "bg-emerald-500 border-emerald-500 text-white"
-                                : isNext
-                                ? "bg-white border-tif-gold text-tif-gold animate-pulse"
+                                ? "bg-emerald-500 border-emerald-500 text-white shadow-sm"
+                                : isCurrent
+                                ? isFeeStep
+                                  ? "bg-amber-500 border-amber-500 text-white font-bold animate-pulse shadow-md"
+                                  : "bg-tif-gold border-tif-gold text-slate-950 font-bold animate-pulse shadow-md"
                                 : "bg-white border-slate-200 text-slate-300"
                             }`}
                           >
                             <Icon className="h-4 w-4" />
                           </div>
-                          <div className="space-y-0.5">
-                            <p className={`text-[11px] font-bold leading-tight ${isComplete ? "text-tif-navy" : isNext ? "text-tif-goldDark" : "text-slate-400"}`}>
-                              {step.label}
-                            </p>
-                            <p className={`text-[10px] ${isComplete ? "text-emerald-600" : isNext ? "text-tif-gold" : "text-slate-300"}`}>
-                              {step.subLabel}
-                            </p>
-                          </div>
+                          <p
+                            className={`text-[11px] font-bold leading-tight line-clamp-2 ${
+                              isCurrent
+                                ? isFeeStep
+                                  ? "text-amber-800 font-extrabold"
+                                  : "text-tif-goldDark font-bold"
+                                : isComplete
+                                ? "text-tif-navy"
+                                : "text-slate-400"
+                            }`}
+                          >
+                            {milestone.labelTh}
+                          </p>
+                          <p className="text-[9px] text-slate-400 font-mono mt-0.5 hidden xl:block">
+                            {milestone.labelEn}
+                          </p>
                         </div>
                       );
                     })}
                   </div>
-                </div>
-
-                {/* Mobile: Vertical timeline */}
-                <div className="md:hidden space-y-0">
-                  {steps.map((step, idx) => {
-                    const stepNum = idx + 1;
-                    const isComplete = app.stepIndex >= stepNum;
-                    const isNext = app.stepIndex === stepNum - 1;
-                    const Icon = step.icon;
-                    const isLast = idx === steps.length - 1;
-
-                    return (
-                      <div key={idx} className="flex items-start gap-3">
-                        <div className="flex flex-col items-center">
-                          <div
-                            className={`w-9 h-9 rounded-full flex items-center justify-center border-2 transition-all ${
-                              isComplete
-                                ? "bg-emerald-500 border-emerald-500 text-white"
-                                : isNext
-                                ? "bg-white border-tif-gold text-tif-gold animate-pulse"
-                                : "bg-white border-slate-200 text-slate-300"
-                            }`}
-                          >
-                            <Icon className="h-4 w-4" />
-                          </div>
-                          {!isLast && (
-                            <div className={`w-px h-6 ${isComplete ? "bg-emerald-500" : "bg-slate-200"}`} />
-                          )}
-                        </div>
-                        <div className={`pt-1.5 ${isLast ? "" : "pb-3"}`}>
-                          <p className={`text-xs font-bold ${isComplete ? "text-tif-navy" : isNext ? "text-tif-goldDark" : "text-slate-400"}`}>
-                            {step.label}
-                          </p>
-                          <p className={`text-[10px] ${isComplete ? "text-emerald-600" : isNext ? "text-tif-gold" : "text-slate-300"}`}>
-                            {step.subLabel}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
                 </div>
               </div>
 
@@ -756,16 +860,32 @@ export default function TrackStatusPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="font-bold text-slate-200 block">{t("selectSlipFileLabel")}</label>
+                  <label className="font-bold text-slate-200 block">{t("selectSlipFileLabel")} (Auto Compress to 5MB)</label>
                   <input
                     type="file"
                     accept="image/*,.pdf"
-                    onChange={(e) => setSlipFile(e.target.files?.[0] || null)}
+                    onChange={async (e) => {
+                      let selected = e.target.files?.[0];
+                      if (!selected) return;
+
+                      if (selected.size > 5 * 1024 * 1024 && selected.type.startsWith("image/")) {
+                        selected = await compressImageIfNeeded(selected, 5 * 1024 * 1024);
+                      }
+
+                      if (selected && selected.size > 5 * 1024 * 1024) {
+                        alert("ขนาดไฟล์สลิปเกิน 5MB กรุณาเลือกไฟล์รูปภาพหรือ PDF ขนาดไม่เกิน 5MB");
+                        e.target.value = "";
+                        setSlipFile(null);
+                        return;
+                      }
+                      setSlipFile(selected || null);
+                    }}
                     className="w-full text-xs text-slate-300 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-tif-gold file:text-tif-navy hover:file:bg-amber-400 cursor-pointer bg-slate-950 p-1.5 rounded-xl border border-slate-800"
                   />
+                  <span className="text-[10px] text-slate-400 block">รองรับไฟล์ JPG, PNG, PDF (รูปภาพขนาดใหญ่จะถูกย่อให้อัตโนมัติไม่เกิน 5MB)</span>
                   {slipFile && (
                     <p className="text-[11px] text-emerald-400 font-mono">
-                      {t("selectedFileLabel")} {slipFile.name}
+                      {t("selectedFileLabel")} {slipFile.name} ({Math.round(slipFile.size / 1024)} KB)
                     </p>
                   )}
                 </div>
@@ -821,13 +941,29 @@ export default function TrackStatusPage() {
           )}
 
           <div className="space-y-1.5">
-            <label className="font-bold text-slate-200 block">{t("selectNewDocFileLabel")}</label>
+            <label className="font-bold text-slate-200 block">{t("selectNewDocFileLabel")} (Auto Compress to 5MB)</label>
             <input
               type="file"
               accept="image/*,.pdf"
-              onChange={(e) => setReuploadFile(e.target.files?.[0] || null)}
+              onChange={async (e) => {
+                let selected = e.target.files?.[0];
+                if (!selected) return;
+
+                if (selected.size > 5 * 1024 * 1024 && selected.type.startsWith("image/")) {
+                  selected = await compressImageIfNeeded(selected, 5 * 1024 * 1024);
+                }
+
+                if (selected && selected.size > 5 * 1024 * 1024) {
+                  alert("ขนาดไฟล์เอกสารเกิน 5MB กรุณาเลือกไฟล์รูปภาพหรือ PDF ขนาดไม่เกิน 5MB");
+                  e.target.value = "";
+                  setReuploadFile(null);
+                  return;
+                }
+                setReuploadFile(selected || null);
+              }}
               className="w-full text-xs text-slate-300 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-tif-gold file:text-tif-navy hover:file:bg-amber-400 cursor-pointer bg-slate-950 p-2 rounded-xl border border-slate-800"
             />
+            <span className="text-[10px] text-slate-400 block">รองรับไฟล์ JPG, PNG, PDF (รูปภาพขนาดใหญ่จะถูกย่อให้อัตโนมัติไม่เกิน 5MB)</span>
             {reuploadFile && (
               <p className="text-[11px] text-emerald-400 font-mono">
                 {t("selectedFileLabel")} {reuploadFile.name} ({Math.round(reuploadFile.size / 1024)} KB)

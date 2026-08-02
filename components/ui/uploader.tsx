@@ -4,6 +4,8 @@ import * as React from "react";
 import { UploadCloud, FileText, CheckCircle2, AlertCircle, Trash2, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+import { compressImageIfNeeded } from "@/lib/image-compressor";
+
 interface UploadedFile {
   type: string;
   secureUrl: string;
@@ -35,14 +37,26 @@ export function Uploader({
   const [error, setError] = React.useState<string | null>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
+    let selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
 
     setIsUploading(true);
     setError(null);
-    setProgress(20);
+    setProgress(15);
 
     try {
+      // Auto compress image if larger than 5MB
+      if (selectedFile.size > 5 * 1024 * 1024 && selectedFile.type.startsWith("image/")) {
+        selectedFile = await compressImageIfNeeded(selectedFile, 5 * 1024 * 1024);
+      }
+
+      // If PDF or uncompressable file is still over 5MB
+      if (selectedFile.size > 5 * 1024 * 1024) {
+        setError("ขนาดไฟล์เกิน 5MB กรุณาเลือกไฟล์ที่มีขนาดไม่เกิน 5MB (File size exceeds 5MB limit)");
+        setIsUploading(false);
+        return;
+      }
+
       // Simulate Cloudinary secure direct upload
       const formData = new FormData();
       formData.append("file", selectedFile);
@@ -51,7 +65,7 @@ export function Uploader({
       setProgress(60);
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
 
       // Call API upload route with timeout guard
       const res = await fetch("/api/upload", {
@@ -168,7 +182,7 @@ export function Uploader({
               <p className="text-sm font-semibold text-slate-700">
                 Drag & drop or <span className="text-tif-gold font-bold">browse file</span>
               </p>
-              <p className="mt-1 text-xs text-slate-400">PDF, JPG, PNG up to 10MB</p>
+              <p className="mt-1 text-xs text-slate-400">PDF, JPG, PNG ขนาดไม่เกิน 5MB (Max 5MB)</p>
             </>
           )}
         </div>
