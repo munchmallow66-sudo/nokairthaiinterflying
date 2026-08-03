@@ -408,31 +408,51 @@ interface ApplicationContextType {
   resetToSampleData: () => void;
 }
 
+const DELETED_KEY = "tif_deleted_application_ids_v1";
+
 const ApplicationContext = React.createContext<ApplicationContextType | undefined>(undefined);
 
 export function ApplicationProvider({ children }: { children: React.ReactNode }) {
-  const [applications, setApplications] = React.useState<ApplicationWithDetails[]>(INITIAL_SAMPLE_APPLICATIONS);
+  const [applications, setApplications] = React.useState<ApplicationWithDetails[]>([]);
+  const [deletedIds, setDeletedIds] = React.useState<string[]>([]);
   const [isInitialized, setIsInitialized] = React.useState(false);
 
-  // 1. Load persisted data from localStorage & fetch server database records on mount
+  // 1. Load persisted data & deleted tombstones from localStorage, then fetch server DB
   React.useEffect(() => {
-    let initialApps = INITIAL_SAMPLE_APPLICATIONS;
+    let currentDeleted: string[] = [];
+    try {
+      const savedDeleted = localStorage.getItem(DELETED_KEY);
+      if (savedDeleted) {
+        const parsed = JSON.parse(savedDeleted);
+        if (Array.isArray(parsed)) {
+          currentDeleted = parsed;
+          setDeletedIds(parsed);
+        }
+      }
+    } catch (e) {}
+
+    let initialApps = INITIAL_SAMPLE_APPLICATIONS.filter(
+      (app) => !currentDeleted.includes(app.id) && !currentDeleted.includes(app.applicationNumber)
+    );
+
     try {
       const savedData = localStorage.getItem(STORAGE_KEY);
-      if (savedData) {
+      if (savedData !== null) {
         const parsed = JSON.parse(savedData);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          initialApps = parsed;
-          setApplications(parsed);
+        if (Array.isArray(parsed)) {
+          initialApps = parsed.filter(
+            (app: any) => !currentDeleted.includes(app.id) && !currentDeleted.includes(app.applicationNumber)
+          );
         }
       }
     } catch (err) {
       console.error("Failed to load global ApplicationContext cache:", err);
-    } finally {
-      setIsInitialized(true);
     }
 
-    // Fetch real applications from server DB and merge
+    setApplications(initialApps);
+    setIsInitialized(true);
+
+    // Fetch real applications from server DB and merge cleanly
     fetch("/api/applications")
       .then((res) => (res.ok ? res.json() : []))
       .then((dbApps) => {
@@ -440,14 +460,17 @@ export function ApplicationProvider({ children }: { children: React.ReactNode })
           setApplications((prev) => {
             const merged = [...prev];
             dbApps.forEach((dbApp: any) => {
-              const exists = merged.some(
-                (a) => a.id === dbApp.id || a.applicationNumber === dbApp.applicationNumber
-              );
-              if (!exists) {
-                merged.unshift(dbApp);
+              const isDeleted = currentDeleted.includes(dbApp.id) || currentDeleted.includes(dbApp.applicationNumber);
+              if (!isDeleted) {
+                const exists = merged.some(
+                  (a) => a.id === dbApp.id || a.applicationNumber === dbApp.applicationNumber
+                );
+                if (!exists) {
+                  merged.unshift(dbApp);
+                }
               }
             });
-            return merged;
+            return merged.filter((a) => !currentDeleted.includes(a.id) && !currentDeleted.includes(a.applicationNumber));
           });
         }
       })
@@ -468,6 +491,13 @@ export function ApplicationProvider({ children }: { children: React.ReactNode })
     setApplications((prev) =>
       prev.map((app) => (app.id === appId ? { ...app, ...updatedFields, updatedAt: new Date() } : app))
     );
+    try {
+      fetch("/api/applications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: appId, ...updatedFields }),
+      }).catch((e) => console.warn("API sync error:", e));
+    } catch (e) {}
   };
 
   const toggleDocVerification = (appId: string, docId: string, verifiedStatus: boolean) => {
@@ -480,6 +510,13 @@ export function ApplicationProvider({ children }: { children: React.ReactNode })
         return { ...app, documents: updatedDocs, updatedAt: new Date() };
       })
     );
+    try {
+      fetch("/api/applications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: appId, docId, action: "TOGGLE_DOC_VERIFY", verifiedStatus }),
+      }).catch((e) => console.warn("API sync error:", e));
+    } catch (e) {}
   };
 
   const rejectDocument = (appId: string, docId: string, reason: string) => {
@@ -510,6 +547,13 @@ export function ApplicationProvider({ children }: { children: React.ReactNode })
         };
       })
     );
+    try {
+      fetch("/api/applications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: appId, status: "WAITING_DOCUMENTS" }),
+      }).catch((e) => console.warn("API sync error:", e));
+    } catch (e) {}
   };
 
   const replaceDocument = (appId: string, docId: string, newUrl: string, newName?: string) => {
@@ -531,6 +575,13 @@ export function ApplicationProvider({ children }: { children: React.ReactNode })
         return { ...app, documents: updatedDocs, updatedAt: new Date() };
       })
     );
+    try {
+      fetch("/api/applications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: appId, action: "REPLACE_DOC", docId, newUrl, newName }),
+      }).catch((e) => console.warn("API sync error:", e));
+    } catch (e) {}
   };
 
   const addExtraDocument = (appId: string, type: string, url: string, name: string) => {
@@ -550,10 +601,37 @@ export function ApplicationProvider({ children }: { children: React.ReactNode })
         return { ...app, documents: [...(app.documents || []), newDoc], updatedAt: new Date() };
       })
     );
+    try {
+      fetch("/api/applications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: appId, action: "ADD_EXTRA_DOC", type, url, name }),
+      }).catch((e) => console.warn("API sync error:", e));
+    } catch (e) {}
   };
 
   const deleteApplication = (appId: string) => {
-    setApplications((prev) => prev.filter((app) => app.id !== appId));
+    const targetApp = applications.find((a) => a.id === appId);
+    const appNum = targetApp?.applicationNumber;
+
+    // 1. Remove from state immediately
+    setApplications((prev) => prev.filter((app) => app.id !== appId && app.applicationNumber !== appId));
+
+    // 2. Track deleted ID in state and tombstone localStorage (Context7 principle)
+    setDeletedIds((prev) => {
+      const updated = Array.from(new Set([...prev, appId, ...(appNum ? [appNum] : [])]));
+      try {
+        localStorage.setItem(DELETED_KEY, JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+
+    // 3. Delete from backend DB via API
+    try {
+      fetch(`/api/applications?id=${appId}`, {
+        method: "DELETE",
+      }).catch((e) => console.warn("API delete error:", e));
+    } catch (e) {}
   };
 
   const addApplication = (newApp: ApplicationWithDetails) => {
@@ -562,8 +640,10 @@ export function ApplicationProvider({ children }: { children: React.ReactNode })
 
   const resetToSampleData = () => {
     setApplications(INITIAL_SAMPLE_APPLICATIONS);
+    setDeletedIds([]);
     try {
       localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(DELETED_KEY);
     } catch (e) {}
   };
 

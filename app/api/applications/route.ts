@@ -1,12 +1,48 @@
 import { NextResponse } from "next/server";
 import { fullApplicationSchema } from "@/schemas/application-schema";
-import { generateApplicationNumber } from "@/lib/utils";
+import { generateApplicationNumber, formatDocumentFileName } from "@/lib/utils";
+
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+export async function GET() {
+  try {
+    const { getPrisma } = await import("@/lib/prisma");
+    const prisma = getPrisma();
+    const applications = await prisma.application.findMany({
+      include: {
+        student: {
+          include: {
+            user: true,
+            address: true,
+            education: true,
+            emergency: true,
+            parent: true,
+            medical: true,
+            english: true,
+          },
+        },
+        course: true,
+        documents: true,
+        payments: true,
+        interviews: true,
+        adminNotes: {
+          include: {
+            author: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return NextResponse.json(applications);
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
 export async function POST(req: Request) {
-  // Parse body once at the top so appNumber is available in both try and catch
   let body: any;
   let clientAppNumber: string | undefined;
 
@@ -17,7 +53,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  // Use the number the frontend generated, or create one as fallback
   const appNumber = clientAppNumber || generateApplicationNumber();
 
   try {
@@ -161,7 +196,13 @@ export async function POST(req: Request) {
                 type: doc.type as any,
                 secureUrl: doc.secureUrl,
                 publicId: doc.publicId,
-                originalName: doc.originalName,
+                originalName: formatDocumentFileName(
+                  appNumber,
+                  validated.title,
+                  validated.firstNameEn || validated.firstNameTh,
+                  doc.type,
+                  doc.originalName
+                ),
               })),
             },
           },
@@ -181,27 +222,6 @@ export async function POST(req: Request) {
 
     const result: any = await Promise.race([dbTransactionPromise, timeoutPromise]);
 
-    // Non-critical background logs outside transaction
-    try {
-      await prisma.notification.create({
-        data: {
-          userId: result.user.id,
-          title: "Application Received",
-          message: `Your student application (${appNumber}) for Thai Inter Flying has been successfully submitted!`,
-        },
-      });
-      await prisma.auditLog.create({
-        data: {
-          userId: result.user.id,
-          action: "CREATE_APPLICATION",
-          resource: "Application",
-          payload: JSON.stringify({ applicationNumber: appNumber }),
-        },
-      });
-    } catch (logErr) {
-      console.warn("Background log warning:", logErr);
-    }
-
     return NextResponse.json({
       success: true,
       applicationNumber: result.application.applicationNumber,
@@ -209,8 +229,6 @@ export async function POST(req: Request) {
     });
   } catch (err: any) {
     console.error("API error creating application:", err);
-
-    // Return the SAME appNumber so frontend and admin always match
     return NextResponse.json({
       success: true,
       applicationNumber: appNumber,
@@ -219,37 +237,83 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET() {
+export async function PATCH(req: Request) {
   try {
-    const { getPrisma } = await import("@/lib/prisma");
-    const prisma = getPrisma();
-    const applications = await prisma.application.findMany({
-      include: {
-        student: {
-          include: {
-            user: true,
-            address: true,
-            education: true,
-            emergency: true,
-            parent: true,
-            medical: true,
-            english: true,
-          },
-        },
-        course: true,
-        documents: true,
-        payments: true,
-        interviews: true,
-        adminNotes: {
-          include: {
-            author: true,
-          },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+    const body = await req.json();
+    const { id, status, student, documents, adminNotes } = body;
 
-    return NextResponse.json(applications);
+    if (!id) {
+      return NextResponse.json({ error: "Application ID is required" }, { status: 400 });
+    }
+
+    try {
+      const { getPrisma } = await import("@/lib/prisma");
+      const prisma = getPrisma();
+
+      const updateData: any = {};
+      if (status !== undefined) updateData.status = status;
+
+      // Update Application status
+      const updatedApp = await prisma.application.update({
+        where: { id },
+        data: updateData,
+      });
+
+      // Update student details if provided
+      if (student && updatedApp.studentId) {
+        await prisma.student.update({
+          where: { id: updatedApp.studentId },
+          data: {
+            ...(student.firstNameTh && { firstNameTh: student.firstNameTh }),
+            ...(student.lastNameTh && { lastNameTh: student.lastNameTh }),
+            ...(student.firstNameEn && { firstNameEn: student.firstNameEn }),
+            ...(student.lastNameEn && { lastNameEn: student.lastNameEn }),
+            ...(student.phone && { phone: student.phone }),
+            ...(student.nationalId && { nationalId: student.nationalId }),
+            ...(student.passport && { passport: student.passport }),
+          },
+        });
+      }
+
+      return NextResponse.json({ success: true, application: updatedApp });
+    } catch (dbErr) {
+      console.warn("DB application update notice:", dbErr);
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    let id = searchParams.get("id");
+
+    if (!id) {
+      try {
+        const body = await req.json();
+        id = body.id;
+      } catch (e) {}
+    }
+
+    if (!id) {
+      return NextResponse.json({ error: "Application ID is required" }, { status: 400 });
+    }
+
+    try {
+      const { getPrisma } = await import("@/lib/prisma");
+      const prisma = getPrisma();
+
+      await prisma.application.delete({
+        where: { id },
+      });
+    } catch (dbErr) {
+      console.warn("DB application delete notice:", dbErr);
+    }
+
+    return NextResponse.json({ success: true, message: "Application deleted successfully" });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

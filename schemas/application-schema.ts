@@ -83,8 +83,20 @@ export const step9Schema = z.object({
         originalName: z.string(),
       })
     )
-    .optional()
-    .default([]),
+    .refine(
+      (docs) => {
+        const types = new Set((docs || []).map((d) => d.type));
+        return (
+          types.has("PHOTO_1_INCH") &&
+          types.has("NATIONAL_ID_CERTIFIED") &&
+          types.has("TRANSCRIPT_CERTIFIED") &&
+          types.has("HOUSE_REGISTRATION_CERTIFIED") &&
+          types.has("MEDICAL_CERTIFICATE_CLASS_1") &&
+          types.has("CRIMINAL_RECORD_CHECK")
+        );
+      },
+      { message: "กรุณาอัปโหลดเอกสารประกอบการสมัครให้ครบถ้วนทั้ง 6 รายการ" }
+    ),
 });
 
 export const fullApplicationSchema = step1Schema

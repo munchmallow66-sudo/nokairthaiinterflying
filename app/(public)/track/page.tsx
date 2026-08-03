@@ -17,6 +17,7 @@ import {
   PenTool,
   CreditCard,
   Upload,
+  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -24,6 +25,8 @@ import { useLanguage } from "@/lib/i18n/language-context";
 import { PILOT_WORKFLOW_STEPS } from "@/types";
 import { compressImageIfNeeded } from "@/lib/image-compressor";
 import { useApplicationContext } from "@/lib/context/application-context";
+import { formatDocumentFileName } from "@/lib/utils";
+
 
 interface ApplicationData {
   id: string;
@@ -77,6 +80,7 @@ export default function TrackStatusPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<TrackingResponse | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
+  const [showAllDocsMap, setShowAllDocsMap] = useState<Record<string, boolean>>({});
 
   // Payment Slip Modal States
   const [payModalOpen, setPayModalOpen] = useState(false);
@@ -135,7 +139,13 @@ export default function TrackStatusPage() {
                       id: activeReuploadDoc?.id || `doc_${Date.now()}`,
                       type: reuploadType,
                       secureUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=400&q=80",
-                      originalName: reuploadFile.name,
+                      originalName: formatDocumentFileName(
+                        activePayAppNum,
+                        "",
+                        result?.studentName?.split(" ")[0] || "",
+                        reuploadType,
+                        reuploadFile.name
+                      ),
                       isVerified: false,
                       isRejected: false,
                     },
@@ -233,21 +243,50 @@ export default function TrackStatusPage() {
 
       const getStatusInfo = (status: string) => {
         switch (status) {
-          case "SUBMITTED": return { stepIndex: 1, labelTh: "ยื่นใบสมัครแล้ว (อยู่ระหว่างตรวจสอบเอกสาร)", labelEn: "Application Submitted (Document Review Pending)" };
+          case "ONLINE_REGISTRATION":
+            return { stepIndex: 1, labelTh: "1/17: เปิดรับสมัครออนไลน์", labelEn: "1/17: Online Registration Open" };
+          case "SUBMITTED":
+            return { stepIndex: 2, labelTh: "2/17: ยื่นใบสมัครเรียบร้อยแล้ว (รอตรวจเอกสาร)", labelEn: "2/17: Application Submitted" };
           case "DOCS_UNDER_REVIEW":
-          case "WAITING_DOCUMENTS": return { stepIndex: 2, labelTh: "อยู่ระหว่างการตรวจเอกสารเบื้องต้น", labelEn: "Initial Document Review in Progress" };
+          case "WAITING_DOCUMENTS":
+            return { stepIndex: 3, labelTh: "3/17: อยู่ระหว่างการตรวจเอกสารเบื้องต้น", labelEn: "3/17: Document Review in Progress" };
           case "DOCS_PASSED":
-          case "DOCUMENT_VERIFIED": return { stepIndex: 3, labelTh: "ผ่านการตรวจเอกสาร (พร้อมชำระค่าสมัคร 1,800 บาท)", labelEn: "Documents Verified (Ready for Application Fee)" };
+          case "DOCUMENT_VERIFIED":
+            return { stepIndex: 4, labelTh: "4/17: ผ่านการตรวจเอกสาร (พร้อมชำระค่าสมัคร 1,800 บาท)", labelEn: "4/17: Docs Passed (Ready for Payment)" };
           case "APPLICATION_FEE_PAID":
-          case "PAID": return { stepIndex: 4, labelTh: "ชำระค่าสมัคร 1,800 บาทเรียบร้อยแล้ว", labelEn: "Application Fee (1,800 THB) Paid" };
-          case "WRITTEN_EXAM": return { stepIndex: 5, labelTh: "สอบข้อเขียน", labelEn: "Written Examination" };
+          case "PAID":
+          case "PAYMENT_PENDING":
+            return { stepIndex: 5, labelTh: "5/17: ชำระค่าสมัคร 1,800 บาทเรียบร้อยแล้ว", labelEn: "5/17: Application Fee Paid" };
+          case "OPEN_HOUSE_ATTENDED":
+            return { stepIndex: 6, labelTh: "6/17: เข้าร่วมกิจกรรม Open House เรียบร้อยแล้ว", labelEn: "6/17: Open House Attended" };
+          case "PHYSICAL_DOCS_SUBMITTED":
+            return { stepIndex: 7, labelTh: "7/17: ส่งเอกสารตัวจริงให้เจ้าหน้าที่เรียบร้อยแล้ว", labelEn: "7/17: Physical Documents Submitted" };
+          case "WRITTEN_EXAM":
+            return { stepIndex: 8, labelTh: "8/17: กำหนดวันสอบข้อเขียน", labelEn: "8/17: Written Exam Scheduled" };
+          case "WRITTEN_EXAM_PASSED":
+            return { stepIndex: 9, labelTh: "9/17: ผ่านการสอบข้อเขียน", labelEn: "9/17: Written Exam Passed" };
           case "INTERVIEW_SCHEDULED":
-          case "INTERVIEW_PASSED": return { stepIndex: 6, labelTh: "สอบสัมภาษณ์", labelEn: "Interview" };
-          case "MEDICAL_CHECK_CLASS_1": return { stepIndex: 7, labelTh: "ตรวจสุขภาพ Class 1", labelEn: "Medical Check Class 1" };
+            return { stepIndex: 10, labelTh: "10/17: กำหนดวันสอบสัมภาษณ์", labelEn: "10/17: Interview Scheduled" };
+          case "INTERVIEW_PASSED":
+            return { stepIndex: 11, labelTh: "11/17: ผ่านการสอบสัมภาษณ์", labelEn: "11/17: Interview Passed" };
+          case "MEDICAL_CHECK_CLASS_1":
+            return { stepIndex: 12, labelTh: "12/17: เข้ารับการตรวจสุขภาพ Class 1 เวชศาสตร์การบิน", labelEn: "12/17: Class 1 Medical Check" };
+          case "ACCEPTANCE_CONFIRMED":
+          case "ACCEPTED":
+            return { stepIndex: 13, labelTh: "13/17: ยืนยันสิทธิ์เข้าศึกษาเรียบร้อยแล้ว", labelEn: "13/17: Seat Acceptance Confirmed" };
           case "CONTRACT_SIGNED":
-          case "ACCEPTED": return { stepIndex: 8, labelTh: "ทำสัญญา & ปฐมนิเทศ", labelEn: "Contract & Orientation" };
-          case "REJECTED": return { stepIndex: 0, labelTh: "ไม่ผ่านการคัดเลือก", labelEn: "Application Not Successful" };
-          default: return { stepIndex: 1, labelTh: "ยื่นใบสมัครแล้ว", labelEn: "Application Submitted" };
+            return { stepIndex: 14, labelTh: "14/17: ลงนามสัญญาการฝึกอบรมศิษย์บิน", labelEn: "14/17: Contract Signed" };
+          case "TUITION_FIRST_INSTALLMENT_PAID":
+            return { stepIndex: 15, labelTh: "15/17: ชำระค่าเรียนงวดแรกเรียบร้อยแล้ว", labelEn: "15/17: 1st Tuition Installment Paid" };
+          case "ORIENTATION":
+            return { stepIndex: 16, labelTh: "16/17: ปฐมนิเทศศิษย์บินใหม่", labelEn: "16/17: Orientation" };
+          case "PILOT_JOURNEY_BEGUN":
+          case "ENROLLED":
+            return { stepIndex: 17, labelTh: "17/17: เริ่มต้นเส้นทางนักบินอาชีพ! (Pilot Journey Begun)", labelEn: "17/17: Start Pilot Journey!" };
+          case "REJECTED":
+            return { stepIndex: 0, labelTh: "ไม่ผ่านการคัดเลือก (Rejected)", labelEn: "Application Not Successful" };
+          default:
+            return { stepIndex: 1, labelTh: "ยื่นใบสมัครแล้ว", labelEn: "Application Submitted" };
         }
       };
 
@@ -308,6 +347,82 @@ export default function TrackStatusPage() {
       setLoading(false);
     }
   };
+
+  // Live Real-Time Auto Sync: Listen to Admin updates in ApplicationContext & sync Track view instantly
+  React.useEffect(() => {
+    if (!result || !result.applications || result.applications.length === 0) return;
+
+    const getStatusInfo = (status: string) => {
+      switch (status) {
+        case "ONLINE_REGISTRATION": return { stepIndex: 1, labelTh: "1/17: เปิดรับสมัครออนไลน์", labelEn: "1/17: Online Registration Open" };
+        case "SUBMITTED": return { stepIndex: 2, labelTh: "2/17: ยื่นใบสมัครเรียบร้อยแล้ว (รอตรวจเอกสาร)", labelEn: "2/17: Application Submitted" };
+        case "DOCS_UNDER_REVIEW":
+        case "WAITING_DOCUMENTS": return { stepIndex: 3, labelTh: "3/17: อยู่ระหว่างการตรวจเอกสารเบื้องต้น", labelEn: "3/17: Document Review in Progress" };
+        case "DOCS_PASSED":
+        case "DOCUMENT_VERIFIED": return { stepIndex: 4, labelTh: "4/17: ผ่านการตรวจเอกสาร (พร้อมชำระค่าสมัคร 1,800 บาท)", labelEn: "4/17: Docs Passed (Ready for Payment)" };
+        case "APPLICATION_FEE_PAID":
+        case "PAID":
+        case "PAYMENT_PENDING": return { stepIndex: 5, labelTh: "5/17: ชำระค่าสมัคร 1,800 บาทเรียบร้อยแล้ว", labelEn: "5/17: Application Fee Paid" };
+        case "OPEN_HOUSE_ATTENDED": return { stepIndex: 6, labelTh: "6/17: เข้าร่วมกิจกรรม Open House เรียบร้อยแล้ว", labelEn: "6/17: Open House Attended" };
+        case "PHYSICAL_DOCS_SUBMITTED": return { stepIndex: 7, labelTh: "7/17: ส่งเอกสารตัวจริงให้เจ้าหน้าที่เรียบร้อยแล้ว", labelEn: "7/17: Physical Documents Submitted" };
+        case "WRITTEN_EXAM": return { stepIndex: 8, labelTh: "8/17: กำหนดวันสอบข้อเขียน", labelEn: "8/17: Written Exam Scheduled" };
+        case "WRITTEN_EXAM_PASSED": return { stepIndex: 9, labelTh: "9/17: ผ่านการสอบข้อเขียน", labelEn: "9/17: Written Exam Passed" };
+        case "INTERVIEW_SCHEDULED": return { stepIndex: 10, labelTh: "10/17: กำหนดวันสอบสัมภาษณ์", labelEn: "10/17: Interview Scheduled" };
+        case "INTERVIEW_PASSED": return { stepIndex: 11, labelTh: "11/17: ผ่านการสอบสัมภาษณ์", labelEn: "11/17: Interview Passed" };
+        case "MEDICAL_CHECK_CLASS_1": return { stepIndex: 12, labelTh: "12/17: เข้ารับการตรวจสุขภาพ Class 1 เวชศาสตร์การบิน", labelEn: "12/17: Class 1 Medical Check" };
+        case "ACCEPTANCE_CONFIRMED":
+        case "ACCEPTED": return { stepIndex: 13, labelTh: "13/17: ยืนยันสิทธิ์เข้าศึกษาเรียบร้อยแล้ว", labelEn: "13/17: Seat Acceptance Confirmed" };
+        case "CONTRACT_SIGNED": return { stepIndex: 14, labelTh: "14/17: ลงนามสัญญาการฝึกอบรมศิษย์บิน", labelEn: "14/17: Contract Signed" };
+        case "TUITION_FIRST_INSTALLMENT_PAID": return { stepIndex: 15, labelTh: "15/17: ชำระค่าเรียนงวดแรกเรียบร้อยแล้ว", labelEn: "15/17: 1st Tuition Installment Paid" };
+        case "ORIENTATION": return { stepIndex: 16, labelTh: "16/17: ปฐมนิเทศศิษย์บินใหม่", labelEn: "16/17: Orientation" };
+        case "PILOT_JOURNEY_BEGUN":
+        case "ENROLLED": return { stepIndex: 17, labelTh: "17/17: เริ่มต้นเส้นทางนักบินอาชีพ! (Pilot Journey Begun)", labelEn: "17/17: Start Pilot Journey!" };
+        case "REJECTED": return { stepIndex: 0, labelTh: "ไม่ผ่านการคัดเลือก (Rejected)", labelEn: "Application Not Successful" };
+        default: return { stepIndex: 1, labelTh: "ยื่นใบสมัครแล้ว", labelEn: "Application Submitted" };
+      }
+    };
+
+    const updatedApps = result.applications.map((resApp) => {
+      const liveApp = ctxApps.find(
+        (a) => a.id === resApp.id || a.applicationNumber === resApp.applicationNumber
+      );
+      if (!liveApp) return resApp;
+
+      const info = getStatusInfo(liveApp.status);
+
+      let latestRemarks = resApp.remarks;
+      if (liveApp.adminNotes && liveApp.adminNotes.length > 0) {
+        latestRemarks = liveApp.adminNotes[0].content;
+      }
+
+      return {
+        ...resApp,
+        status: liveApp.status,
+        statusLabelTh: info.labelTh,
+        statusLabelEn: info.labelEn,
+        stepIndex: info.stepIndex,
+        remarks: latestRemarks,
+        updatedAt: liveApp.updatedAt ? new Date(liveApp.updatedAt).toLocaleString("th-TH") : resApp.updatedAt,
+        documents: (liveApp.documents || []).map((doc: any) => ({
+          id: doc.id || `doc_${Date.now()}`,
+          type: doc.type,
+          secureUrl: doc.secureUrl || "",
+          originalName: doc.originalName || doc.type,
+          isVerified: doc.isVerified || false,
+          isRejected: doc.isRejected || false,
+          rejectReason: doc.rejectReason,
+        })),
+      };
+    });
+
+    const isDifferent = JSON.stringify(updatedApps) !== JSON.stringify(result.applications);
+    if (isDifferent) {
+      setResult({
+        ...result,
+        applications: updatedApps,
+      });
+    }
+  }, [ctxApps, result]);
 
   const handleUseDemo = () => {
     setNationalId("TIF-2026-1973");
@@ -673,23 +788,52 @@ export default function TrackStatusPage() {
                       </div>
                     )}
 
-                    {/* Payment Action — Only shown when admin has approved documents */}
-                    {(app.status === "DOCUMENT_VERIFIED" || app.status === "PAYMENT_PENDING") && (
-                      <div className="mt-3 p-4 rounded-lg border border-emerald-200 bg-emerald-50 space-y-3">
-                        <div className="flex items-center gap-2 text-emerald-700 font-bold text-xs border-b border-emerald-200 pb-2.5">
-                          <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                          <span>{t("docVerifiedPayPrompt")}</span>
+                    {/* Payment Action — Only shown when application is ready for payment (DOCS_PASSED / DOCUMENT_VERIFIED / step 4) and NOT yet paid/approved */}
+                    {(app.status === "DOCUMENT_VERIFIED" || app.status === "DOCS_PASSED" || app.stepIndex === 4) &&
+                      app.status !== "APPLICATION_FEE_PAID" &&
+                      app.status !== "PAID" &&
+                      app.status !== "PAYMENT_PENDING" &&
+                      (app.stepIndex || 1) < 5 && (
+                        <div className="mt-3 p-4 rounded-lg border border-emerald-200 bg-emerald-50 space-y-3">
+                          <div className="flex items-center gap-2 text-emerald-700 font-bold text-xs border-b border-emerald-200 pb-2.5">
+                            <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                            <span>{t("docVerifiedPayPrompt")}</span>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <span className="text-xs text-slate-600">
+                              {t("applicationFeeLabel")} <strong className="text-emerald-600">1,800 THB</strong>
+                            </span>
+                            <Button
+                              size="sm"
+                              variant="gold"
+                              onClick={() => handleOpenPayModal(app.applicationNumber)}
+                              className="font-bold text-xs shadow-gold"
+                            >
+                              <CreditCard className="mr-1.5 h-3.5 w-3.5" /> {t("attachPaymentSlipBtn")}
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                          <span className="text-xs text-slate-600">{t("applicationFeeLabel")} <strong className="text-emerald-600">1,800 THB</strong></span>
-                          <Button
-                            size="sm"
-                            variant="gold"
-                            onClick={() => handleOpenPayModal(app.applicationNumber)}
-                            className="font-bold text-xs"
-                          >
-                            <CreditCard className="mr-1.5 h-3.5 w-3.5" /> {t("attachPaymentSlipBtn")}
-                          </Button>
+                    )}
+
+                    {/* Pending Slip Verification Notice */}
+                    {(app.status === "PAYMENT_PENDING" || app.statusLabelTh?.includes("อัปโหลดสลิป")) && app.status !== "APPLICATION_FEE_PAID" && (app.stepIndex || 1) <= 5 && (
+                      <div className="mt-3 p-4 rounded-lg border border-amber-200 bg-amber-50 space-y-2">
+                        <div className="flex items-center gap-2 text-amber-800 font-bold text-xs">
+                          <Clock className="h-4 w-4 text-amber-600 shrink-0 animate-pulse" />
+                          <span>ได้รับสลิปชำระเงิน 1,800 บาทเรียบร้อยแล้ว — อยู่ระหว่างเจ้าหน้าที่ตรวจสอบสลิป</span>
+                        </div>
+                        <p className="text-xs text-amber-700">
+                          เมื่อเจ้าหน้าที่ตรวจสอบและอนุมัติสลิปแล้ว ระบบจะอัปเดตสถานะการสมัครให้อัตโนมัติ
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Approved Payment Banner (Step 5) */}
+                    {(app.status === "APPLICATION_FEE_PAID" || app.status === "PAID") && (app.stepIndex || 1) === 5 && (
+                      <div className="mt-3 p-4 rounded-lg border border-emerald-200 bg-emerald-50/80 space-y-1">
+                        <div className="flex items-center gap-2 text-emerald-800 font-bold text-xs">
+                          <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                          <span>ชำระค่าสมัคร 1,800 บาท เรียบร้อยแล้ว (เจ้าหน้าที่อนุมัติสลิปชำระเงินเรียบร้อยแล้ว)</span>
                         </div>
                       </div>
                     )}
@@ -707,105 +851,164 @@ export default function TrackStatusPage() {
                 </div>
               </div>
 
-              {/* Submitted Documents Checklist */}
-              <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-tif-gold" />
-                    <div>
-                      <h4 className="text-xs font-bold text-tif-navy uppercase tracking-wider font-display">
-                        {t("attachedDocsTitle")}
-                      </h4>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
-                        {t("attachedDocsSub")}
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleOpenReuploadModal(app.applicationNumber)}
-                    className="text-xs font-bold shrink-0 border-tif-navy/20 text-tif-navy hover:bg-tif-navy hover:text-white"
-                  >
-                    <Upload className="mr-1 h-3.5 w-3.5" /> {t("addMoreDocsBtn")}
-                  </Button>
-                </div>
+              {/* Submitted Documents Section — Smart display based on status & completeness */}
+              {(() => {
+                const docs = app.documents || [];
+                const rejectedDocs = docs.filter((d) => d.isRejected);
+                const isAllUploadedAndClean = docs.length >= 6 && rejectedDocs.length === 0;
+                const showAll = showAllDocsMap[app.id] || false;
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {app.documents && app.documents.length > 0 ? (
-                    app.documents.map((doc) => {
-                      const label = getDocTypeLabel(doc.type, t);
-
-                      return (
-                        <div
-                          key={doc.id}
-                          className={`p-4 rounded-xl border flex flex-col justify-between space-y-3 transition-all ${
-                            doc.isRejected
-                              ? "border-rose-200 bg-rose-50"
-                              : doc.isVerified
-                              ? "border-emerald-200 bg-emerald-50/50"
-                              : "border-slate-200 bg-slate-50"
-                          }`}
+                // 1. If all 6 documents are uploaded and none are rejected: show clean green success banner
+                if (isAllUploadedAndClean && !showAll) {
+                  return (
+                    <div className="p-5 rounded-2xl border border-emerald-200 bg-emerald-50/70 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+                          <CheckCircle2 className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-bold text-emerald-950 font-display">
+                            อัปโหลดเอกสารครบถ้วนเรียบร้อยแล้ว ({docs.length}/6 รายการ)
+                          </h4>
+                          <p className="text-xs text-emerald-700 mt-0.5">
+                            เอกสารของคุณแนบเข้าสู่ระบบครบถ้วนแล้ว อยู่ระหว่างเจ้าหน้าที่ตรวจสอบความถูกต้องและอนุมัติใบสมัคร
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setShowAllDocsMap((prev) => ({ ...prev, [app.id]: true }))}
+                          className="text-xs font-bold border-emerald-300 text-emerald-900 hover:bg-emerald-100 bg-white"
                         >
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="font-bold text-tif-navy text-xs">{label}</span>
-                              {doc.isRejected ? (
-                                <span className="text-[10px] font-bold text-rose-600 bg-rose-100 px-2 py-0.5 rounded flex items-center border border-rose-200">
-                                  {t("statusReupload")}
-                                </span>
-                              ) : doc.isVerified ? (
-                                <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded flex items-center border border-emerald-200">
-                                  <CheckCircle2 className="mr-1 h-3 w-3" /> {t("statusApproved")}
-                                </span>
-                              ) : (
-                                <span className="text-[10px] font-semibold text-amber-600 bg-amber-100 px-2 py-0.5 rounded flex items-center border border-amber-200">
-                                  <Clock className="mr-1 h-3 w-3" /> {t("statusPending")}
-                                </span>
-                              )}
-                            </div>
+                          <Eye className="mr-1.5 h-3.5 w-3.5 text-emerald-600" /> ดูเอกสารทั้งหมดที่แนบไว้ ({docs.length})
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                }
 
-                            <p className="text-[11px] text-slate-400 font-mono truncate">{doc.originalName}</p>
+                // 2. If there are rejected docs OR missing docs OR user clicked show all
+                const displayedDocs = rejectedDocs.length > 0 && !showAll ? rejectedDocs : docs;
 
-                            {doc.isRejected && doc.rejectReason && (
-                              <div className="p-2 rounded bg-rose-100 border border-rose-200 text-[10px] text-rose-700 leading-tight">
-                                <strong>{t("rejectionReasonLabel")}</strong> {doc.rejectReason}
-                              </div>
-                            )}
-                          </div>
+                return (
+                  <div className="space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-tif-gold" />
+                        <div>
+                          <h4 className="text-xs font-bold text-tif-navy uppercase tracking-wider font-display">
+                            {rejectedDocs.length > 0 && !showAll
+                              ? `⚠️ เอกสารที่ต้องแก้ไข / ส่งใหม่ (${rejectedDocs.length} รายการ)`
+                              : t("attachedDocsTitle")}
+                          </h4>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            {rejectedDocs.length > 0 && !showAll
+                              ? "แสดงเฉพาะเอกสารที่เจ้าหน้าที่แจ้งให้ส่งใหม่ กรุณาอัปโหลดไฟล์ทดแทน"
+                              : t("attachedDocsSub")}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {showAll && isAllUploadedAndClean && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setShowAllDocsMap((prev) => ({ ...prev, [app.id]: false }))}
+                            className="text-xs text-slate-500 hover:text-slate-900"
+                          >
+                            ซ่อนรายการเอกสาร
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleOpenReuploadModal(app.applicationNumber)}
+                          className="text-xs font-bold shrink-0 border-tif-navy/20 text-tif-navy hover:bg-tif-navy hover:text-white"
+                        >
+                          <Upload className="mr-1 h-3.5 w-3.5" /> {t("addMoreDocsBtn")}
+                        </Button>
+                      </div>
+                    </div>
 
-                          <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between">
-                            <a
-                              href={doc.secureUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-[10px] text-tif-goldDark hover:text-tif-gold hover:underline font-semibold"
-                            >
-                              {t("viewUploadedFileBtn")}
-                            </a>
-                            <Button
-                              size="sm"
-                              variant={doc.isRejected ? "gold" : "outline"}
-                              onClick={() => handleOpenReuploadModal(app.applicationNumber, doc)}
-                              className={`text-[10px] px-2.5 py-1 rounded-lg font-bold ${
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {displayedDocs && displayedDocs.length > 0 ? (
+                        displayedDocs.map((doc) => {
+                          const label = getDocTypeLabel(doc.type, t);
+
+                          return (
+                            <div
+                              key={doc.id}
+                              className={`p-4 rounded-xl border flex flex-col justify-between space-y-3 transition-all ${
                                 doc.isRejected
-                                  ? ""
-                                  : "border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-tif-navy"
+                                  ? "border-rose-200 bg-rose-50"
+                                  : doc.isVerified
+                                  ? "border-emerald-200 bg-emerald-50/50"
+                                  : "border-slate-200 bg-slate-50"
                               }`}
                             >
-                              <Upload className="mr-1 h-3 w-3" /> {doc.isRejected ? t("reuploadSubmitBtn") : t("changeFileBtn")}
-                            </Button>
-                          </div>
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <span className="font-bold text-tif-navy text-xs">{label}</span>
+                                  {doc.isRejected ? (
+                                    <span className="text-[10px] font-bold text-rose-600 bg-rose-100 px-2 py-0.5 rounded flex items-center border border-rose-200">
+                                      {t("statusReupload")}
+                                    </span>
+                                  ) : doc.isVerified ? (
+                                    <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded flex items-center border border-emerald-200">
+                                      <CheckCircle2 className="mr-1 h-3 w-3" /> {t("statusApproved")}
+                                    </span>
+                                  ) : (
+                                    <span className="text-[10px] font-semibold text-amber-600 bg-amber-100 px-2 py-0.5 rounded flex items-center border border-amber-200">
+                                      <Clock className="mr-1 h-3 w-3" /> {t("statusPending")}
+                                    </span>
+                                  )}
+                                </div>
+
+                                <p className="text-[11px] text-slate-400 font-mono truncate">{doc.originalName}</p>
+
+                                {doc.isRejected && doc.rejectReason && (
+                                  <div className="p-2 rounded bg-rose-100 border border-rose-200 text-[10px] text-rose-700 leading-tight">
+                                    <strong>{t("rejectionReasonLabel")}</strong> {doc.rejectReason}
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between">
+                                <a
+                                  href={doc.secureUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-[10px] text-tif-goldDark hover:text-tif-gold hover:underline font-semibold"
+                                >
+                                  {t("viewUploadedFileBtn")}
+                                </a>
+                                <Button
+                                  size="sm"
+                                  variant={doc.isRejected ? "gold" : "outline"}
+                                  onClick={() => handleOpenReuploadModal(app.applicationNumber, doc)}
+                                  className={`text-[10px] px-2.5 py-1 rounded-lg font-bold ${
+                                    doc.isRejected
+                                      ? ""
+                                      : "border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-tif-navy"
+                                  }`}
+                                >
+                                  <Upload className="mr-1 h-3 w-3" /> {doc.isRejected ? t("reuploadSubmitBtn") : t("changeFileBtn")}
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="col-span-1 sm:col-span-2 p-8 text-center rounded-xl bg-slate-50 border border-dashed border-slate-200 text-slate-400 text-xs">
+                          {t("noDocsFoundMsg")}
                         </div>
-                      );
-                    })
-                  ) : (
-                    <div className="col-span-1 sm:col-span-2 p-8 text-center rounded-xl bg-slate-50 border border-dashed border-slate-200 text-slate-400 text-xs">
-                      {t("noDocsFoundMsg")}
+                      )}
                     </div>
-                  )}
-                </div>
-              </div>
+                  </div>
+                );
+              })()}
             </div>
           ))}
         </section>

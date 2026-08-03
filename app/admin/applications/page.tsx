@@ -703,9 +703,30 @@ export default function StudentApplicationsPage() {
 
   // 5. Document Review Decision (Pass → ready for payment, Fail → rejected with comment)
   const handleOpenReviewModal = (decision: "PASS" | "FAIL") => {
-    setReviewDecision(decision);
-    setReviewComment(decision === "FAIL" ? "เอกสารไม่ครบถ้วน/ไม่ถูกต้อง กรุณาตรวจสอบและส่งใหม่" : "");
-    setReviewModalOpen(true);
+    if (!selectedApp) return;
+
+    if (decision === "PASS") {
+      const newNote = {
+        id: `note_${Date.now()}`,
+        content: `[ผ่านการตรวจเอกสาร]: เอกสารครบถ้วนและถูกต้อง ผู้สมัครสามารถชำระค่าสมัคร 1,800 บาทได้`,
+        createdAt: new Date(),
+        author: {
+          name: "Admin User",
+          email: "admin@tif.ac.th",
+        },
+      };
+
+      updateApplication(selectedApp.id, {
+        status: "DOCS_PASSED" as any,
+        adminNotes: [newNote, ...(selectedApp.adminNotes || [])],
+      });
+
+      alert("อนุมัติเอกสารเรียบร้อยแล้ว — ระบบได้เปิดหน้าชำระค่าสมัคร 1,800 บาทให้ผู้สมัครแล้ว");
+    } else {
+      setReviewDecision("FAIL");
+      setReviewComment("เอกสารไม่ครบถ้วน/ไม่ถูกต้อง กรุณาตรวจสอบและส่งใหม่");
+      setReviewModalOpen(true);
+    }
   };
 
   const handleConfirmReview = () => {
@@ -717,10 +738,7 @@ export default function StudentApplicationsPage() {
 
     const newNote = {
       id: `note_${Date.now()}`,
-      content:
-        reviewDecision === "PASS"
-          ? `[ผ่านการตรวจเอกสาร]: เอกสารครบถ้วนและถูกต้อง ผู้สมัครสามารถชำระค่าสมัคร 1,800 บาทได้`
-          : `[ไม่ผ่านการตรวจเอกสาร]: ${reviewComment}`,
+      content: `[ไม่ผ่านการตรวจเอกสาร]: ${reviewComment}`,
       createdAt: new Date(),
       author: {
         name: "Admin User",
@@ -729,16 +747,12 @@ export default function StudentApplicationsPage() {
     };
 
     updateApplication(selectedApp.id, {
-      status: reviewDecision === "PASS" ? ("DOCUMENT_VERIFIED" as any) : ("REJECTED" as any),
+      status: "REJECTED" as any,
       adminNotes: [newNote, ...(selectedApp.adminNotes || [])],
     });
 
     setReviewModalOpen(false);
-    alert(
-      reviewDecision === "PASS"
-        ? "อนุมัติเอกสารเรียบร้อยแล้ว — ระบบได้เปิดหน้าชำระค่าสมัคร 1,800 บาทให้ผู้สมัครแล้ว"
-        : "ปฏิเสธเอกสารเรียบร้อยแล้ว — ระบบได้แสดงคำแนะนำให้ผู้สมัครแก้ไขแล้ว"
-    );
+    alert("ปฏิเสธเอกสารเรียบร้อยแล้ว — ระบบได้แสดงคำแนะนำให้ผู้สมัครแก้ไขแล้ว");
   };
 
   const handleDeleteApp = (id: string) => {
@@ -1319,7 +1333,7 @@ export default function StudentApplicationsPage() {
                         CRIMINAL_RECORD_CHECK: "ผลตรวจสอบประวัติอาชญากรรม (ถ้ามี)",
 
                         // General / Admin keys
-                        PASSPORT_PHOTO: "รูปถ่าย 1 นิ้ว / 2 นิ้ว",
+                        PASSPORT_PHOTO: "รูปถ่าย 1.5 นิ้ว",
                         NATIONAL_ID: "สำเนาบัตรประชาชน",
                         TRANSCRIPT: "สำเนาวุฒิการศึกษา",
                         TOEIC: "ผลสอบภาษาอังกฤษ (TOEIC / IELTS)",
@@ -1327,7 +1341,7 @@ export default function StudentApplicationsPage() {
                         MEDICAL_CERT: "ใบรับรองแพทย์เวชศาสตร์การบิน",
                         HOUSE_REGISTRATION: "สำเนาทะเบียนบ้าน",
                         PASSPORT: "หนังสือเดินทาง (Passport)",
-                        OTHER: "เอกสารแนบอื่นๆ",
+                        OTHER: "ผลตรวจประวัติอาชญากรรม",
                       };
                       const label = docTypeLabels[doc.type] || doc.type;
 
@@ -2337,13 +2351,11 @@ export default function StudentApplicationsPage() {
               className="w-full rounded-xl border border-slate-800 bg-slate-950 p-2.5 text-sm text-white focus:border-tif-gold focus:outline-none font-medium"
             >
               <option value="NATIONAL_ID">สำเนาบัตรประชาชน (National ID Card)</option>
-              <option value="PASSPORT">หนังสือเดินทาง (Passport)</option>
               <option value="TRANSCRIPT">สำเนาวุฒิการศึกษา (Transcript)</option>
-              <option value="TOEIC">ผลสอบภาษาอังกฤษ (TOEIC Score)</option>
-              <option value="MEDICAL_CERT">ใบรับรองแพทย์เวชศาสตร์การบิน (Medical Cert)</option>
               <option value="HOUSE_REGISTRATION">สำเนาทะเบียนบ้าน (House Registration)</option>
-              <option value="PASSPORT_PHOTO">รูปถ่าย 1 นิ้ว / 2 นิ้ว (Photo)</option>
-              <option value="OTHER">เอกสารอื่นๆ (Other Document)</option>
+              <option value="MEDICAL_CERT">ใบรับรองแพทย์เวชศาสตร์การบิน (Medical Cert)</option>
+              <option value="PASSPORT_PHOTO">รูปถ่าย 1.5 นิ้ว (Photo)</option>
+              <option value="CRIMINAL_RECORD_CHECK">ผลตรวจประวัติอาชญากรรม (Criminal Record Check)</option>
             </select>
           </div>
 

@@ -17,7 +17,7 @@ export async function GET(req: Request) {
         orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
       });
 
-      if (dbItems && dbItems.length > 0) {
+      if (Array.isArray(dbItems)) {
         return NextResponse.json({ success: true, announcements: dbItems });
       }
     } catch (dbErr) {

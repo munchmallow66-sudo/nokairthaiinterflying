@@ -201,14 +201,14 @@ export const translations = {
     selectSlipAlert: "กรุณาเลือกไฟล์สลิปโอนเงิน (JPG, PNG หรือ PDF)",
     reuploadSuccessAlert: "อัปโหลดเอกสารใหม่เรียบร้อยแล้ว! ข้อมูลส่งไปยังเจ้าหน้าที่เรียบร้อยแล้ว",
     slipSuccessAlert: "ส่งสลิปชำระเงินเรียบร้อยแล้ว! ข้อมูลส่งไปยังหน้า Admin แล้ว",
-    docPassportPhoto: "รูปถ่าย 1 นิ้ว / 2 นิ้ว",
+    docPassportPhoto: "รูปถ่าย 1.5 นิ้ว",
     docNationalId: "สำเนาบัตรประชาชน",
     docTranscript: "สำเนาวุฒิการศึกษา",
     docToeic: "ผลสอบภาษาอังกฤษ (TOEIC / IELTS)",
     docMedicalCert: "ใบรับรองแพทย์เวชศาสตร์การบิน",
     docHouseRegistration: "สำเนาทะเบียนบ้าน",
     docPassport: "หนังสือเดินทาง (Passport)",
-    docOther: "เอกสารแนบอื่นๆ",
+    docOther: "ผลตรวจประวัติอาชญากรรม",
 
     // FAQ Page
     faqPageTitle: "คำถามที่พบบ่อย (FAQ)",

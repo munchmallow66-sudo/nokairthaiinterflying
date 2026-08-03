@@ -31,6 +31,8 @@ import { StepIndicator } from "@/components/admission/step-indicator";
 import { fullApplicationSchema, FullApplicationInput } from "@/schemas/application-schema";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { useApplicationContext } from "@/lib/context/application-context";
+import { formatDocumentFileName } from "@/lib/utils";
+
 
 const DRAFT_STORAGE_KEY = "tif_cadet_application_draft";
 
@@ -59,6 +61,7 @@ export function MultiStepForm() {
     register,
     handleSubmit,
     setValue,
+    getValues,
     watch,
     reset,
     trigger,
@@ -145,7 +148,20 @@ export function MultiStepForm() {
     }
   };
 
+  const REQUIRED_DOCS_CONFIG = [
+    { type: "PHOTO_1_INCH", titleTh: "1. รูปถ่าย 1.5 นิ้ว", titleEn: "1. 1.5-inch Photo" },
+    { type: "NATIONAL_ID_CERTIFIED", titleTh: "2. สำเนาบัตรประชาชน (รับรองสำเนาถูกต้อง)", titleEn: "2. Certified National ID" },
+    { type: "TRANSCRIPT_CERTIFIED", titleTh: "3. สำเนาวุฒิการศึกษา (รับรองสำเนาถูกต้อง)", titleEn: "3. Certified Academic Transcript" },
+    { type: "HOUSE_REGISTRATION_CERTIFIED", titleTh: "4. สำเนาทะเบียนบ้าน (รับรองสำเนาถูกต้อง)", titleEn: "4. Certified House Registration" },
+    { type: "MEDICAL_CERTIFICATE_CLASS_1", titleTh: "5. ใบสำคัญแพทย์ CLASS 1", titleEn: "5. Class 1 Medical Certificate" },
+    { type: "CRIMINAL_RECORD_CHECK", titleTh: "6. ผลตรวจประวัติอาชญากรรม", titleEn: "6. Criminal Record Check" },
+  ];
+
   const documents = watch("documents") || [];
+  const uploadedDocTypes = new Set((documents || []).map((d: any) => d.type));
+  const missingRequiredDocs = REQUIRED_DOCS_CONFIG.filter((doc) => !uploadedDocTypes.has(doc.type));
+  const isAllDocsUploaded = missingRequiredDocs.length === 0;
+
   const lastStepChangeRef = React.useRef<number>(Date.now());
 
   React.useEffect(() => {
@@ -158,6 +174,19 @@ export function MultiStepForm() {
     if (Date.now() - lastStepChangeRef.current < 500) {
       return;
     }
+
+    if (!isAllDocsUploaded) {
+      const missingTitles = missingRequiredDocs
+        .map((d) => (language === "th" ? d.titleTh : d.titleEn))
+        .join("\n- ");
+      alert(
+        language === "th"
+          ? `กรุณาอัปโหลดเอกสารประกอบการสมัครให้ครบถ้วนทั้ง 6 รายการก่อนส่งใบสมัคร\n\nเอกสารที่ยังขาดอยู่ (${missingRequiredDocs.length} รายการ):\n- ${missingTitles}`
+          : `Please upload all 6 required documents before submitting your application.\n\nMissing documents (${missingRequiredDocs.length}):\n- ${missingTitles}`
+      );
+      return;
+    }
+
     handleSubmit(onSubmit, onInvalid)(e);
   };
 
@@ -188,19 +217,22 @@ export function MultiStepForm() {
   };
 
   const handleDocumentUpload = (uploaded: any) => {
-    const existingIndex = documents.findIndex((d) => d.type === uploaded.type);
+    const currentDocs = getValues("documents") || [];
+    const existingIndex = currentDocs.findIndex((d: any) => d?.type === uploaded.type);
+    let updated: any[];
     if (existingIndex > -1) {
-      const updated = [...documents];
+      updated = [...currentDocs];
       updated[existingIndex] = uploaded;
-      setValue("documents", updated, { shouldValidate: true });
     } else {
-      setValue("documents", [...documents, uploaded], { shouldValidate: true });
+      updated = [...currentDocs, uploaded];
     }
+    setValue("documents", updated, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
   };
 
   const handleDocumentRemove = (docType: string) => {
-    const updated = documents.filter((d) => d.type !== docType);
-    setValue("documents", updated, { shouldValidate: true });
+    const currentDocs = getValues("documents") || [];
+    const updated = currentDocs.filter((d: any) => d?.type !== docType);
+    setValue("documents", updated, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
   };
 
   const onInvalid = (errors: any) => {
@@ -326,7 +358,13 @@ export function MultiStepForm() {
             type: doc.type,
             secureUrl: doc.secureUrl,
             publicId: doc.publicId,
-            originalName: doc.originalName,
+            originalName: formatDocumentFileName(
+              finalAppNum,
+              data.title,
+              data.firstNameEn || data.firstNameTh,
+              doc.type,
+              doc.originalName
+            ),
             isVerified: false,
             uploadedAt: new Date(),
           })),
@@ -865,55 +903,116 @@ export function MultiStepForm() {
           {/* STEP 8: Document Checklist Upload */}
           {currentStep === 8 && (
             <div className="space-y-6 animate-in fade-in duration-300">
-              <div className="border-b border-slate-100 pb-4">
-                <h3 className="text-xl font-bold text-tif-navy font-display flex items-center">
-                  <FileCheck className="mr-2.5 h-6 w-6 text-tif-gold" /> Step 8: {t("step9Title")}
-                </h3>
-                <p className="text-sm text-slate-500">{t("step9Sub")}</p>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                <div>
+                  <h3 className="text-xl font-bold text-tif-navy font-display flex items-center">
+                    <FileCheck className="mr-2.5 h-6 w-6 text-tif-gold" /> Step 8: {t("step9Title")}
+                  </h3>
+                  <p className="text-sm text-slate-500">{t("step9Sub")}</p>
+                </div>
+
+                <div
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-extrabold border shrink-0 ${
+                    isAllDocsUploaded
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                      : "bg-amber-50 text-amber-800 border-amber-300"
+                  }`}
+                >
+                  {isAllDocsUploaded ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                      <span>{language === "th" ? "อัปโหลดเอกสารครบถ้วน (6/6)" : "All Documents Uploaded (6/6)"}</span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertTriangle className="h-4 w-4 text-amber-600" />
+                      <span>
+                        {language === "th"
+                          ? `อัปโหลดแล้ว ${6 - missingRequiredDocs.length}/6 รายการ (ยังไม่ครบ)`
+                          : `Uploaded ${6 - missingRequiredDocs.length}/6 items (Incomplete)`}
+                      </span>
+                    </>
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Uploader
                   label={t("docPhoto1Label")}
                   type="PHOTO_1_INCH"
+                  existingFile={documents.find((d: any) => d?.type === "PHOTO_1_INCH")}
                   onUploadSuccess={handleDocumentUpload}
                   onRemove={() => handleDocumentRemove("PHOTO_1_INCH")}
                 />
                 <Uploader
                   label={t("docIdLabel")}
                   type="NATIONAL_ID_CERTIFIED"
+                  existingFile={documents.find((d: any) => d?.type === "NATIONAL_ID_CERTIFIED")}
                   onUploadSuccess={handleDocumentUpload}
                   onRemove={() => handleDocumentRemove("NATIONAL_ID_CERTIFIED")}
                 />
                 <Uploader
                   label={t("docDegreeLabel")}
                   type="TRANSCRIPT_CERTIFIED"
+                  existingFile={documents.find((d: any) => d?.type === "TRANSCRIPT_CERTIFIED")}
                   onUploadSuccess={handleDocumentUpload}
                   onRemove={() => handleDocumentRemove("TRANSCRIPT_CERTIFIED")}
                 />
                 <Uploader
                   label={t("docHouseLabel")}
                   type="HOUSE_REGISTRATION_CERTIFIED"
+                  existingFile={documents.find((d: any) => d?.type === "HOUSE_REGISTRATION_CERTIFIED")}
                   onUploadSuccess={handleDocumentUpload}
                   onRemove={() => handleDocumentRemove("HOUSE_REGISTRATION_CERTIFIED")}
                 />
                 <Uploader
                   label={t("docMedicalLabel")}
                   type="MEDICAL_CERTIFICATE_CLASS_1"
+                  existingFile={documents.find((d: any) => d?.type === "MEDICAL_CERTIFICATE_CLASS_1")}
                   onUploadSuccess={handleDocumentUpload}
                   onRemove={() => handleDocumentRemove("MEDICAL_CERTIFICATE_CLASS_1")}
                 />
                 <Uploader
                   label={t("docCriminalLabel")}
                   type="CRIMINAL_RECORD_CHECK"
+                  existingFile={documents.find((d: any) => d?.type === "CRIMINAL_RECORD_CHECK")}
                   onUploadSuccess={handleDocumentUpload}
                   onRemove={() => handleDocumentRemove("CRIMINAL_RECORD_CHECK")}
                 />
               </div>
 
-              {errors.documents && (
-                <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-rose-700 text-xs font-medium flex items-center">
-                  <AlertTriangle className="mr-2 h-4 w-4" /> Please upload at least 1 document before submitting.
+              {/* Incomplete / Complete Documents Status Banner */}
+              {!isAllDocsUploaded ? (
+                <div className="p-4 bg-amber-50/90 border border-amber-200 rounded-xl text-amber-900 text-xs space-y-2">
+                  <div className="flex items-center gap-2 font-bold text-amber-800 text-sm">
+                    <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+                    <span>
+                      {language === "th"
+                        ? "กรุณาอัปโหลดเอกสารให้ครบถ้วนทั้ง 6 รายการเพื่อเปิดใช้งานปุ่มส่งใบสมัคร"
+                        : "Please upload all 6 required documents to enable application submission"}
+                    </span>
+                  </div>
+                  <p className="font-semibold text-amber-800">
+                    {language === "th"
+                      ? `เอกสารที่ยังไม่ได้อัปโหลด (${missingRequiredDocs.length} รายการ):`
+                      : `Missing documents (${missingRequiredDocs.length}):`}
+                  </p>
+                  <ul className="list-disc list-inside pl-2 space-y-1 font-medium text-amber-900">
+                    {missingRequiredDocs.map((doc) => (
+                      <li key={doc.type}>
+                        {language === "th" ? doc.titleTh : doc.titleEn}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 text-xs flex items-center gap-2.5 font-bold">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+                  <span>
+                    {language === "th"
+                      ? "อัปโหลดเอกสารครบถ้วนทั้ง 6 รายการเรียบร้อยแล้ว! สามารถกด \"ยืนยันส่งใบสมัครเรียน\" ได้ทันที"
+                      : "All 6 documents uploaded successfully! You can now click \"Submit Application\""}
+                  </span>
                 </div>
               )}
             </div>
@@ -938,11 +1037,15 @@ export function MultiStepForm() {
             ) : (
               <Button
                 type="button"
-                variant="gold"
+                variant={isAllDocsUploaded ? "gold" : "outline"}
                 size="lg"
                 onClick={handleFinalSubmit}
-                disabled={isSubmitting}
-                className="w-full sm:w-auto font-extrabold"
+                disabled={isSubmitting || !isAllDocsUploaded}
+                className={`w-full sm:w-auto font-extrabold ${
+                  !isAllDocsUploaded
+                    ? "opacity-50 cursor-not-allowed bg-slate-100 text-slate-400 border-slate-300"
+                    : "shadow-gold"
+                }`}
               >
                 {isSubmitting ? t("submitting") : t("submitApplication")}
               </Button>

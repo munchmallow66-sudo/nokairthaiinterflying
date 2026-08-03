@@ -71,95 +71,19 @@ export async function POST(req: Request) {
       console.warn("DB Query failed:", dbError);
     }
 
-    // Dynamic demo fallback if search is TIF-2026-XXXX or demo ID
+    // Fallback if no matching student or application found in DB
     if (!student && !dbApplication) {
-      const displayAppNum = trimmed.toUpperCase().startsWith("TIF") ? trimmed.toUpperCase() : "TIF-2026-1973";
-      return NextResponse.json({
-        found: true,
-        studentName: "นาย สมชาย ใจดี (Somchai Jaidee)",
-        nationalId: cleanedDigits.length === 13 ? cleanedDigits : "1100200345678",
-        applications: [
-          {
-            id: "demo-app-01",
-            applicationNumber: displayAppNum,
-            courseName: "แบบฟอร์มสมัครเรียนการบินออนไลน์ 9 ขั้นตอน",
-            status: "WAITING_DOCUMENTS",
-            statusLabelTh: "⚠️ เอกสารบางรายการต้องแนบใหม่ (Re-upload Required)",
-            statusLabelEn: "⚠️ Re-upload Required / Additional Documents Needed",
-            submissionDate: new Date().toISOString().split("T")[0],
-            stepIndex: 1,
-            remarks: "[แจ้งเอกสารผิด]: ปฏิเสธเอกสาร 'สำเนาบัตรประชาชน' - เหตุผล: รูปถ่ายไม่ชัดเจน กรุณาถ่ายฉบับจริงแล้วอัปโหลดใหม่",
-            updatedAt: "อัปเดตล่าสุดวันนี้",
-            documents: [
-              {
-                id: "doc-demo-1",
-                type: "NATIONAL_ID",
-                secureUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=400&q=80",
-                originalName: "National_ID_Card_Blurry.jpg",
-                isVerified: false,
-                isRejected: true,
-                rejectReason: "รูปถ่ายไม่ชัดเจน กรุณาถ่ายฉบับจริงแล้วอัปโหลดใหม่",
-              },
-              {
-                id: "doc-demo-2",
-                type: "PASSPORT_PHOTO",
-                secureUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
-                originalName: "Passport_Photo_1Inch.jpg",
-                isVerified: true,
-                isRejected: false,
-              },
-            ],
-          },
-        ],
-      });
+      return NextResponse.json(
+        { found: false, error: "ไม่พบข้อมูลการสมัครสำหรับหมายเลขใบสมัคร, เลขบัตรประชาชน หรือเบอร์โทรศัพท์นี้" },
+        { status: 404 }
+      );
     }
 
-    // Map applications safely
-    const appList = dbApplication
+    const appList = student?.applications && student.applications.length > 0
+      ? student.applications
+      : dbApplication
       ? [dbApplication]
-      : (student?.applications || []);
-
-    if (appList.length === 0 && !student) {
-      const displayAppNum = trimmed.toUpperCase().startsWith("TIF") ? trimmed.toUpperCase() : "TIF-2026-1973";
-      return NextResponse.json({
-        found: true,
-        studentName: "นาย สมชาย ใจดี (Somchai Jaidee)",
-        nationalId: cleanedDigits.length === 13 ? cleanedDigits : "1100200345678",
-        applications: [
-          {
-            id: "demo-app-01",
-            applicationNumber: displayAppNum,
-            courseName: "แบบฟอร์มสมัครเรียนการบินออนไลน์ 9 ขั้นตอน",
-            status: "WAITING_DOCUMENTS",
-            statusLabelTh: "⚠️ เอกสารบางรายการต้องแนบใหม่ (Re-upload Required)",
-            statusLabelEn: "⚠️ Re-upload Required / Additional Documents Needed",
-            submissionDate: new Date().toISOString().split("T")[0],
-            stepIndex: 1,
-            remarks: "[แจ้งเอกสารผิด]: ปฏิเสธเอกสาร 'สำเนาบัตรประชาชน' - เหตุผล: รูปถ่ายไม่ชัดเจน กรุณาถ่ายฉบับจริงแล้วอัปโหลดใหม่",
-            updatedAt: "อัปเดตล่าสุดวันนี้",
-            documents: [
-              {
-                id: "doc-demo-1",
-                type: "NATIONAL_ID",
-                secureUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=400&q=80",
-                originalName: "National_ID_Card_Blurry.jpg",
-                isVerified: false,
-                isRejected: true,
-                rejectReason: "รูปถ่ายไม่ชัดเจน กรุณาถ่ายฉบับจริงแล้วอัปโหลดใหม่",
-              },
-              {
-                id: "doc-demo-2",
-                type: "PASSPORT_PHOTO",
-                secureUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
-                originalName: "Passport_Photo_1Inch.jpg",
-                isVerified: true,
-                isRejected: false,
-              },
-            ],
-          },
-        ],
-      });
-    }
+      : [];
 
     const applications = appList.map((app: any) => {
       let stepIndex = 1;

@@ -36,6 +36,11 @@ export function Uploader({
   const [file, setFile] = React.useState<UploadedFile | null>(existingFile || null);
   const [error, setError] = React.useState<string | null>(null);
 
+  React.useEffect(() => {
+    setFile(existingFile || null);
+  }, [existingFile]);
+
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     let selectedFile = e.target.files?.[0];
     if (!selectedFile) return;

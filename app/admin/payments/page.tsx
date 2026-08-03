@@ -21,6 +21,7 @@ import {
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Modal } from "@/components/ui/modal";
 import { useLanguage } from "@/lib/i18n/language-context";
+import { useApplicationContext } from "@/lib/context/application-context";
 
 const SAMPLE_PAYMENTS = [
   {
@@ -51,7 +52,8 @@ const SAMPLE_PAYMENTS = [
 
 export default function PaymentsPage() {
   const { t } = useLanguage();
-  const [payments, setPayments] = React.useState<any[]>(SAMPLE_PAYMENTS);
+  const { applications: ctxApps, updateApplication } = useApplicationContext();
+  const [payments, setPayments] = React.useState<any[]>([]);
   const [addModalOpen, setAddModalOpen] = React.useState(false);
   const [editModalOpen, setEditModalOpen] = React.useState(false);
   const [selectedPay, setSelectedPay] = React.useState<any>(null);
@@ -75,8 +77,15 @@ export default function PaymentsPage() {
     fetch("/api/payments")
       .then((res) => res.json())
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
-          setPayments(data);
+        if (Array.isArray(data)) {
+          const uniqueMap = new Map();
+          data.forEach((item: any) => {
+            const key = item.invoiceNo || item.appNum || item.id;
+            if (!uniqueMap.has(key)) {
+              uniqueMap.set(key, item);
+            }
+          });
+          setPayments(Array.from(uniqueMap.values()));
         }
       })
       .catch((err) => console.error("Error fetching payments:", err));
@@ -89,6 +98,7 @@ export default function PaymentsPage() {
   }, [fetchPayments]);
 
   const handleVerify = async (id: string) => {
+    const targetPay = payments.find((p) => p.id === id);
     setPayments(
       payments.map((p) =>
         p.id === id
@@ -100,13 +110,39 @@ export default function PaymentsPage() {
           : p
       )
     );
+
+    // Synchronize application status instantly
+    const targetAppNum = targetPay?.appNum;
+    if (targetAppNum) {
+      const targetApp = ctxApps.find(
+        (a) => a.applicationNumber === targetAppNum || a.id === targetAppNum
+      );
+      if (targetApp) {
+        updateApplication(targetApp.id, {
+          status: "APPLICATION_FEE_PAID",
+          adminNotes: [
+            {
+              id: `note_${Date.now()}`,
+              content: "อนุมัติสลิปการชำระเงิน 1,800 บาทเรียบร้อยแล้ว (สถานะ: ชำระค่าสมัครแล้ว)",
+              createdAt: new Date(),
+              author: { name: "Finance Admin", email: "admin@tif.ac.th" },
+            },
+            ...(targetApp.adminNotes || []),
+          ],
+        });
+      }
+    }
+
     try {
       await fetch("/api/payments", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, status: "VERIFIED" }),
+        body: JSON.stringify({ id, status: "VERIFIED", appNum: targetAppNum }),
       });
-    } catch (e) {}
+      fetchPayments();
+    } catch (e) {
+      console.error("Verify error:", e);
+    }
   };
 
   const handleOpenAdd = () => {
@@ -117,28 +153,35 @@ export default function PaymentsPage() {
     setAddModalOpen(true);
   };
 
-  const handleSaveAdd = () => {
-    if (!formStudent) {
+  const handleSaveAdd = async () => {
+    if (!formStudent.trim()) {
       alert("กรุณากรอกชื่อผู้ชำระเงิน");
       return;
     }
 
-    const newPay = {
-      id: `pay_${Date.now()}`,
-      appNum: formAppNum,
-      student: formStudent,
-      feeType: "ค่าสมัครเรียนการบินออนไลน์ 1,800 บาท",
-      amount: formAmount,
-      invoiceNo: `INV-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-      receiptNo: formStatus === "VERIFIED" ? `RCT-2026-${Math.floor(1000 + Math.random() * 9000)}` : null,
-      status: formStatus,
-      slipUrl: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600",
-      date: new Date(),
-    };
-
-    setPayments([newPay, ...payments]);
-    setAddModalOpen(false);
-    alert("เพิ่มสลิปการชำระเงินเรียบร้อยแล้ว");
+    try {
+      const res = await fetch("/api/payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          appNum: formAppNum,
+          student: formStudent,
+          amount: formAmount,
+          status: formStatus,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAddModalOpen(false);
+        fetchPayments();
+        alert("เพิ่มสลิปการชำระเงินเรียบร้อยแล้ว");
+      } else {
+        alert("เกิดข้อผิดพลาด: " + (data.error || "ไม่สามารถเพิ่มข้อมูลได้"));
+      }
+    } catch (err) {
+      console.error("Add payment error:", err);
+      alert("เกิดข้อผิดพลาดในการเพิ่มรายการชำระเงิน");
+    }
   };
 
   const handleOpenEdit = (pay: any) => {
@@ -150,30 +193,77 @@ export default function PaymentsPage() {
     setEditModalOpen(true);
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!selectedPay) return;
-    setPayments(
-      payments.map((p) =>
-        p.id === selectedPay.id
-          ? {
-              ...p,
-              appNum: formAppNum,
-              student: formStudent,
-              amount: formAmount,
-              status: formStatus,
-              receiptNo: formStatus === "VERIFIED" && !p.receiptNo ? `RCT-2026-${Math.floor(1000 + Math.random() * 9000)}` : p.receiptNo,
-            }
-          : p
-      )
-    );
-    setEditModalOpen(false);
-    alert("บันทึกการแก้ไขสลิปเรียบร้อยแล้ว");
+
+    if ((formStatus === "VERIFIED" || formStatus === "APPROVED") && formAppNum) {
+      const targetApp = ctxApps.find(
+        (a) => a.applicationNumber === formAppNum || a.id === formAppNum
+      );
+      if (targetApp) {
+        updateApplication(targetApp.id, {
+          status: "APPLICATION_FEE_PAID",
+          adminNotes: [
+            {
+              id: `note_${Date.now()}`,
+              content: "อนุมัติสลิปการชำระเงิน 1,800 บาทเรียบร้อยแล้ว (สถานะ: ชำระค่าสมัครแล้ว)",
+              createdAt: new Date(),
+              author: { name: "Finance Admin", email: "admin@tif.ac.th" },
+            },
+            ...(targetApp.adminNotes || []),
+          ],
+        });
+      }
+    }
+
+    try {
+      const res = await fetch("/api/payments", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: selectedPay.id,
+          appNum: formAppNum,
+          student: formStudent,
+          amount: formAmount,
+          status: formStatus,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setEditModalOpen(false);
+        fetchPayments();
+        alert("บันทึกการแก้ไขสลิปเรียบร้อยแล้ว");
+      } else {
+        alert("เกิดข้อผิดพลาดในการแก้ไข: " + (data.error || "ไม่สามารถแก้ไขได้"));
+      }
+    } catch (err) {
+      console.error("Edit payment error:", err);
+      alert("เกิดข้อผิดพลาดในการบันทึกการแก้ไข");
+    }
   };
 
-  const handleDelete = (id: string) => {
-    if (window.confirm("คุณต้องการลบรายการชำระเงินนี้ใช่หรือไม่?")) {
-      setPayments(payments.filter((p) => p.id !== id));
-      alert("ลบรายการชำระเงินเรียบร้อยแล้ว");
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("คุณต้องการลบรายการชำระเงินนี้ใช่หรือไม่?")) return;
+
+    // Optimistic UI update
+    setPayments((prev) => prev.filter((p) => p.id !== id));
+
+    try {
+      const res = await fetch(`/api/payments?id=${id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchPayments();
+        alert("ลบรายการชำระเงินเรียบร้อยแล้ว");
+      } else {
+        alert("เกิดข้อผิดพลาดในการลบ: " + (data.error || "ไม่สามารถลบได้"));
+        fetchPayments();
+      }
+    } catch (err) {
+      console.error("Delete payment error:", err);
+      alert("เกิดข้อผิดพลาดในการลบข้อมูล");
+      fetchPayments();
     }
   };
 

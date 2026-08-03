@@ -11,7 +11,6 @@ import {
   Stethoscope,
   FileText,
   CreditCard,
-  ExternalLink,
   Bell,
   Trophy,
   DollarSign,
@@ -350,16 +349,6 @@ export default function HomePage() {
                       </li>
                     ))}
                   </ul>
-
-                  <a
-                    href="https://www.caat.or.th"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-white hover:bg-slate-100 border border-slate-200 text-tif-navy text-xs font-bold transition-colors shadow-sm"
-                  >
-                    <span>CAAT Class 1 Medical Details</span>
-                    <ExternalLink className="h-3.5 w-3.5 text-tif-gold" />
-                  </a>
                 </Card3D>
               </ScrollReveal>
             </div>
@@ -402,39 +391,40 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                <ul className="space-y-3">
+                <ul className="space-y-3.5">
                   {[
-                    t("reqDoc1"),
-                    t("reqDoc2"),
-                    t("reqDoc3"),
-                    t("reqDoc4"),
-                    t("reqDoc5"),
-                  ].map((doc, i) => (
-                    <li key={i} className="flex items-start gap-3 py-1">
-                      <span className="w-6 h-6 rounded-md bg-tif-navy/5 border border-tif-navy/10 text-tif-navy text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
-                        {i + 1}
-                      </span>
-                      <span className="text-sm text-slate-700 leading-relaxed font-medium">{doc}</span>
-                    </li>
-                  ))}
+                    { num: 1, text: t("reqDoc1") },
+                    { num: 2, text: t("reqDoc2") },
+                    { num: 3, text: t("reqDoc3") },
+                    { num: 4, text: t("reqDoc4") },
+                    { num: 5, text: t("reqDoc5") },
+                    {
+                      num: 6,
+                      text: t("reqDoc6"),
+                      subItems: [t("reqDoc6a"), t("reqDoc6b"), t("reqDoc6c")],
+                    },
+                    { num: 7, text: t("reqDoc7") },
+                    { num: 8, text: t("reqDoc8") },
+                  ].map((docItem) => (
+                    <li key={docItem.num} className="space-y-1.5">
+                      <div className="flex items-start gap-3">
+                        <span className="w-6 h-6 rounded-md bg-tif-navy/5 border border-tif-navy/10 text-tif-navy text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                          {docItem.num}
+                        </span>
+                        <span className="text-sm text-slate-800 leading-relaxed font-medium">
+                          {docItem.text.replace(/^\d+\.\s*/, "")}
+                        </span>
+                      </div>
 
-                  {/* Military docs — nested sub-list */}
-                  <li className="ml-9 pl-4 border-l-2 border-tif-gold/30 space-y-1.5 py-2">
-                    <span className="text-sm text-slate-900 font-semibold block">{t("reqDoc6")}</span>
-                    <span className="text-sm text-slate-600 block">{t("reqDoc6a")}</span>
-                    <span className="text-sm text-slate-600 block">{t("reqDoc6b")}</span>
-                    <span className="text-sm text-slate-600 block">{t("reqDoc6c")}</span>
-                  </li>
-
-                  {[
-                    t("reqDoc7"),
-                    t("reqDoc8"),
-                  ].map((doc, i) => (
-                    <li key={i + 5} className="flex items-start gap-3 py-1">
-                      <span className="w-6 h-6 rounded-md bg-tif-navy/5 border border-tif-navy/10 text-tif-navy text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
-                        {i + 7}
-                      </span>
-                      <span className="text-sm text-slate-700 leading-relaxed font-medium">{doc}</span>
+                      {docItem.subItems && (
+                        <div className="ml-9 pl-3.5 border-l-2 border-tif-gold/30 space-y-1 text-xs text-slate-600">
+                          {docItem.subItems.map((sub, idx) => (
+                            <p key={idx} className="leading-relaxed">
+                              {sub}
+                            </p>
+                          ))}
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ul>
