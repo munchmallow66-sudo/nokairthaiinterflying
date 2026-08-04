@@ -14,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { ScrollReveal } from "@/components/ui/scroll-reveal";
+import { useLanguage } from "@/lib/i18n/language-context";
 
 interface Announcement {
   id: string;
@@ -29,6 +30,7 @@ interface Announcement {
 }
 
 export function AnnouncementSection() {
+  const { t } = useLanguage();
   const [announcements, setAnnouncements] = React.useState<Announcement[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [selectedImage, setSelectedImage] = React.useState<string | null>(null);
@@ -70,16 +72,16 @@ export function AnnouncementSection() {
               </div>
               <div>
                 <h2 className="text-xl sm:text-2xl font-extrabold text-white font-display tracking-tight flex items-center gap-2">
-                  ข่าวสาร & ประกาศพิเศษ
+                  {t("announcementSectionTitle")}
                   <Sparkles className="h-4 w-4 text-tif-gold" />
                 </h2>
                 <p className="text-xs text-slate-400">
-                  ข่าวประชาสัมพันธ์ โปรโมชั่น และข้อมูลสำคัญจากสถาบัน Thai Inter Flying
+                  {t("announcementSectionSub")}
                 </p>
               </div>
             </div>
             <span className="hidden sm:inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-tif-gold/10 text-tif-gold border border-tif-gold/30">
-              {announcements.length} ประกาศล่าสุด
+              {announcements.length} {t("latestAnnouncementsCount")}
             </span>
           </div>
 
@@ -143,7 +145,7 @@ export function AnnouncementSection() {
                         rel="noreferrer"
                         className="w-full inline-flex items-center justify-center px-4 py-2 rounded-xl text-xs font-bold text-tif-navyDark bg-tif-gold hover:bg-tif-goldHover transition shadow-md group/btn"
                       >
-                        <span>ดูรายละเอียดเพิ่มเติม</span>
+                        <span>{t("readMoreBtn")}</span>
                         <ArrowRight className="ml-1.5 h-3.5 w-3.5 group-hover/btn:translate-x-1 transition-transform" />
                       </a>
                     </div>

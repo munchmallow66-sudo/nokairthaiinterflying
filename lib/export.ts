@@ -2,21 +2,21 @@ import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { ApplicationWithDetails } from "@/types";
-import { formatDate, formatCurrency } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 
 export function exportApplicationsToExcel(applications: ApplicationWithDetails[]) {
   const data = applications.map((app) => ({
-    "App Number": app.applicationNumber,
-    "Student Name (EN)": `${app.student.firstNameEn} ${app.student.lastNameEn}`,
-    "Student Name (TH)": `${app.student.firstNameTh} ${app.student.lastNameTh}`,
-    "Course": app.course.name,
-    "Branch": app.branch,
-    "Status": app.status,
-    "Phone": app.student.phone,
-    "Email": app.student.user.email,
-    "National ID": app.student.nationalId || "-",
-    "GPAX": app.student.education?.gpax || "-",
-    "Submitted Date": formatDate(app.createdAt),
+    "App Number": app?.applicationNumber || "-",
+    "Student Name (EN)": `${app?.student?.firstNameEn || "-"} ${app?.student?.lastNameEn || ""}`.trim(),
+    "Student Name (TH)": `${app?.student?.firstNameTh || "-"} ${app?.student?.lastNameTh || ""}`.trim(),
+    "Course": app?.course?.name || "-",
+    "Branch": app?.branch || "-",
+    "Status": app?.status || "-",
+    "Phone": app?.student?.phone || "-",
+    "Email": app?.student?.user?.email || "-",
+    "National ID": app?.student?.nationalId || "-",
+    "GPAX": app?.student?.education?.gpax ?? "-",
+    "Submitted Date": formatDate(app?.createdAt),
   }));
 
   const worksheet = XLSX.utils.json_to_sheet(data);
@@ -38,13 +38,13 @@ export function exportApplicationsToPDF(applications: ApplicationWithDetails[]) 
 
   const tableColumn = ["App #", "Student Name", "Course", "Branch", "Phone", "Status", "Date"];
   const tableRows = applications.map((app) => [
-    app.applicationNumber,
-    `${app.student.firstNameEn} ${app.student.lastNameEn}`,
-    app.course.code,
-    app.branch,
-    app.student.phone,
-    app.status,
-    formatDate(app.createdAt),
+    app?.applicationNumber || "-",
+    `${app?.student?.firstNameEn || "-"} ${app?.student?.lastNameEn || ""}`.trim(),
+    app?.course?.code || app?.course?.name || "-",
+    app?.branch || "-",
+    app?.student?.phone || "-",
+    app?.status || "-",
+    formatDate(app?.createdAt),
   ]);
 
   autoTable(doc, {
@@ -58,3 +58,4 @@ export function exportApplicationsToPDF(applications: ApplicationWithDetails[]) 
 
   doc.save(`TIF_Applications_Report_${new Date().toISOString().split("T")[0]}.pdf`);
 }
+

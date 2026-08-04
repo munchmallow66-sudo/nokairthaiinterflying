@@ -38,196 +38,19 @@ import {
   ChevronRight,
   Check,
 } from "lucide-react";
-
-const SAMPLE_APPLICATIONS: ApplicationWithDetails[] = [
-  {
-    id: "app-101",
-    applicationNumber: "TIF-2026-8812",
-    branch: "Bangkok Headquarters",
-    preferredStartDate: new Date("2026-09-01"),
-    status: "SUBMITTED",
-    createdAt: new Date("2026-07-24"),
-    updatedAt: new Date("2026-07-24"),
-    student: {
-      id: "std-101",
-      firstNameTh: "สมชาย",
-      lastNameTh: "ใจดี",
-      firstNameEn: "Somchai",
-      lastNameEn: "Jaidee",
-      nickname: "Boy",
-      phone: "0819998888",
-      nationalId: "1100200345678",
-      passport: "AA1234567",
-      user: {
-        email: "somchai@example.com",
-      },
-      address: {
-        currentAddress: "123 Sukhumvit Road",
-        province: "Bangkok",
-        district: "Vadhana",
-        subdistrict: "Klongtoey Nua",
-        postalCode: "10110",
-      },
-      education: {
-        school: "Triam Udom Suksa",
-        university: "Chulalongkorn University",
-        degree: "Bachelor of Aerospace Engineering",
-        gpax: 3.65,
-        graduationYear: 2024,
-      },
-      emergency: {
-        name: "Somsak Jaidee",
-        relationship: "Father",
-        phone: "0812223333",
-        address: "123 Sukhumvit Road, Bangkok",
-      },
-      parent: {
-        fatherName: "Mr. Somsak Jaidee",
-        motherName: "Mrs. Somjai Jaidee",
-        occupation: "Airline Executive",
-        phone: "0812223333",
-      },
-      medical: {
-        height: 178,
-        weight: 70,
-        bloodType: "O",
-        medicalConditions: "None",
-        allergy: "None",
-      },
-      english: {
-        toeicScore: 820,
-        ieltsScore: 7.0,
-        icaoLevel: 4,
-      },
-    },
-    course: {
-      id: "cpl-002",
-      name: "Commercial Pilot License (CPL)",
-      code: "CPL",
-      price: 1250000,
-      duration: "14 Months",
-    },
-    documents: [
-      {
-        id: "doc-1",
-        type: "PASSPORT_PHOTO",
-        secureUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800",
-        publicId: "tif_photo_1",
-        originalName: "Passport_Photo_1Inch_Somchai.jpg",
-        isVerified: true,
-        uploadedAt: new Date("2026-07-24T09:15:00"),
-      },
-      {
-        id: "doc-2",
-        type: "NATIONAL_ID",
-        secureUrl: "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800",
-        publicId: "tif_id_1",
-        originalName: "Certified_Thai_National_ID.jpg",
-        isVerified: false,
-        uploadedAt: new Date("2026-07-24T09:16:00"),
-      },
-      {
-        id: "doc-3",
-        type: "TRANSCRIPT",
-        secureUrl: "https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=800",
-        publicId: "tif_transcript_1",
-        originalName: "Bachelor_Degree_Transcript.jpg",
-        isVerified: true,
-        uploadedAt: new Date("2026-07-24T09:20:00"),
-      },
-      {
-        id: "doc-4",
-        type: "TOEIC",
-        secureUrl: "https://images.unsplash.com/photo-1606326608606-aa0b62935f2b?w=800",
-        publicId: "tif_toeic_1",
-        originalName: "Official_TOEIC_Score_820.jpg",
-        isVerified: true,
-        uploadedAt: new Date("2026-07-24T09:22:00"),
-      },
-    ],
-    payments: [],
-    interviews: [],
-    adminNotes: [
-      {
-        id: "note-1",
-        content: "Initial application screening completed. Candidate meets English TOEIC score requirement.",
-        createdAt: new Date("2026-07-24T10:00:00"),
-        author: {
-          name: "Training Officer Prasert",
-          email: "prasert@tif.ac.th",
-        },
-      },
-    ],
-  },
-  {
-    id: "app-102",
-    applicationNumber: "TIF-2026-4401",
-    branch: "Don Mueang Flight Base",
-    preferredStartDate: new Date("2026-09-15"),
-    status: "DOCUMENT_VERIFIED",
-    createdAt: new Date("2026-07-23"),
-    updatedAt: new Date("2026-07-23"),
-    student: {
-      id: "std-102",
-      firstNameTh: "กาญจนา",
-      lastNameTh: "สุขุมวิท",
-      firstNameEn: "Kanchana",
-      lastNameEn: "Sukhumvit",
-      phone: "0898887777",
-      nationalId: "1100500123456",
-      user: {
-        email: "kanchana@example.com",
-      },
-      education: {
-        school: "Mahidol Witayanusorn",
-        degree: "High School Diploma",
-        gpax: 3.85,
-        graduationYear: 2025,
-      },
-      medical: {
-        height: 165,
-        weight: 52,
-        bloodType: "A",
-      },
-      english: {
-        toeicScore: 780,
-      },
-    },
-    course: {
-      id: "ppl-001",
-      name: "Private Pilot License (PPL)",
-      code: "PPL",
-      price: 350000,
-      duration: "4 Months",
-    },
-    documents: [
-      {
-        id: "doc-201",
-        type: "PASSPORT_PHOTO",
-        secureUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800",
-        publicId: "tif_photo_2",
-        originalName: "Kanchana_Photo_1Inch.jpg",
-        isVerified: true,
-        uploadedAt: new Date("2026-07-23T14:10:00"),
-      },
-      {
-        id: "doc-202",
-        type: "NATIONAL_ID",
-        secureUrl: "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800",
-        publicId: "tif_id_2",
-        originalName: "Kanchana_National_ID_Card.jpg",
-        isVerified: true,
-        uploadedAt: new Date("2026-07-23T14:12:00"),
-      },
-    ],
-    payments: [],
-    interviews: [],
-    adminNotes: [],
-  },
-];
-
 import { useLanguage } from "@/lib/i18n/language-context";
 import { useApplicationContext } from "@/lib/context/application-context";
+
+function safeDateToInputString(d: Date | string | null | undefined): string {
+  if (!d) return "";
+  try {
+    const dateObj = new Date(d);
+    if (isNaN(dateObj.getTime())) return "";
+    return dateObj.toISOString().slice(0, 10);
+  } catch (e) {
+    return "";
+  }
+}
 
 export default function StudentApplicationsPage() {
   const { t } = useLanguage();
@@ -250,15 +73,20 @@ export default function StudentApplicationsPage() {
     return PILOT_WORKFLOW_STEPS.findIndex((s) => s.key === selectedApp.status);
   }, [selectedApp]);
 
-  // Sync selectedApp with latest global context state
+  // Sync selectedApp with latest global context state & close drawer if deleted
   React.useEffect(() => {
     if (selectedApp) {
-      const latest = applications.find((a) => a.id === selectedApp.id);
+      const latest = applications.find(
+        (a) => a.id === selectedApp.id || a.applicationNumber === selectedApp.applicationNumber
+      );
       if (latest) {
         setSelectedApp(latest);
+      } else {
+        setDrawerOpen(false);
+        setSelectedApp(null);
       }
     }
-  }, [applications]);
+  }, [applications, selectedApp?.id]);
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [interviewModalOpen, setInterviewModalOpen] = React.useState(false);
   const [noteModalOpen, setNoteModalOpen] = React.useState(false);
@@ -515,9 +343,7 @@ export default function StudentApplicationsPage() {
     setFormLastNameEn(app.student.lastNameEn || "");
     setFormNickname(app.student.nickname || "");
     setFormGender(app.student.gender || "Male");
-    setFormBirthday(
-      app.student.birthday ? new Date(app.student.birthday).toISOString().slice(0, 10) : ""
-    );
+    setFormBirthday(safeDateToInputString(app.student.birthday));
     setFormNationalId(app.student.nationalId || "");
     setFormPassport(app.student.passport || "");
 
@@ -634,7 +460,7 @@ export default function StudentApplicationsPage() {
 
     updateApplication(editingApp.id, updatedApp);
     setEditModalOpen(false);
-    alert("อัปเดตข้อมูลใบสมัครเรียนเรียบร้อยแล้ว");
+    alert(t("saveChangesAlert"));
   };
 
   const handleSaveNew = () => {
@@ -655,32 +481,58 @@ export default function StudentApplicationsPage() {
         firstNameTh: formFirstNameTh || "สมชาย",
         lastNameTh: formLastNameTh || "ใจดี",
         firstNameEn: formFirstNameEn,
-        lastNameEn: formLastNameEn,
+        lastNameEn: formLastNameEn || "",
+        nickname: formNickname || "",
+        gender: formGender || "Male",
+        birthday: formBirthday ? new Date(formBirthday) : new Date(),
+        age: 25,
+        nationality: "Thai",
+        religion: "Buddhism",
         phone: formPhone,
         nationalId: formNationalId || "-",
+        passport: formPassport || "-",
+        lineId: formLineId || "-",
+        facebook: formFacebook || "-",
         user: {
           email: formEmail,
         },
         address: {
-          currentAddress: "Bangkok",
-          province: "Bangkok",
-          district: "Chatuchak",
-          subdistrict: "Chomphon",
-          postalCode: "10900",
+          currentAddress: formCurrentAddress || "Bangkok",
+          province: formProvince || "Bangkok",
+          district: formDistrict || "Chatuchak",
+          subdistrict: formSubdistrict || "Chomphon",
+          postalCode: formPostalCode || "10900",
         },
         education: {
-          school: "Institution",
-          degree: "Bachelor Degree",
-          gpax: 3.5,
-          graduationYear: 2025,
+          school: formSchool || "Institution",
+          university: formUniversity || "University",
+          degree: formDegree || "Bachelor Degree",
+          gpax: formGpax !== "" ? Number(formGpax) : 3.5,
+          graduationYear: formGraduationYear !== "" ? Number(formGraduationYear) : 2025,
+        },
+        parent: {
+          fatherName: formFatherName || "-",
+          motherName: formMotherName || "-",
+          occupation: formParentOccupation || "-",
+          phone: formParentPhone || formPhone,
+        },
+        emergency: {
+          name: formEmergencyName || "-",
+          relationship: formEmergencyRelationship || "-",
+          phone: formEmergencyPhone || formPhone,
+          address: formEmergencyAddress || "-",
         },
         medical: {
-          height: 175,
-          weight: 68,
-          bloodType: "O",
+          height: formHeight !== "" ? Number(formHeight) : 175,
+          weight: formWeight !== "" ? Number(formWeight) : 68,
+          bloodType: formBloodType || "O",
+          medicalConditions: formMedicalConditions || "-",
+          allergy: formAllergy || "-",
         },
         english: {
-          toeicScore: 750,
+          toeicScore: formToeicScore !== "" ? Number(formToeicScore) : 750,
+          ieltsScore: formIeltsScore !== "" ? Number(formIeltsScore) : 6.5,
+          icaoLevel: formIcaoLevel !== "" ? Number(formIcaoLevel) : 4,
         },
       },
       course: {
@@ -698,7 +550,7 @@ export default function StudentApplicationsPage() {
 
     addApplication(newApp);
     setAddModalOpen(false);
-    alert("เพิ่มใบสมัครใหม่เรียบร้อยแล้ว");
+    alert(t("createSuccessAlert"));
   };
 
   // 5. Document Review Decision (Pass → ready for payment, Fail → rejected with comment)
@@ -1578,7 +1430,7 @@ export default function StudentApplicationsPage() {
                   : "text-slate-400 hover:text-white"
               }`}
             >
-              ข้อมูลส่วนตัว
+              {t("editTabPersonal")}
             </button>
             <button
               type="button"
@@ -1589,7 +1441,7 @@ export default function StudentApplicationsPage() {
                   : "text-slate-400 hover:text-white"
               }`}
             >
-              ที่อยู่ & ข้อมูลติดต่อ
+              {t("editTabAddress")}
             </button>
             <button
               type="button"
@@ -1600,7 +1452,7 @@ export default function StudentApplicationsPage() {
                   : "text-slate-400 hover:text-white"
               }`}
             >
-              หลักสูตร & สถานะ
+              {t("editTabCourse")}
             </button>
             <button
               type="button"
@@ -1611,7 +1463,7 @@ export default function StudentApplicationsPage() {
                   : "text-slate-400 hover:text-white"
               }`}
             >
-              ประวัติการศึกษา
+              {t("editTabEducation")}
             </button>
             <button
               type="button"
@@ -1622,7 +1474,7 @@ export default function StudentApplicationsPage() {
                   : "text-slate-400 hover:text-white"
               }`}
             >
-              ผู้ปกครอง & ฉุกเฉิน
+              {t("editTabFamily")}
             </button>
             <button
               type="button"
@@ -1633,7 +1485,7 @@ export default function StudentApplicationsPage() {
                   : "text-slate-400 hover:text-white"
               }`}
             >
-              ข้อมูลสุขภาพ & ภาษา
+              {t("editTabMedical")}
             </button>
           </div>
 
@@ -2086,7 +1938,7 @@ export default function StudentApplicationsPage() {
           )}
 
           <Button variant="gold" className="w-full mt-4 font-bold" onClick={handleSaveEdit}>
-            บันทึกการแก้ไขข้อมูลใบสมัคร
+            {t("saveApplicationBtn")}
           </Button>
         </div>
       </Modal>
@@ -2095,8 +1947,8 @@ export default function StudentApplicationsPage() {
       <Modal
         isOpen={addModalOpen}
         onClose={() => setAddModalOpen(false)}
-        title="เพิ่มใบสมัครเรียนใหม่ (Add New Cadet Application)"
-        description="กรอกข้อมูลผู้สมัครเรียนเพื่อบันทึกเข้าสู่ระบบของเจ้าหน้าที่"
+        title={t("addCadetTitle")}
+        description={t("addCadetDesc")}
       >
         <div className="space-y-4 text-xs">
           <div className="grid grid-cols-2 gap-3">
@@ -2174,7 +2026,7 @@ export default function StudentApplicationsPage() {
           </div>
 
           <Button variant="gold" className="w-full mt-4" onClick={handleSaveNew}>
-            ยืนยันบันทึกใบสมัครใหม่ (Create Application)
+            {t("confirmCreateCadetBtn")}
           </Button>
         </div>
       </Modal>

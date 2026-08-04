@@ -306,9 +306,65 @@ export async function DELETE(req: Request) {
       const { getPrisma } = await import("@/lib/prisma");
       const prisma = getPrisma();
 
-      await prisma.application.delete({
-        where: { id },
+      // Find application and associated student/user IDs before deletion
+      const targetApp = await prisma.application.findFirst({
+        where: {
+          OR: [{ id }, { applicationNumber: id }],
+        },
+        include: {
+          student: true,
+        },
       });
+
+      if (targetApp) {
+        const studentId = targetApp.studentId;
+        const userId = targetApp.student?.userId;
+
+        // Delete Application first
+        await prisma.application.delete({
+          where: { id: targetApp.id },
+        });
+
+        // Delete associated Student record if exists
+        if (studentId) {
+          try {
+            await prisma.student.delete({
+              where: { id: studentId },
+            });
+          } catch (e) {}
+        }
+
+        // Delete associated User record if exists
+        if (userId) {
+          try {
+            await prisma.user.delete({
+              where: { id: userId },
+            });
+          } catch (e) {}
+        }
+      }
+
+      // Also clean up any orphan students with no applications attached
+      try {
+        const orphanStudents = await prisma.student.findMany({
+          where: {
+            applications: {
+              none: {},
+            },
+          },
+          select: { id: true, userId: true },
+        });
+
+        for (const orphan of orphanStudents) {
+          try {
+            await prisma.student.delete({ where: { id: orphan.id } });
+            if (orphan.userId) {
+              await prisma.user.delete({ where: { id: orphan.userId } });
+            }
+          } catch (e) {}
+        }
+      } catch (e) {}
+
     } catch (dbErr) {
       console.warn("DB application delete notice:", dbErr);
     }

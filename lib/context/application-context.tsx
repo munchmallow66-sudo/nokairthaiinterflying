@@ -417,7 +417,7 @@ export function ApplicationProvider({ children }: { children: React.ReactNode })
   const [deletedIds, setDeletedIds] = React.useState<string[]>([]);
   const [isInitialized, setIsInitialized] = React.useState(false);
 
-  // 1. Load persisted data & deleted tombstones from localStorage, then fetch server DB
+  // 1. Load persisted data & deleted tombstones, then sync directly with Server DB
   React.useEffect(() => {
     let currentDeleted: string[] = [];
     try {
@@ -431,47 +431,36 @@ export function ApplicationProvider({ children }: { children: React.ReactNode })
       }
     } catch (e) {}
 
-    let initialApps = INITIAL_SAMPLE_APPLICATIONS.filter(
-      (app) => !currentDeleted.includes(app.id) && !currentDeleted.includes(app.applicationNumber)
-    );
-
+    // Load initial local cache while fetching server
     try {
       const savedData = localStorage.getItem(STORAGE_KEY);
       if (savedData !== null) {
         const parsed = JSON.parse(savedData);
-        if (Array.isArray(parsed)) {
-          initialApps = parsed.filter(
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const filtered = parsed.filter(
             (app: any) => !currentDeleted.includes(app.id) && !currentDeleted.includes(app.applicationNumber)
           );
+          setApplications(filtered);
+        } else {
+          setApplications(INITIAL_SAMPLE_APPLICATIONS);
         }
+      } else {
+        setApplications(INITIAL_SAMPLE_APPLICATIONS);
       }
     } catch (err) {
-      console.error("Failed to load global ApplicationContext cache:", err);
+      setApplications(INITIAL_SAMPLE_APPLICATIONS);
     }
-
-    setApplications(initialApps);
     setIsInitialized(true);
 
-    // Fetch real applications from server DB and merge cleanly
+    // Fetch authoritative applications from Server DB and sync state
     fetch("/api/applications")
       .then((res) => (res.ok ? res.json() : []))
       .then((dbApps) => {
         if (Array.isArray(dbApps) && dbApps.length > 0) {
-          setApplications((prev) => {
-            const merged = [...prev];
-            dbApps.forEach((dbApp: any) => {
-              const isDeleted = currentDeleted.includes(dbApp.id) || currentDeleted.includes(dbApp.applicationNumber);
-              if (!isDeleted) {
-                const exists = merged.some(
-                  (a) => a.id === dbApp.id || a.applicationNumber === dbApp.applicationNumber
-                );
-                if (!exists) {
-                  merged.unshift(dbApp);
-                }
-              }
-            });
-            return merged.filter((a) => !currentDeleted.includes(a.id) && !currentDeleted.includes(a.applicationNumber));
-          });
+          const cleanDbApps = dbApps.filter(
+            (a: any) => !currentDeleted.includes(a.id) && !currentDeleted.includes(a.applicationNumber)
+          );
+          setApplications(cleanDbApps);
         }
       })
       .catch((err) => console.warn("Failed to fetch applications from DB:", err));
