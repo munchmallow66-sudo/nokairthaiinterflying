@@ -42,7 +42,19 @@ export async function GET() {
   }
 }
 
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+
 export async function POST(req: Request) {
+  const ip = getClientIp(req);
+  const rateCheck = checkRateLimit(`app_submit_${ip}`, 5, 60 * 1000);
+
+  if (!rateCheck.success) {
+    return NextResponse.json(
+      { error: `ท่านทำรายการส่งใบสมัครถี่เกินไป กรุณารออีก ${rateCheck.resetInSeconds} วินาที` },
+      { status: 429 }
+    );
+  }
+
   let body: any;
   let clientAppNumber: string | undefined;
 

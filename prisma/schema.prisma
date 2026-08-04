@@ -92,6 +92,7 @@ model User {
   adminNotes    AdminNote[]     @relation("AuthorAdminNotes")
   notifications Notification[]
 
+  @@index([email, role])
   @@map("users")
 }
 
@@ -129,6 +130,8 @@ model Student {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
+  @@index([nationalId])
+  @@index([phone])
   @@map("students")
 }
 
@@ -244,6 +247,9 @@ model Application {
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
+  @@index([status])
+  @@index([createdAt])
+  @@index([studentId])
   @@map("applications")
 }
 
@@ -277,6 +283,8 @@ model Payment {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
+  @@index([status])
+  @@index([createdAt])
   @@map("payments")
 }
 
@@ -367,6 +375,7 @@ model Announcement {
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 
+  @@index([isActive, priority])
   @@map("announcements")
 }
 

@@ -2,6 +2,8 @@ import Image from "next/image";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 
+export const revalidate = 60; // ISR Revalidation every 60 seconds
+
 export default function PublicLayout({
   children,
 }: {

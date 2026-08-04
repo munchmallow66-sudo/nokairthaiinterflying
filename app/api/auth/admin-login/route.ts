@@ -2,9 +2,20 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getPrisma } from "@/lib/prisma";
 import { createAdminSessionToken, verifyPassword } from "@/lib/auth";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
+    const ip = getClientIp(request);
+    const rateCheck = checkRateLimit(`login_${ip}`, 5, 60 * 1000);
+
+    if (!rateCheck.success) {
+      return NextResponse.json(
+        { error: `คุณลองเข้าสู่ระบบถี่เกินไป กรุณารออีก ${rateCheck.resetInSeconds} วินาที` },
+        { status: 429 }
+      );
+    }
+
     const { email, password } = await request.json();
 
     if (!email || !password) {

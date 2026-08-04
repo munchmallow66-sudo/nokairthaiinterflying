@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -12,6 +13,16 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const ip = getClientIp(req);
+    const rateCheck = checkRateLimit(`track_${ip}`, 15, 60 * 1000);
+
+    if (!rateCheck.success) {
+      return NextResponse.json(
+        { error: `คุณส่งคำขอค้นหาถี่เกินไป กรุณารออีก ${rateCheck.resetInSeconds} วินาที` },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
     const queryInput = body.query || body.nationalId || body.appNumber || "";
 
