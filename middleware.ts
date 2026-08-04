@@ -1,10 +1,35 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { verifyAdminSessionToken } from "@/lib/auth";
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // 1. Admin Route Guard
+  if (pathname.startsWith("/admin")) {
+    const sessionCookie = request.cookies.get("admin_session")?.value;
+    const isValidSession = sessionCookie
+      ? await verifyAdminSessionToken(sessionCookie)
+      : null;
+
+    // Protecting /admin and subroutes (except /admin/login)
+    if (pathname !== "/admin/login") {
+      if (!isValidSession) {
+        const loginUrl = new URL("/admin/login", request.url);
+        return NextResponse.redirect(loginUrl);
+      }
+    } else {
+      // If already logged in, redirect /admin/login to /admin
+      if (isValidSession) {
+        const adminUrl = new URL("/admin", request.url);
+        return NextResponse.redirect(adminUrl);
+      }
+    }
+  }
+
   const response = NextResponse.next();
 
-  // 1. Security Headers
+  // 2. Security Headers
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
@@ -21,7 +46,7 @@ export function middleware(request: NextRequest) {
     );
   }
 
-  // 2. Content Security Policy (CSP)
+  // 3. Content Security Policy (CSP)
   const cspHeader = `
     default-src 'self';
     script-src 'self' 'unsafe-inline' 'unsafe-eval' https://res.cloudinary.com;

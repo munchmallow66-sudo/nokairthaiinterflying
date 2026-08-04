@@ -54,7 +54,7 @@ export default function InterviewsPage() {
           list.push({
             id: int.id,
             appId: app.id,
-            candidate: `${app.student?.firstNameTh || app.student?.firstNameEn || ""} ${app.student?.lastNameTh || app.student?.lastNameEn || ""}`.trim() || "ผู้สมัครศิษย์บิน",
+            candidate: `${app.student?.firstNameTh || app.student?.firstNameEn || ""} ${app.student?.lastNameTh || app.student?.lastNameEn || ""}`.trim() || t("defaultCandidateFallback"),
             appNum: app.applicationNumber,
             course: app.course?.name || "Commercial Pilot License (CPL)",
             interviewer: int.interviewer || "Capt. Thanawat",
@@ -69,7 +69,7 @@ export default function InterviewsPage() {
         list.push({
           id: `int_auto_${app.id}`,
           appId: app.id,
-          candidate: `${app.student?.firstNameTh || app.student?.firstNameEn || ""} ${app.student?.lastNameTh || app.student?.lastNameEn || ""}`.trim() || "ผู้สมัครศิษย์บิน",
+          candidate: `${app.student?.firstNameTh || app.student?.firstNameEn || ""} ${app.student?.lastNameTh || app.student?.lastNameEn || ""}`.trim() || t("defaultCandidateFallback"),
           appNum: app.applicationNumber,
           course: app.course?.name || "Commercial Pilot License (CPL)",
           interviewer: "Capt. Thanawat (Chief Flight Instructor)",
@@ -81,7 +81,7 @@ export default function InterviewsPage() {
     });
 
     return list;
-  }, [applications]);
+  }, [applications, t]);
 
   // Filtered interviews list
   const filteredInterviews = allInterviews.filter((item) => {
@@ -132,8 +132,8 @@ export default function InterviewsPage() {
 
     alert(
       result === "PASSED"
-        ? `บันทึกผลการสัมภาษณ์: ผ่านการประเมิน (PASSED) สำหรับใบสมัคร ${app.applicationNumber} เรียบร้อยแล้ว! สถานะอัปเดตไปหน้า /track แล้ว`
-        : `บันทึกผลการสัมภาษณ์: ไม่ผ่านการประเมิน (FAILED) สำหรับใบสมัคร ${app.applicationNumber} เรียบร้อยแล้ว`
+        ? `${t("alertPassedSuccess")} (${app.applicationNumber})`
+        : `${t("alertFailedSuccess")} (${app.applicationNumber})`
     );
   };
 
@@ -179,7 +179,7 @@ export default function InterviewsPage() {
     }
 
     setAddModalOpen(false);
-    alert("บันทึกการนัดหมายสอบสัมภาษณ์เรียบร้อยแล้ว ข้อมูลจะส่งตรงไปยังผู้สมัครในหน้า /track");
+    alert(t("alertScheduleSuccess"));
   };
 
   // Open Edit Modal
@@ -221,12 +221,12 @@ export default function InterviewsPage() {
     }
 
     setEditModalOpen(false);
-    alert("บันทึกการแก้ไขการนัดหมายเรียบร้อยแล้ว");
+    alert(t("alertEditSuccess"));
   };
 
   // Delete Interview
   const handleDelete = (item: any) => {
-    if (!window.confirm(`คุณต้องการลบการนัดหมายสัมภาษณ์ของ ${item.candidate} (${item.appNum}) ใช่หรือไม่?`)) return;
+    if (!window.confirm(`${t("confirmDeleteInterview")} ${item.candidate} (${item.appNum})`)) return;
 
     const targetApp = applications.find(
       (a) => a.id === item.appId || a.applicationNumber === item.appNum
@@ -241,7 +241,7 @@ export default function InterviewsPage() {
       });
     }
 
-    alert("ลบรายการนัดหมายสัมภาษณ์เรียบร้อยแล้ว");
+    alert(t("alertDeleteSuccess"));
   };
 
   return (
@@ -251,7 +251,7 @@ export default function InterviewsPage() {
         <div>
           <div className="flex items-center space-x-2 mb-1">
             <Users className="h-5 w-5 text-tif-gold animate-pulse" />
-            <span className="text-xs text-slate-400 font-mono">Cadet Selection Interview Panel</span>
+            <span className="text-xs text-slate-400 font-mono">{t("interviewsTag")}</span>
           </div>
           <h1 className="text-2xl lg:text-3xl font-extrabold text-white font-display">
             {t("interviewsTitle")}
@@ -262,7 +262,7 @@ export default function InterviewsPage() {
         </div>
         <div>
           <Button variant="gold" size="md" onClick={handleOpenAdd} className="shadow-lg font-bold">
-            <Plus className="mr-2 h-4 w-4" /> นัดหมายการสัมภาษณ์ใหม่
+            <Plus className="mr-2 h-4 w-4" /> {t("newInterviewBtn")}
           </Button>
         </div>
       </div>
@@ -271,7 +271,7 @@ export default function InterviewsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold text-slate-400 uppercase">นัดหมายทั้งหมด</p>
+            <p className="text-xs font-semibold text-slate-400 uppercase">{t("interviewsTotalCount")}</p>
             <p className="text-2xl font-bold text-white mt-1 font-mono">{totalCount}</p>
           </div>
           <div className="p-3 bg-blue-500/10 text-blue-400 rounded-xl border border-blue-500/20">
@@ -281,7 +281,7 @@ export default function InterviewsPage() {
 
         <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold text-slate-400 uppercase">รอดำเนินการสัมภาษณ์</p>
+            <p className="text-xs font-semibold text-slate-400 uppercase">{t("interviewsPendingCount")}</p>
             <p className="text-2xl font-bold text-purple-400 mt-1 font-mono">{scheduledCount}</p>
           </div>
           <div className="p-3 bg-purple-500/10 text-purple-400 rounded-xl border border-purple-500/20">
@@ -291,7 +291,7 @@ export default function InterviewsPage() {
 
         <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold text-slate-400 uppercase">ผ่านการสัมภาษณ์</p>
+            <p className="text-xs font-semibold text-slate-400 uppercase">{t("interviewsPassedCount")}</p>
             <p className="text-2xl font-bold text-emerald-400 mt-1 font-mono">{passedCount}</p>
           </div>
           <div className="p-3 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
@@ -301,7 +301,7 @@ export default function InterviewsPage() {
 
         <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold text-slate-400 uppercase">ไม่ผ่านการคัดเลือก</p>
+            <p className="text-xs font-semibold text-slate-400 uppercase">{t("interviewsFailedCount")}</p>
             <p className="text-2xl font-bold text-rose-400 mt-1 font-mono">{failedCount}</p>
           </div>
           <div className="p-3 bg-rose-500/10 text-rose-400 rounded-xl border border-rose-500/20">
@@ -316,7 +316,7 @@ export default function InterviewsPage() {
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
             type="text"
-            placeholder="ค้นหาชื่อผู้สมัคร, รหัสใบสมัคร, ผู้สัมภาษณ์ หรือสถานที่..."
+            placeholder={t("interviewsSearchPlaceholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-tif-gold"
@@ -329,10 +329,10 @@ export default function InterviewsPage() {
             onChange={(e) => setFilterStatus(e.target.value)}
             className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300 focus:outline-none focus:border-tif-gold font-medium"
           >
-            <option value="ALL">สถานะทั้งหมด</option>
-            <option value="SCHEDULED">รอดำเนินการสัมภาษณ์ (Scheduled)</option>
-            <option value="PASSED">ผ่านการสัมภาษณ์ (Passed)</option>
-            <option value="FAILED">ไม่ผ่านการประเมิน (Failed)</option>
+            <option value="ALL">{t("interviewsFilterStatusAll")}</option>
+            <option value="SCHEDULED">{t("interviewsFilterStatusScheduled")}</option>
+            <option value="PASSED">{t("interviewsFilterStatusPassed")}</option>
+            <option value="FAILED">{t("interviewsFilterStatusFailed")}</option>
           </select>
         </div>
       </div>
@@ -341,13 +341,13 @@ export default function InterviewsPage() {
       {filteredInterviews.length === 0 ? (
         <div className="text-center p-12 bg-slate-900/60 rounded-2xl border border-slate-800 space-y-3">
           <Users className="h-12 w-12 text-slate-600 mx-auto mb-2" />
-          <h3 className="text-lg font-bold text-white font-display">ไม่พบรายการนัดหมายสัมภาษณ์</h3>
+          <h3 className="text-lg font-bold text-white font-display">{t("interviewsEmptyTitle")}</h3>
           <p className="text-xs text-slate-400">
-            {searchQuery ? "ลองเปลี่ยนคำค้นหาหรือตัวกรองสถานะ" : "คลิกปุ่ม 'นัดหมายการสัมภาษณ์ใหม่' เพื่อสร้างรายการนัดหมายแรก"}
+            {searchQuery ? t("interviewsEmptySearchDesc") : t("interviewsEmptyDefaultDesc")}
           </p>
           {!searchQuery && (
             <Button onClick={handleOpenAdd} variant="gold" size="sm" className="mt-2 font-bold">
-              <Plus className="mr-1.5 h-4 w-4" /> เพิ่มการนัดหมายใหม่
+              <Plus className="mr-1.5 h-4 w-4" /> {t("newInterviewBtn")}
             </Button>
           )}
         </div>
@@ -424,14 +424,14 @@ export default function InterviewsPage() {
                   <button
                     onClick={() => handleOpenEdit(item)}
                     className="p-1.5 rounded-xl text-slate-400 hover:text-tif-gold hover:bg-slate-950 border border-slate-800 transition"
-                    title="แก้ไขนัดหมาย"
+                    title={t("actionEditInterview")}
                   >
                     <Edit3 className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => handleDelete(item)}
                     className="p-1.5 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-slate-950 border border-slate-800 transition"
-                    title="ลบรายการนัดหมาย"
+                    title={t("actionDeleteInterview")}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -446,12 +446,12 @@ export default function InterviewsPage() {
       <Modal
         isOpen={addModalOpen}
         onClose={() => setAddModalOpen(false)}
-        title="เพิ่มการนัดหมายสัมภาษณ์ศิษย์บิน (Schedule Interview)"
-        description="กำหนดวัน-เวลา สถานที่ และกรรมการผู้สัมภาษณ์สำหรับผู้สมัคร"
+        title={t("addInterviewModalTitle")}
+        description={t("addInterviewModalDesc")}
       >
         <div className="space-y-4 text-xs">
           <div>
-            <label className="font-semibold text-slate-300 block mb-1">เลือกผู้สมัครเรียน (Select Candidate) *</label>
+            <label className="font-semibold text-slate-300 block mb-1">{t("selectCandidateLabel")}</label>
             <select
               value={formAppId}
               onChange={(e) => {
@@ -467,14 +467,14 @@ export default function InterviewsPage() {
             >
               {applications.map((app) => (
                 <option key={app.id} value={app.id}>
-                  {app.applicationNumber} — {app.student?.firstNameTh || app.student?.firstNameEn || "ผู้สมัคร"} {app.student?.lastNameTh || app.student?.lastNameEn || ""} ({app.course?.code || "CPL"})
+                  {app.applicationNumber} — {app.student?.firstNameTh || app.student?.firstNameEn || t("defaultCandidateFallback")} {app.student?.lastNameTh || app.student?.lastNameEn || ""} ({app.course?.code || "CPL"})
                 </option>
               ))}
             </select>
           </div>
 
           <div>
-            <label className="font-semibold text-slate-300 block mb-1">วัน-เวลาในการสัมภาษณ์ (Date & Time) *</label>
+            <label className="font-semibold text-slate-300 block mb-1">{t("dateTimeLabel")}</label>
             <input
               type="datetime-local"
               value={formDate}
@@ -484,31 +484,31 @@ export default function InterviewsPage() {
           </div>
 
           <div>
-            <label className="font-semibold text-slate-300 block mb-1">กรรมการผู้สัมภาษณ์ (Interviewer) *</label>
+            <label className="font-semibold text-slate-300 block mb-1">{t("interviewerInputLabel")}</label>
             <input
               value={formInterviewer}
               onChange={(e) => setFormInterviewer(e.target.value)}
-              placeholder="เช่น Capt. Thanawat (Chief Flight Instructor)"
+              placeholder={t("interviewerPlaceholder")}
               className="w-full rounded-xl border border-slate-800 bg-slate-950 p-2.5 text-sm text-white focus:border-tif-gold focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="font-semibold text-slate-300 block mb-1">สถานที่ / ช่องทางสัมภาษณ์ (Location / Platform) *</label>
+            <label className="font-semibold text-slate-300 block mb-1">{t("locationInputLabel")}</label>
             <input
               value={formLocation}
               onChange={(e) => setFormLocation(e.target.value)}
-              placeholder="เช่น TIF HQ Room 302 / Zoom Meeting Link"
+              placeholder={t("locationPlaceholder")}
               className="w-full rounded-xl border border-slate-800 bg-slate-950 p-2.5 text-sm text-white focus:border-tif-gold focus:outline-none"
             />
           </div>
 
           <div className="flex items-center justify-end space-x-2 pt-2">
             <Button variant="outline" size="sm" onClick={() => setAddModalOpen(false)}>
-              ยกเลิก
+              {t("cancelBtn")}
             </Button>
             <Button variant="gold" size="sm" onClick={handleSaveAdd} className="font-bold">
-              บันทึกการนัดหมายสัมภาษณ์
+              {t("saveScheduleBtn")}
             </Button>
           </div>
         </div>
@@ -518,12 +518,12 @@ export default function InterviewsPage() {
       <Modal
         isOpen={editModalOpen}
         onClose={() => setEditModalOpen(false)}
-        title="แก้ไขการนัดหมายสัมภาษณ์"
-        description={`ผู้สมัคร: ${formCandidateName} (${formAppNum})`}
+        title={t("editInterviewModalTitle")}
+        description={`${t("candidateLabel")} ${formCandidateName} (${formAppNum})`}
       >
         <div className="space-y-4 text-xs">
           <div>
-            <label className="font-semibold text-slate-300 block mb-1">วัน-เวลาในการสัมภาษณ์ (Date & Time)</label>
+            <label className="font-semibold text-slate-300 block mb-1">{t("dateTimeLabelShort")}</label>
             <input
               type="datetime-local"
               value={formDate}
@@ -533,7 +533,7 @@ export default function InterviewsPage() {
           </div>
 
           <div>
-            <label className="font-semibold text-slate-300 block mb-1">กรรมการผู้สัมภาษณ์ (Interviewer)</label>
+            <label className="font-semibold text-slate-300 block mb-1">{t("interviewerInputLabelShort")}</label>
             <input
               value={formInterviewer}
               onChange={(e) => setFormInterviewer(e.target.value)}
@@ -542,7 +542,7 @@ export default function InterviewsPage() {
           </div>
 
           <div>
-            <label className="font-semibold text-slate-300 block mb-1">สถานที่ / ช่องทางสัมภาษณ์ (Location)</label>
+            <label className="font-semibold text-slate-300 block mb-1">{t("locationInputLabelShort")}</label>
             <input
               value={formLocation}
               onChange={(e) => setFormLocation(e.target.value)}
@@ -552,10 +552,10 @@ export default function InterviewsPage() {
 
           <div className="flex items-center justify-end space-x-2 pt-2">
             <Button variant="outline" size="sm" onClick={() => setEditModalOpen(false)}>
-              ยกเลิก
+              {t("cancelBtn")}
             </Button>
             <Button variant="gold" size="sm" onClick={handleSaveEdit} className="font-bold">
-              บันทึกการแก้ไข
+              {t("saveEditBtn")}
             </Button>
           </div>
         </div>

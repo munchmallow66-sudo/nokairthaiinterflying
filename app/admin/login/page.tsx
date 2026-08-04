@@ -22,8 +22,8 @@ import { Input } from "@/components/ui/input";
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [email, setEmail] = React.useState("admin@tif.ac.th");
-  const [password, setPassword] = React.useState("!Admin_TIF@8649.");
+  const [email, setEmail] = React.useState("");
+  const [password, setPassword] = React.useState("");
   const [showPassword, setShowPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState("");
@@ -257,7 +257,7 @@ export default function AdminLoginPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     onFocus={() => setFocusedField("email")}
                     onBlur={() => setFocusedField(null)}
-                    placeholder="admin@tif.ac.th"
+                    placeholder="test@gmail.com"
                     className={`pl-10 bg-slate-950/50 text-slate-100 placeholder:text-slate-600 rounded-xl h-12 transition-all duration-200 ${
                       focusedField === "email"
                         ? "border-tif-gold ring-1 ring-tif-gold/30 shadow-[0_0_0_3px_rgba(200,162,74,0.08)]"
@@ -343,38 +343,6 @@ export default function AdminLoginPage() {
                 </Button>
               </div>
             </form>
-
-            {/* Divider */}
-            <div className="relative py-1">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-800/80" />
-              </div>
-              <div className="relative flex justify-center">
-                <span className="bg-slate-900/80 px-3 text-[10px] font-mono uppercase tracking-wider text-slate-600">
-                  Demo Access
-                </span>
-              </div>
-            </div>
-
-            {/* Demo Account Info — refined */}
-            <div className="rounded-xl bg-slate-950/40 border border-slate-800/80 p-3.5 space-y-2">
-              <div className="flex items-center justify-between">
-                <p className="text-[11px] text-tif-gold font-bold flex items-center gap-1.5 uppercase tracking-wider">
-                  <ShieldCheck className="h-3.5 w-3.5" /> Test Account
-                </p>
-                <span className="text-[9px] text-slate-600 font-mono">READ-ONLY</span>
-              </div>
-              <div className="grid grid-cols-1 gap-1.5 text-[11px] font-mono">
-                <div className="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-slate-900/60">
-                  <span className="text-slate-500">Email</span>
-                  <span className="text-slate-200">admin@tif.ac.th</span>
-                </div>
-                <div className="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-slate-900/60">
-                  <span className="text-slate-500">Pass</span>
-                  <span className="text-slate-200">!Admin_TIF@8649.</span>
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Footer info */}

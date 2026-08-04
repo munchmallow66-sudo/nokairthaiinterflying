@@ -15,6 +15,7 @@ import {
   Menu,
   X,
   Megaphone,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BrandLogo } from "@/components/ui/brand-logo";
@@ -53,8 +54,8 @@ export function AdminSidebar() {
     { name: t("adminNavApplications"), href: "/admin/applications", icon: FileText, badge: "Live" },
     { name: t("adminNavPayments"), href: "/admin/payments", icon: CreditCard },
     { name: t("adminNavInterviews"), href: "/admin/interviews", icon: Calendar },
-    { name: "จัดการประกาศ & โฆษณา", href: "/admin/announcements", icon: Megaphone },
-    { name: t("adminNavAuditLogs"), href: "/admin/audit-logs", icon: ShieldAlert },
+    { name: t("adminNavAnnouncements"), href: "/admin/announcements", icon: Megaphone },
+    { name: t("adminNavSettings"), href: "/admin/settings", icon: Settings },
   ];
 
   return (

@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { Uploader } from "@/components/ui/uploader";
 import { formatDate } from "@/lib/utils";
+import { useLanguage } from "@/lib/i18n/language-context";
 
 export interface AnnouncementItem {
   id: string;
@@ -42,6 +43,7 @@ export interface AnnouncementItem {
 }
 
 export default function AdminAnnouncementsPage() {
+  const { t } = useLanguage();
   const [announcements, setAnnouncements] = React.useState<AnnouncementItem[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -57,7 +59,7 @@ export default function AdminAnnouncementsPage() {
   // Form states
   const [formTitle, setFormTitle] = React.useState("");
   const [formContent, setFormContent] = React.useState("");
-  const [formBadge, setFormBadge] = React.useState("ประกาศสำคัญ");
+  const [formBadge, setFormBadge] = React.useState(t("adminAnnouncementsBadgeDefault"));
   const [formType, setFormType] = React.useState<"TEXT" | "IMAGE" | "HYBRID">("HYBRID");
   const [formImageUrl, setFormImageUrl] = React.useState("");
   const [formImagePublicId, setFormImagePublicId] = React.useState("");
@@ -119,7 +121,7 @@ export default function AdminAnnouncementsPage() {
   const openAddModal = () => {
     setFormTitle("");
     setFormContent("");
-    setFormBadge("ประกาศสำคัญ");
+    setFormBadge(t("adminAnnouncementsBadgeDefault"));
     setFormType("HYBRID");
     setFormImageUrl("");
     setFormImagePublicId("");
@@ -134,7 +136,7 @@ export default function AdminAnnouncementsPage() {
     setSelectedItem(item);
     setFormTitle(item.title || "");
     setFormContent(item.content || "");
-    setFormBadge(item.badge || "ประกาศสำคัญ");
+    setFormBadge(item.badge || t("adminAnnouncementsBadgeDefault"));
     setFormType(item.type || "HYBRID");
     setFormImageUrl(item.imageUrl || "");
     setFormImagePublicId(item.imagePublicId || "");
@@ -171,11 +173,11 @@ export default function AdminAnnouncementsPage() {
         setIsAddModalOpen(false);
         fetchAnnouncements();
       } else {
-        alert("เกิดข้อผิดพลาด: " + data.error);
+        alert(t("adminAnnouncementsErrPrefix") + data.error);
       }
     } catch (err) {
       console.error("Submit error:", err);
-      alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+      alert(t("adminAnnouncementsErrSave"));
     } finally {
       setSubmitting(false);
     }
@@ -209,11 +211,11 @@ export default function AdminAnnouncementsPage() {
         setSelectedItem(null);
         fetchAnnouncements();
       } else {
-        alert("เกิดข้อผิดพลาด: " + data.error);
+        alert(t("adminAnnouncementsErrPrefix") + data.error);
       }
     } catch (err) {
       console.error("Edit error:", err);
-      alert("เกิดข้อผิดพลาดในการอัปเดตข้อมูล");
+      alert(t("adminAnnouncementsErrUpdate"));
     } finally {
       setSubmitting(false);
     }
@@ -234,11 +236,11 @@ export default function AdminAnnouncementsPage() {
         setSelectedItem(null);
         fetchAnnouncements();
       } else {
-        alert("เกิดข้อผิดพลาดในการลบ: " + data.error);
+        alert(t("adminAnnouncementsErrDeletePrefix") + data.error);
       }
     } catch (err) {
       console.error("Delete error:", err);
-      alert("เกิดข้อผิดพลาดในการลบข้อมูล");
+      alert(t("adminAnnouncementsErrDelete"));
     } finally {
       setSubmitting(false);
     }
@@ -271,13 +273,13 @@ export default function AdminAnnouncementsPage() {
         <div className="space-y-1">
           <div className="flex items-center space-x-2">
             <Megaphone className="h-5 w-5 text-tif-gold animate-pulse" />
-            <span className="text-xs text-slate-400 font-mono">Homepage Banners & Ads</span>
+            <span className="text-xs text-slate-400 font-mono">{t("adminAnnouncementsCategory")}</span>
           </div>
           <h1 className="text-2xl lg:text-3xl font-extrabold text-white font-display tracking-tight">
-            ระบบจัดการประกาศและโฆษณาหน้าแรก
+            {t("adminAnnouncementsTitle")}
           </h1>
           <p className="text-xs lg:text-sm text-slate-400">
-            เพิ่ม แก้ไข ลบ และสลับสวิตช์ เปิด-ปิด (On/Off) เพื่อควบคุมการแสดงผลบนหน้าเว็บไซต์ http://localhost:3000/
+            {t("adminAnnouncementsDesc")}
           </p>
         </div>
 
@@ -288,7 +290,7 @@ export default function AdminAnnouncementsPage() {
             size="md"
             className="shadow-lg shadow-tif-gold/10 font-bold"
           >
-            <Plus className="mr-2 h-4 w-4" /> เพิ่มประกาศ / โฆษณาใหม่
+            <Plus className="mr-2 h-4 w-4" /> {t("adminAnnouncementsAddNew")}
           </Button>
         </div>
       </div>
@@ -297,7 +299,7 @@ export default function AdminAnnouncementsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">ประกาศทั้งหมด</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">{t("adminAnnouncementsTotal")}</span>
             <div className="p-2.5 bg-blue-500/10 text-blue-400 rounded-xl border border-blue-500/20">
               <Layers className="h-4 w-4" />
             </div>
@@ -307,7 +309,7 @@ export default function AdminAnnouncementsPage() {
 
         <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">กำลังแสดงผล (เปิด ON)</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">{t("adminAnnouncementsActive")}</span>
             <div className="p-2.5 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
               <Eye className="h-4 w-4" />
             </div>
@@ -317,7 +319,7 @@ export default function AdminAnnouncementsPage() {
 
         <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">ซ่อนไว้ (ปิด OFF)</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">{t("adminAnnouncementsInactive")}</span>
             <div className="p-2.5 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20">
               <EyeOff className="h-4 w-4" />
             </div>
@@ -333,7 +335,7 @@ export default function AdminAnnouncementsPage() {
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
             type="text"
-            placeholder="ค้นหาชื่อประกาศ เนื้อหา หรือป้าย..."
+            placeholder={t("adminAnnouncementsSearchPlaceholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-tif-gold"
@@ -347,9 +349,9 @@ export default function AdminAnnouncementsPage() {
             onChange={(e) => setFilterStatus(e.target.value)}
             className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300 focus:outline-none focus:border-tif-gold"
           >
-            <option value="ALL">สถานะทั้งหมด</option>
-            <option value="ACTIVE">เฉพาะ เปิดใช้งาน (ON)</option>
-            <option value="INACTIVE">เฉพาะ ปิดใช้งาน (OFF)</option>
+            <option value="ALL">{t("adminAnnouncementsFilterStatusAll")}</option>
+            <option value="ACTIVE">{t("adminAnnouncementsFilterStatusActive")}</option>
+            <option value="INACTIVE">{t("adminAnnouncementsFilterStatusInactive")}</option>
           </select>
 
           <select
@@ -357,10 +359,10 @@ export default function AdminAnnouncementsPage() {
             onChange={(e) => setFilterType(e.target.value)}
             className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300 focus:outline-none focus:border-tif-gold"
           >
-            <option value="ALL">ประเภททั้งหมด</option>
-            <option value="TEXT">ข้อความล้วน (TEXT)</option>
-            <option value="IMAGE">รูปภาพโฆษณา (IMAGE)</option>
-            <option value="HYBRID">ผสม ข้อความ+รูปภาพ (HYBRID)</option>
+            <option value="ALL">{t("adminAnnouncementsFilterTypeAll")}</option>
+            <option value="TEXT">{t("adminAnnouncementsFilterTypeText")}</option>
+            <option value="IMAGE">{t("adminAnnouncementsFilterTypeImage")}</option>
+            <option value="HYBRID">{t("adminAnnouncementsFilterTypeHybrid")}</option>
           </select>
 
           <Button
@@ -378,18 +380,18 @@ export default function AdminAnnouncementsPage() {
       {loading ? (
         <div className="flex flex-col items-center justify-center p-12 text-slate-400 bg-slate-900/60 rounded-2xl border border-slate-800">
           <RefreshCw className="h-8 w-8 animate-spin text-tif-gold mb-3" />
-          <p className="text-sm font-medium">กำลังโหลดข้อมูลประกาศ...</p>
+          <p className="text-sm font-medium">{t("adminAnnouncementsLoading")}</p>
         </div>
       ) : filteredAnnouncements.length === 0 ? (
         <div className="text-center p-12 bg-slate-900/60 rounded-2xl border border-slate-800">
           <Megaphone className="h-12 w-12 text-slate-600 mx-auto mb-3" />
-          <h3 className="text-lg font-bold text-white font-display">ไม่พบรายการประกาศหรือโฆษณา</h3>
+          <h3 className="text-lg font-bold text-white font-display">{t("adminAnnouncementsEmptyTitle")}</h3>
           <p className="text-xs text-slate-400 mt-1">
-            {searchQuery ? "ลองเปลี่ยนคำค้นหาหรือตัวกรอง" : "คลิกปุ่ม 'เพิ่มประกาศ / โฆษณาใหม่' เพื่อสร้างรายการแรก"}
+            {searchQuery ? t("adminAnnouncementsEmptySearchDesc") : t("adminAnnouncementsEmptyDefaultDesc")}
           </p>
           {!searchQuery && (
             <Button onClick={openAddModal} variant="gold" size="sm" className="mt-4">
-              <Plus className="mr-1.5 h-4 w-4" /> เพิ่มประกาศใหม่
+              <Plus className="mr-1.5 h-4 w-4" /> {t("adminAnnouncementsAddNew")}
             </Button>
           )}
         </div>
@@ -416,7 +418,7 @@ export default function AdminAnnouncementsPage() {
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80" />
                     <div className="absolute top-3 left-3 flex gap-2">
                       <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-tif-gold/90 text-tif-navyDark shadow-md">
-                        {item.badge || "ประกาศ"}
+                        {item.badge || t("adminAnnouncementsBadgeDefault")}
                       </span>
                       <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-900/90 text-slate-300 border border-slate-700">
                         {item.type}
@@ -427,14 +429,14 @@ export default function AdminAnnouncementsPage() {
                   <div className="p-4 bg-slate-950/60 border-b border-slate-800 flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-tif-gold/10 text-tif-gold border border-tif-gold/30">
-                        {item.badge || "ประกาศ"}
+                        {item.badge || t("adminAnnouncementsBadgeDefault")}
                       </span>
                       <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400">
                         {item.type}
                       </span>
                     </div>
                     <span className="text-[10px] font-mono text-slate-500">
-                      ลำดับ: {item.priority}
+                      {t("adminAnnouncementsPriorityLabel")} {item.priority}
                     </span>
                   </div>
                 )}
@@ -482,7 +484,7 @@ export default function AdminAnnouncementsPage() {
                     />
                   </button>
                   <span className={`text-xs font-bold ${item.isActive ? "text-emerald-400" : "text-slate-500"}`}>
-                    {item.isActive ? "เปิด (ON)" : "ปิด (OFF)"}
+                    {item.isActive ? t("adminAnnouncementsStatusOn") : t("adminAnnouncementsStatusOff")}
                   </span>
                 </div>
 
@@ -491,7 +493,7 @@ export default function AdminAnnouncementsPage() {
                   <button
                     onClick={() => openEditModal(item)}
                     className="p-2 rounded-xl text-slate-400 hover:text-tif-gold hover:bg-slate-900 border border-slate-800 transition"
-                    title="แก้ไข"
+                    title={t("adminAnnouncementsActionEdit")}
                   >
                     <Edit3 className="h-4 w-4" />
                   </button>
@@ -501,7 +503,7 @@ export default function AdminAnnouncementsPage() {
                       setIsDeleteModalOpen(true);
                     }}
                     className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-slate-900 border border-slate-800 transition"
-                    title="ลบ"
+                    title={t("adminAnnouncementsActionDelete")}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -518,19 +520,19 @@ export default function AdminAnnouncementsPage() {
       <Modal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        title="เพิ่มประกาศ / โฆษณาใหม่"
-        description="สร้างประกาศข่าวสาร หรือรูปภาพโฆษณาสำหรับแสดงบนหน้าแรก http://localhost:3000/"
+        title={t("adminAnnouncementsAddTitle")}
+        description={t("adminAnnouncementsAddDesc")}
         maxWidth="xl"
       >
         <form onSubmit={handleAddSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-              หัวข้อประกาศ / โฆษณา <span className="text-rose-500">*</span>
+              {t("adminAnnouncementsFieldTitle")} <span className="text-rose-500">*</span>
             </label>
             <input
               type="text"
               required
-              placeholder="เช่น เปิดรับสมัคร Cadet Pilot 2026 หรือ ส่วนลดค่าสมัคร"
+              placeholder={t("adminAnnouncementsFieldTitlePlaceholder")}
               value={formTitle}
               onChange={(e) => setFormTitle(e.target.value)}
               className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-tif-gold"
@@ -540,44 +542,44 @@ export default function AdminAnnouncementsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-                ป้ายกำกับ (Badge Tag)
+                {t("adminAnnouncementsFieldBadge")}
               </label>
               <select
                 value={formBadge}
                 onChange={(e) => setFormBadge(e.target.value)}
                 className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-tif-gold"
               >
-                <option value="ประกาศสำคัญ">ประกาศสำคัญ (Important)</option>
-                <option value="โปรโมชั่น">โปรโมชั่น (Promotion)</option>
-                <option value="ข่าวสาร">ข่าวสาร (News)</option>
-                <option value="กำหนดการ">กำหนดการ (Schedule)</option>
-                <option value="สัมมนาฟรี">สัมมนาฟรี (Event)</option>
+                <option value="ประกาศสำคัญ">{t("adminAnnouncementsBadgeImportant")}</option>
+                <option value="โปรโมชั่น">{t("adminAnnouncementsBadgePromo")}</option>
+                <option value="ข่าวสาร">{t("adminAnnouncementsBadgeNews")}</option>
+                <option value="กำหนดการ">{t("adminAnnouncementsBadgeSchedule")}</option>
+                <option value="สัมมนาฟรี">{t("adminAnnouncementsBadgeEvent")}</option>
               </select>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-                รูปแบบการแสดงผล (Type)
+                {t("adminAnnouncementsFieldType")}
               </label>
               <select
                 value={formType}
                 onChange={(e) => setFormType(e.target.value as any)}
                 className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-tif-gold"
               >
-                <option value="HYBRID">ผสม: ข้อความ + รูปภาพ (HYBRID)</option>
-                <option value="IMAGE">เฉพาะรูปภาพโฆษณา (IMAGE Banner)</option>
-                <option value="TEXT">เฉพาะข้อความ (TEXT Only)</option>
+                <option value="HYBRID">{t("adminAnnouncementsTypeHybrid")}</option>
+                <option value="IMAGE">{t("adminAnnouncementsTypeImage")}</option>
+                <option value="TEXT">{t("adminAnnouncementsTypeText")}</option>
               </select>
             </div>
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-              เนื้อหา / รายละเอียดประกาศ
+              {t("adminAnnouncementsFieldContent")}
             </label>
             <textarea
               rows={3}
-              placeholder="กรอกรายละเอียดข่าวสาร ข้อมูลคอร์ส หรือเงื่อนไขโปรโมชั่น..."
+              placeholder={t("adminAnnouncementsFieldContentPlaceholder")}
               value={formContent}
               onChange={(e) => setFormContent(e.target.value)}
               className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-tif-gold"
@@ -587,7 +589,7 @@ export default function AdminAnnouncementsPage() {
           {/* Cloudinary Uploader */}
           <div className="space-y-1">
             <Uploader
-              label="รูปภาพโฆษณา / แบนเนอร์ (อัปโหลดขึ้น Cloudinary)"
+              label={t("adminAnnouncementsFieldImage")}
               type="announcements"
               accept="image/*"
               onUploadSuccess={(file) => {
@@ -609,11 +611,11 @@ export default function AdminAnnouncementsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-                ลิงก์เมื่อคลิก (Target Link URL)
+                {t("adminAnnouncementsFieldLink")}
               </label>
               <input
                 type="text"
-                placeholder="เช่น /apply หรือ https://line.me/..."
+                placeholder={t("adminAnnouncementsFieldLinkPlaceholder")}
                 value={formLinkUrl}
                 onChange={(e) => setFormLinkUrl(e.target.value)}
                 className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-tif-gold font-mono"
@@ -622,7 +624,7 @@ export default function AdminAnnouncementsPage() {
 
             <div>
               <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-                ลำดับความสำคัญ (Priority: เลขยิ่งมากยิ่งแสดงก่อน)
+                {t("adminAnnouncementsFieldPriority")}
               </label>
               <input
                 type="number"
@@ -636,8 +638,8 @@ export default function AdminAnnouncementsPage() {
           {/* Toggle Active Status */}
           <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-950 border border-slate-800">
             <div>
-              <p className="text-xs font-bold text-white">แสดงผลบนหน้าแรกทันที (Enable Display)</p>
-              <p className="text-[11px] text-slate-400">ถ้าเปิด จะแสดงในหน้า http://localhost:3000/</p>
+              <p className="text-xs font-bold text-white">{t("adminAnnouncementsFieldEnable")}</p>
+              <p className="text-[11px] text-slate-400">{t("adminAnnouncementsFieldEnableDesc")}</p>
             </div>
             <button
               type="button"
@@ -662,7 +664,7 @@ export default function AdminAnnouncementsPage() {
               onClick={() => setIsAddModalOpen(false)}
               className="border-slate-800 text-slate-300 hover:bg-slate-800"
             >
-              ยกเลิก
+              {t("adminAnnouncementsCancel")}
             </Button>
             <Button
               type="submit"
@@ -671,7 +673,7 @@ export default function AdminAnnouncementsPage() {
               size="sm"
               className="font-bold"
             >
-              {submitting ? "กำลังบันทึก..." : "บันทึกประกาศ"}
+              {submitting ? t("adminAnnouncementsSubmittingAdd") : t("adminAnnouncementsSubmitAdd")}
             </Button>
           </div>
         </form>
@@ -686,14 +688,14 @@ export default function AdminAnnouncementsPage() {
           setIsEditModalOpen(false);
           setSelectedItem(null);
         }}
-        title="แก้ไขประกาศ / โฆษณา"
-        description="แก้ไขรายละเอียดประกาศและเปลี่ยนรูปภาพโฆษณา"
+        title={t("adminAnnouncementsEditTitle")}
+        description={t("adminAnnouncementsEditDesc")}
         maxWidth="xl"
       >
         <form onSubmit={handleEditSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-              หัวข้อประกาศ / โฆษณา <span className="text-rose-500">*</span>
+              {t("adminAnnouncementsFieldTitle")} <span className="text-rose-500">*</span>
             </label>
             <input
               type="text"
@@ -707,40 +709,40 @@ export default function AdminAnnouncementsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-                ป้ายกำกับ (Badge Tag)
+                {t("adminAnnouncementsFieldBadge")}
               </label>
               <select
                 value={formBadge}
                 onChange={(e) => setFormBadge(e.target.value)}
                 className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-tif-gold"
               >
-                <option value="ประกาศสำคัญ">ประกาศสำคัญ (Important)</option>
-                <option value="โปรโมชั่น">โปรโมชั่น (Promotion)</option>
-                <option value="ข่าวสาร">ข่าวสาร (News)</option>
-                <option value="กำหนดการ">กำหนดการ (Schedule)</option>
-                <option value="สัมมนาฟรี">สัมมนาฟรี (Event)</option>
+                <option value="ประกาศสำคัญ">{t("adminAnnouncementsBadgeImportant")}</option>
+                <option value="โปรโมชั่น">{t("adminAnnouncementsBadgePromo")}</option>
+                <option value="ข่าวสาร">{t("adminAnnouncementsBadgeNews")}</option>
+                <option value="กำหนดการ">{t("adminAnnouncementsBadgeSchedule")}</option>
+                <option value="สัมมนาฟรี">{t("adminAnnouncementsBadgeEvent")}</option>
               </select>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-                รูปแบบการแสดงผล (Type)
+                {t("adminAnnouncementsFieldType")}
               </label>
               <select
                 value={formType}
                 onChange={(e) => setFormType(e.target.value as any)}
                 className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-tif-gold"
               >
-                <option value="HYBRID">ผสม: ข้อความ + รูปภาพ (HYBRID)</option>
-                <option value="IMAGE">เฉพาะรูปภาพโฆษณา (IMAGE Banner)</option>
-                <option value="TEXT">เฉพาะข้อความ (TEXT Only)</option>
+                <option value="HYBRID">{t("adminAnnouncementsTypeHybrid")}</option>
+                <option value="IMAGE">{t("adminAnnouncementsTypeImage")}</option>
+                <option value="TEXT">{t("adminAnnouncementsTypeText")}</option>
               </select>
             </div>
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-              เนื้อหา / รายละเอียดประกาศ
+              {t("adminAnnouncementsFieldContent")}
             </label>
             <textarea
               rows={3}
@@ -760,7 +762,7 @@ export default function AdminAnnouncementsPage() {
                   className="h-14 w-20 object-cover rounded-lg"
                 />
                 <div className="truncate text-xs">
-                  <p className="font-semibold text-slate-200">รูปภาพปัจจุบัน</p>
+                  <p className="font-semibold text-slate-200">{t("adminAnnouncementsCurrentImage")}</p>
                   <a
                     href={formImageUrl}
                     target="_blank"
@@ -773,7 +775,7 @@ export default function AdminAnnouncementsPage() {
               </div>
             )}
             <Uploader
-              label="เปลี่ยนรูปภาพโฆษณาใหม่ (Cloudinary)"
+              label={t("adminAnnouncementsChangeImage")}
               type="announcements"
               accept="image/*"
               onUploadSuccess={(file) => {
@@ -790,7 +792,7 @@ export default function AdminAnnouncementsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-                ลิงก์เมื่อคลิก (Target Link URL)
+                {t("adminAnnouncementsFieldLink")}
               </label>
               <input
                 type="text"
@@ -802,7 +804,7 @@ export default function AdminAnnouncementsPage() {
 
             <div>
               <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-                ลำดับความสำคัญ (Priority)
+                {t("adminAnnouncementsFieldPriorityEdit")}
               </label>
               <input
                 type="number"
@@ -816,8 +818,8 @@ export default function AdminAnnouncementsPage() {
           {/* Toggle Active Status */}
           <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-950 border border-slate-800">
             <div>
-              <p className="text-xs font-bold text-white">แสดงผลบนหน้าแรกทันที (Enable Display)</p>
-              <p className="text-[11px] text-slate-400">สวิตช์ เปิด-ปิด บนหน้า http://localhost:3000/</p>
+              <p className="text-xs font-bold text-white">{t("adminAnnouncementsFieldEnable")}</p>
+              <p className="text-[11px] text-slate-400">{t("adminAnnouncementsFieldEnableEditDesc")}</p>
             </div>
             <button
               type="button"
@@ -842,7 +844,7 @@ export default function AdminAnnouncementsPage() {
               onClick={() => setIsEditModalOpen(false)}
               className="border-slate-800 text-slate-300 hover:bg-slate-800"
             >
-              ยกเลิก
+              {t("adminAnnouncementsCancel")}
             </Button>
             <Button
               type="submit"
@@ -851,7 +853,7 @@ export default function AdminAnnouncementsPage() {
               size="sm"
               className="font-bold"
             >
-              {submitting ? "กำลังอัปเดต..." : "อัปเดตประกาศ"}
+              {submitting ? t("adminAnnouncementsSubmittingEdit") : t("adminAnnouncementsSubmitEdit")}
             </Button>
           </div>
         </form>
@@ -866,15 +868,15 @@ export default function AdminAnnouncementsPage() {
           setIsDeleteModalOpen(false);
           setSelectedItem(null);
         }}
-        title="ยืนยันการลบประกาศ"
-        description="การดำเนินการนี้ไม่สามารถย้อนกลับได้ ประกาศนี้จะถูกลบถาวรออกจากระบบ"
+        title={t("adminAnnouncementsDeleteTitle")}
+        description={t("adminAnnouncementsDeleteDesc")}
         maxWidth="md"
       >
         <div className="space-y-4">
           {selectedItem && (
             <div className="p-3.5 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-300 text-xs">
-              <p className="font-bold">หัวข้อ: {selectedItem.title}</p>
-              {selectedItem.badge && <p className="text-[11px] mt-1">ป้าย: {selectedItem.badge}</p>}
+              <p className="font-bold">{t("adminAnnouncementsDeleteLabelTitle")} {selectedItem.title}</p>
+              {selectedItem.badge && <p className="text-[11px] mt-1">{t("adminAnnouncementsDeleteLabelBadge")} {selectedItem.badge}</p>}
             </div>
           )}
 
@@ -886,7 +888,7 @@ export default function AdminAnnouncementsPage() {
               onClick={() => setIsDeleteModalOpen(false)}
               className="border-slate-800 text-slate-300 hover:bg-slate-800"
             >
-              ยกเลิก
+              {t("adminAnnouncementsCancel")}
             </Button>
             <Button
               type="button"
@@ -895,7 +897,7 @@ export default function AdminAnnouncementsPage() {
               className="bg-rose-600 hover:bg-rose-700 text-white font-bold"
               size="sm"
             >
-              {submitting ? "กำลังลบ..." : "ยืนยันลบประกาศ"}
+              {submitting ? t("adminAnnouncementsSubmittingDelete") : t("adminAnnouncementsSubmitDelete")}
             </Button>
           </div>
         </div>
