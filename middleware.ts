@@ -35,7 +35,7 @@ export async function middleware(request: NextRequest) {
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   response.headers.set(
     "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+    "camera=(), microphone=(), geolocation=()"
   );
 
   // Strict Transport Security (HSTS) for production
@@ -49,12 +49,12 @@ export async function middleware(request: NextRequest) {
   // 3. Content Security Policy (CSP)
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://res.cloudinary.com;
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://res.cloudinary.com https://vercel.live https://*.vercel.app;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com;
     font-src 'self' https://fonts.gstatic.com data:;
-    connect-src 'self' https://res.cloudinary.com https://*.neon.tech;
-    frame-src 'self' data: blob: https://res.cloudinary.com https://www.google.com https://maps.google.com;
+    connect-src 'self' https://res.cloudinary.com https://*.neon.tech https://vercel.live wss://vercel.live;
+    frame-src 'self' data: blob: https://res.cloudinary.com https://www.google.com https://maps.google.com https://vercel.live;
     frame-ancestors 'self';
     upgrade-insecure-requests;
   `.replace(/\s{2,}/g, " ").trim();
