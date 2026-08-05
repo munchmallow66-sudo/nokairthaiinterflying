@@ -67,9 +67,16 @@ export function formatDocumentFileName(
   docType: string = "OTHER",
   originalName: string = "file.pdf"
 ): string {
-  const cleanOriginal = originalName || "file.pdf";
+  const cleanOriginal = originalName || "";
   const extMatch = cleanOriginal.match(/(\.[a-zA-Z0-9]+)$/);
-  const ext = extMatch ? extMatch[1].toLowerCase() : ".pdf";
+  
+  // Smart extension fallback: if photo/slip type without extension, default to .jpg instead of .pdf
+  const isPhotoType =
+    docType.includes("PHOTO") ||
+    docType.includes("SLIP") ||
+    docType.includes("ID") ||
+    docType.includes("PASSPORT");
+  const ext = extMatch ? extMatch[1].toLowerCase() : isPhotoType ? ".jpg" : ".pdf";
 
   const cleanTitle = (title || "").trim().replace(/\s+/g, "");
   const cleanFirstName = (firstName || "").trim().replace(/[^a-zA-Z0-9\u0E00-\u0E7F_-]/g, "");
@@ -81,4 +88,93 @@ export function formatDocumentFileName(
   }
   return `${appNumber}_${typeLabel}${ext}`;
 }
+
+export function isPdfFile(url?: string | null, filename?: string | null): boolean {
+  if (!url && !filename) return false;
+
+  if (url) {
+    const lowerUrl = url.toLowerCase();
+    
+    // 1. Explicit Data URL checks
+    if (lowerUrl.startsWith("data:image/")) return false;
+    if (lowerUrl.startsWith("data:application/pdf")) return true;
+
+    // 2. Explicit PDF URL patterns (Check PDF extensions FIRST even if path has /image/upload/)
+    if (
+      lowerUrl.endsWith(".pdf") ||
+      lowerUrl.includes(".pdf?") ||
+      lowerUrl.includes("/raw/upload/")
+    ) {
+      return true;
+    }
+
+    // 3. Explicit Image URL patterns (e.g. Unsplash, image extensions)
+    if (
+      lowerUrl.includes("images.unsplash.com") ||
+      lowerUrl.endsWith(".jpg") ||
+      lowerUrl.endsWith(".jpeg") ||
+      lowerUrl.endsWith(".png") ||
+      lowerUrl.endsWith(".webp") ||
+      lowerUrl.endsWith(".gif") ||
+      lowerUrl.includes(".jpg?") ||
+      lowerUrl.includes(".jpeg?") ||
+      lowerUrl.includes(".png?") ||
+      lowerUrl.includes(".webp?")
+    ) {
+      return false;
+    }
+  }
+
+  // 4. Fallback check on filename extension
+  if (filename) {
+    const lowerName = filename.toLowerCase();
+    if (
+      lowerName.endsWith(".jpg") ||
+      lowerName.endsWith(".jpeg") ||
+      lowerName.endsWith(".png") ||
+      lowerName.endsWith(".webp") ||
+      lowerName.endsWith(".gif")
+    ) {
+      return false;
+    }
+    if (lowerName.endsWith(".pdf")) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export function createBlobUrlFromBase64Pdf(dataUrl: string): string | null {
+  try {
+    if (!dataUrl || !dataUrl.startsWith("data:application/pdf;base64,")) {
+      return null;
+    }
+    const base64Data = dataUrl.split(",")[1];
+    if (!base64Data) return null;
+
+    const binaryString = typeof window !== "undefined" ? window.atob(base64Data) : Buffer.from(base64Data, "base64").toString("binary");
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    const blob = new Blob([bytes], { type: "application/pdf" });
+    return URL.createObjectURL(blob);
+  } catch (err) {
+    console.error("Failed to convert Base64 PDF to Blob URL:", err);
+    return null;
+  }
+}
+
+export function getCloudinaryPdfThumbnail(url?: string | null): string | null {
+  if (!url) return null;
+  if (url.includes("cloudinary.com") && url.toLowerCase().endsWith(".pdf")) {
+    return url.replace(/\.pdf$/i, ".jpg");
+  }
+  return url;
+}
+
+
+
 

@@ -17,8 +17,9 @@ import {
   Eye,
   Image as ImageIcon,
   FileSpreadsheet,
+  FileText,
 } from "lucide-react";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, isPdfFile } from "@/lib/utils";
 import { Modal } from "@/components/ui/modal";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { useApplicationContext } from "@/lib/context/application-context";
@@ -374,13 +375,19 @@ export default function PaymentsPage() {
               <div className="flex items-center space-x-4 min-w-0">
                 <div
                   onClick={() => handleOpenViewSlip(pay)}
-                  className="relative h-16 w-16 rounded-xl bg-slate-950 border border-slate-800 overflow-hidden shrink-0 cursor-pointer group-hover:border-tif-gold/60 transition-all"
+                  className="relative h-16 w-16 rounded-xl bg-slate-950 border border-slate-800 overflow-hidden shrink-0 cursor-pointer group-hover:border-tif-gold/60 transition-all flex items-center justify-center"
                 >
-                  <img
-                    src={pay.slipUrl}
-                    alt="Payment Slip Thumbnail"
-                    className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-300"
-                  />
+                  {isPdfFile(pay.slipUrl) ? (
+                    <div className="flex flex-col items-center justify-center text-rose-400">
+                      <FileText className="h-7 w-7 text-rose-500" />
+                    </div>
+                  ) : (
+                    <img
+                      src={pay.slipUrl}
+                      alt="Payment Slip Thumbnail"
+                      className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    />
+                  )}
                   <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-tif-gold">
                     <Eye className="h-4 w-4" />
                   </div>
@@ -580,13 +587,21 @@ export default function PaymentsPage() {
               </div>
             </div>
 
-            {/* Slip Image Viewer */}
-            <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 shadow-xl max-h-[450px] overflow-auto flex justify-center items-center">
-              <img
-                src={viewingPay.slipUrl}
-                alt="Uploaded Payment Slip"
-                className="max-w-full h-auto object-contain rounded-lg shadow-md"
-              />
+            {/* Slip Image / PDF Viewer */}
+            <div className="bg-slate-950 p-2 rounded-2xl border border-slate-800 shadow-xl min-h-[300px] max-h-[70vh] overflow-hidden flex justify-center items-center">
+              {isPdfFile(viewingPay.slipUrl) ? (
+                <iframe
+                  src={viewingPay.slipUrl}
+                  title="Payment Slip PDF"
+                  className="w-full h-[60vh] rounded-xl border border-slate-800 bg-white"
+                />
+              ) : (
+                <img
+                  src={viewingPay.slipUrl}
+                  alt="Uploaded Payment Slip"
+                  className="max-w-full h-auto object-contain rounded-lg shadow-md"
+                />
+              )}
             </div>
 
             <div className="flex justify-end space-x-2 pt-2">

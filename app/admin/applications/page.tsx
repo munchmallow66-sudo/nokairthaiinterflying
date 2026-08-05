@@ -7,7 +7,8 @@ import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ApplicationWithDetails, PILOT_WORKFLOW_STEPS } from "@/types";
-import { formatDate, formatCurrency } from "@/lib/utils";
+import { formatDate, formatCurrency, isPdfFile, createBlobUrlFromBase64Pdf, getCloudinaryPdfThumbnail } from "@/lib/utils";
+import { downloadAllDocumentsAsZip } from "@/lib/export";
 import {
   User,
   FileText,
@@ -52,6 +53,108 @@ function safeDateToInputString(d: Date | string | null | undefined): string {
   }
 }
 
+function DocumentPreviewBox({ doc }: { doc: { secureUrl: string; originalName: string } }) {
+  const isPdf = isPdfFile(doc.secureUrl, doc.originalName);
+  const isCloudinaryPdf = isPdf && doc.secureUrl?.includes("cloudinary.com");
+  const [viewMode, setViewMode] = React.useState<"image" | "pdf">("pdf");
+  const [targetUrl, setTargetUrl] = React.useState<string>(doc.secureUrl);
+
+  React.useEffect(() => {
+    let activeBlobUrl: string | null = null;
+    if (doc.secureUrl?.startsWith("data:application/pdf;base64,")) {
+      activeBlobUrl = createBlobUrlFromBase64Pdf(doc.secureUrl);
+      if (activeBlobUrl) {
+        setTargetUrl(activeBlobUrl);
+      }
+    } else {
+      setTargetUrl(doc.secureUrl);
+    }
+    return () => {
+      if (activeBlobUrl) {
+        URL.revokeObjectURL(activeBlobUrl);
+      }
+    };
+  }, [doc.secureUrl]);
+
+  const cloudinaryJpgUrl = isCloudinaryPdf ? getCloudinaryPdfThumbnail(doc.secureUrl) : null;
+
+  return (
+    <div className="relative bg-slate-950 p-3 rounded-2xl border border-slate-800 shadow-2xl min-h-[350px] max-h-[75vh] overflow-auto flex flex-col justify-center items-center">
+      {isPdf && isCloudinaryPdf && (
+        <div className="w-full flex items-center justify-between pb-2 mb-2 border-b border-slate-800 text-[11px]">
+          <span className="text-slate-400 font-medium flex items-center">
+            <FileText className="mr-1.5 h-3.5 w-3.5 text-rose-400" /> เอกสาร PDF (Cloudinary Document)
+          </span>
+          <div className="flex items-center space-x-1.5">
+            <button
+              type="button"
+              onClick={() => setViewMode("image")}
+              className={`px-2.5 py-1 rounded-lg font-semibold transition ${
+                viewMode === "image"
+                  ? "bg-tif-gold text-slate-950 shadow"
+                  : "bg-slate-900 text-slate-400 hover:text-white border border-slate-800"
+              }`}
+            >
+              ดูภาพคมชัด (High-Res Preview)
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("pdf")}
+              className={`px-2.5 py-1 rounded-lg font-semibold transition ${
+                viewMode === "pdf"
+                  ? "bg-tif-gold text-slate-950 shadow"
+                  : "bg-slate-900 text-slate-400 hover:text-white border border-slate-800"
+              }`}
+            >
+              กรอบ PDF (PDF Frame)
+            </button>
+          </div>
+        </div>
+      )}
+
+      {isPdf ? (
+        viewMode === "image" && cloudinaryJpgUrl ? (
+          <div className="relative w-full flex flex-col items-center justify-center space-y-2">
+            <img
+              src={cloudinaryJpgUrl}
+              alt={doc.originalName}
+              className="max-w-full max-h-[65vh] h-auto object-contain rounded-xl shadow-lg border border-slate-800"
+            />
+            <p className="text-[11px] text-slate-400 font-mono">
+              ภาพตัวอย่างความละเอียดสูงจากเอกสาร PDF (หน้า 1)
+            </p>
+          </div>
+        ) : (
+          <div className="w-full h-full min-h-[400px] flex flex-col items-center justify-center space-y-2">
+            <iframe
+              src={targetUrl}
+              title={doc.originalName}
+              className="w-full h-[60vh] rounded-xl border border-slate-800 bg-white shadow-inner"
+            />
+            <div className="text-[11px] text-slate-400 text-center flex items-center gap-2">
+              <span>หากเบราว์เซอร์บล็อกกรอบ iframe</span>
+              <a
+                href={doc.secureUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-tif-gold hover:underline font-bold"
+              >
+                คลิกที่นี่เพื่อเปิดไฟล์ PDF ในหน้าต่างใหม่ ↗
+              </a>
+            </div>
+          </div>
+        )
+      ) : (
+        <img
+          src={doc.secureUrl}
+          alt={doc.originalName}
+          className="max-w-full max-h-[70vh] h-auto object-contain rounded-lg shadow-md"
+        />
+      )}
+    </div>
+  );
+}
+
 export default function StudentApplicationsPage() {
   const { t } = useLanguage();
   const {
@@ -67,6 +170,21 @@ export default function StudentApplicationsPage() {
   } = useApplicationContext();
 
   const [selectedApp, setSelectedApp] = React.useState<ApplicationWithDetails | null>(null);
+  const [isDownloadingZip, setIsDownloadingZip] = React.useState(false);
+
+  const handleDownloadAllDocs = async () => {
+    if (!selectedApp || !selectedApp.documents || selectedApp.documents.length === 0) {
+      alert("ไม่พบเอกสารสำหรับดาวน์โหลด");
+      return;
+    }
+    setIsDownloadingZip(true);
+    try {
+      const studentName = `${selectedApp.student?.firstNameTh || ""} ${selectedApp.student?.lastNameTh || ""}`.trim() || "Cadet";
+      await downloadAllDocumentsAsZip(selectedApp.documents, selectedApp.applicationNumber, studentName);
+    } finally {
+      setIsDownloadingZip(false);
+    }
+  };
 
   const currentStepIndex = React.useMemo(() => {
     if (!selectedApp) return -1;
@@ -655,24 +773,29 @@ export default function StudentApplicationsPage() {
           size="xl"
         >
           <div className="space-y-5 text-slate-200">
-            {/* Header Profile Summary & Status Bar */}
-            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
+            {/* Header Profile Summary & Action Bar */}
+            <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
-                <div className="flex items-center space-x-3.5">
-                  <div className="h-12 w-12 rounded-xl bg-tif-gold/10 border border-tif-gold/30 text-tif-gold flex items-center justify-center font-bold text-base shrink-0 font-mono">
+                <div className="flex items-center space-x-4">
+                  <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-tif-gold/20 to-amber-500/10 border border-tif-gold/40 text-tif-gold flex items-center justify-center font-bold text-lg shrink-0 font-mono shadow-md">
                     {selectedApp.student.firstNameEn ? selectedApp.student.firstNameEn.slice(0, 2).toUpperCase() : "ST"}
                   </div>
                   <div>
-                    <div className="flex items-center space-x-2">
-                      <h3 className="text-base font-bold text-white font-display">
+                    <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                      <h3 className="text-lg font-bold text-white font-display tracking-tight">
                         {selectedApp.student.firstNameTh} {selectedApp.student.lastNameTh}
                       </h3>
                       {selectedApp.student.nickname && (
-                        <span className="text-xs text-slate-400 font-normal">({selectedApp.student.nickname})</span>
+                        <span className="text-xs text-slate-400 font-normal bg-slate-800/80 px-2 py-0.5 rounded-md">({selectedApp.student.nickname})</span>
                       )}
+                      <span className="text-xs font-semibold text-tif-gold bg-tif-gold/10 px-2.5 py-0.5 rounded-full border border-tif-gold/30">
+                        {selectedApp.course?.name || "CPL"}
+                      </span>
                     </div>
-                    <p className="text-xs text-slate-400 font-mono mt-0.5">
-                      {selectedApp.student.firstNameEn} {selectedApp.student.lastNameEn} • <span className="text-tif-gold">{selectedApp.course?.name || "CPL"}</span>
+                    <p className="text-xs text-slate-400 font-mono mt-1 flex items-center gap-2">
+                      <span>{selectedApp.student.firstNameEn} {selectedApp.student.lastNameEn}</span>
+                      <span>•</span>
+                      <span className="text-slate-300">{selectedApp.student.user?.email || selectedApp.student.phone}</span>
                     </p>
                   </div>
                 </div>
@@ -682,7 +805,7 @@ export default function StudentApplicationsPage() {
                     size="sm"
                     variant="outline"
                     onClick={() => handleOpenEdit(selectedApp)}
-                    className="bg-slate-950 border-slate-800 text-xs text-tif-gold hover:border-tif-gold"
+                    className="bg-slate-950 border-slate-800 text-xs text-tif-gold hover:border-tif-gold hover:bg-slate-900"
                   >
                     <Edit3 className="mr-1.5 h-3.5 w-3.5" /> แก้ไขข้อมูล
                   </Button>
@@ -691,7 +814,7 @@ export default function StudentApplicationsPage() {
                     size="sm"
                     variant="outline"
                     onClick={() => setInterviewModalOpen(true)}
-                    className="bg-slate-950 border-slate-800 text-xs text-purple-300 hover:border-purple-500"
+                    className="bg-slate-950 border-slate-800 text-xs text-purple-300 hover:border-purple-500 hover:bg-slate-900"
                   >
                     <Calendar className="mr-1.5 h-3.5 w-3.5 text-purple-400" /> นัดสัมภาษณ์
                   </Button>
@@ -712,13 +835,13 @@ export default function StudentApplicationsPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
                   <div className="flex items-center space-x-2">
                     <Sparkles className="h-4 w-4 text-tif-gold animate-pulse" />
-                    <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                    <h4 className="text-xs font-bold text-white uppercase tracking-wider font-display">
                       ความคืบหน้าขั้นตอนการรับสมัคร (17 ขั้นตอนนักบิน)
                     </h4>
                   </div>
                   <div className="flex items-center space-x-2">
                     <span className="text-[11px] text-slate-400 font-medium">ขั้นตอนปัจจุบัน:</span>
-                    <span className="text-xs font-extrabold text-tif-gold bg-tif-gold/10 px-3 py-1 rounded-full border border-tif-gold/30">
+                    <span className="text-xs font-extrabold text-tif-gold bg-tif-gold/10 px-3 py-1 rounded-full border border-tif-gold/30 font-mono">
                       {currentStepIndex >= 0 ? `${currentStepIndex + 1} / 17 (${Math.round(((currentStepIndex + 1) / 17) * 100)}%)` : selectedApp.status}
                     </span>
                   </div>
@@ -727,19 +850,19 @@ export default function StudentApplicationsPage() {
                 {/* Progress Bar */}
                 <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-800">
                   <div
-                    className="bg-gradient-to-r from-tif-gold via-amber-400 to-emerald-400 h-full transition-all duration-500 rounded-full"
+                    className="bg-gradient-to-r from-tif-gold via-amber-400 to-emerald-400 h-full transition-all duration-500 rounded-full shadow-lg shadow-tif-gold/20"
                     style={{ width: `${currentStepIndex >= 0 ? Math.max(((currentStepIndex + 1) / 17) * 100, 6) : 0}%` }}
                   />
                 </div>
 
                 {/* Quick Step Advance Controls & Dropdown Selector */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
-                  <div className="flex items-center space-x-2">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                  <div className="flex items-center space-x-2 flex-1 min-w-0">
                     <span className="text-xs text-slate-400 font-semibold shrink-0">เปลี่ยนสถานะ:</span>
                     <select
                       value={selectedApp.status}
                       onChange={(e) => handleUpdateStatus(e.target.value as any)}
-                      className="bg-slate-950 text-xs font-bold text-slate-100 border border-slate-700 rounded-lg px-3 py-1.5 focus:border-tif-gold focus:outline-none cursor-pointer max-w-[280px]"
+                      className="bg-slate-950 text-xs font-bold text-slate-100 border border-slate-700 rounded-xl px-3 py-2 focus:border-tif-gold focus:outline-none cursor-pointer w-full max-w-[320px] truncate"
                     >
                       {PILOT_WORKFLOW_STEPS.map((s) => (
                         <option key={s.key} value={s.key} className="bg-slate-900 text-slate-200">
@@ -750,7 +873,7 @@ export default function StudentApplicationsPage() {
                     </select>
                   </div>
 
-                  <div className="flex items-center space-x-2 shrink-0">
+                  <div className="flex flex-wrap items-center gap-2 shrink-0">
                     <Button
                       size="sm"
                       variant="outline"
@@ -778,11 +901,24 @@ export default function StudentApplicationsPage() {
                     >
                       อนุมัติขั้นถัดไป <ChevronRight className="h-3.5 w-3.5 ml-1" />
                     </Button>
+
+                    {selectedApp.documents && selectedApp.documents.length > 0 && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleDownloadAllDocs}
+                        disabled={isDownloadingZip}
+                        className="text-xs font-semibold border-slate-700 text-slate-200 hover:text-tif-gold hover:border-tif-gold bg-slate-950"
+                      >
+                        <Download className="mr-1.5 h-3.5 w-3.5 text-tif-gold" />
+                        {isDownloadingZip ? "บีบอัด ZIP..." : "ดาวน์โหลดเอกสาร (ZIP)"}
+                      </Button>
+                    )}
                   </div>
                 </div>
 
                 {/* 17 Steps Pipeline Visual Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 lg:grid-cols-9 gap-1.5 pt-1 max-h-[180px] overflow-y-auto pr-1">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-9 gap-2 pt-1 max-h-[220px] overflow-y-auto pr-1">
                   {PILOT_WORKFLOW_STEPS.map((stepDef, idx) => {
                     const isPassed = currentStepIndex >= 0 && idx < currentStepIndex;
                     const isCurrent = currentStepIndex >= 0 && idx === currentStepIndex;
@@ -792,12 +928,12 @@ export default function StudentApplicationsPage() {
                         key={stepDef.key}
                         type="button"
                         onClick={() => handleUpdateStatus(stepDef.key)}
-                        className={`p-2 rounded-xl border text-left transition-all relative flex flex-col justify-between ${
+                        className={`p-2.5 rounded-xl border text-left transition-all relative flex flex-col justify-between min-h-[64px] ${
                           isCurrent
                             ? "bg-tif-gold/20 border-tif-gold text-white font-bold ring-2 ring-tif-gold/30 shadow-lg shadow-tif-gold/20 scale-[1.02]"
                             : isPassed
-                            ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300 hover:border-emerald-400"
-                            : "bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200"
+                            ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300 hover:border-emerald-400 hover:bg-emerald-500/20"
+                            : "bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200 hover:bg-slate-900"
                         }`}
                       >
                         <div className="flex items-center justify-between mb-1">
@@ -823,11 +959,11 @@ export default function StudentApplicationsPage() {
             </div>
 
             {/* Tab Navigation Menu */}
-            <div className="flex items-center space-x-2 border-b border-slate-800 pb-2 overflow-x-auto">
+            <div className="flex items-center space-x-2 border-b border-slate-800 pb-2 overflow-x-auto scrollbar-none">
               <button
                 type="button"
                 onClick={() => setActiveDetailTab("personal")}
-                className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition whitespace-nowrap ${
+                className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition whitespace-nowrap shrink-0 ${
                   activeDetailTab === "personal"
                     ? "bg-tif-gold text-slate-950 font-bold border border-tif-gold shadow-md"
                     : "text-slate-300 hover:text-white bg-slate-900 border border-slate-800 hover:border-slate-700"
@@ -840,7 +976,7 @@ export default function StudentApplicationsPage() {
               <button
                 type="button"
                 onClick={() => setActiveDetailTab("academic")}
-                className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition whitespace-nowrap ${
+                className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition whitespace-nowrap shrink-0 ${
                   activeDetailTab === "academic"
                     ? "bg-tif-gold text-slate-950 font-bold border border-tif-gold shadow-md"
                     : "text-slate-300 hover:text-white bg-slate-900 border border-slate-800 hover:border-slate-700"
@@ -853,7 +989,7 @@ export default function StudentApplicationsPage() {
               <button
                 type="button"
                 onClick={() => setActiveDetailTab("medical")}
-                className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition whitespace-nowrap ${
+                className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition whitespace-nowrap shrink-0 ${
                   activeDetailTab === "medical"
                     ? "bg-tif-gold text-slate-950 font-bold border border-tif-gold shadow-md"
                     : "text-slate-300 hover:text-white bg-slate-900 border border-slate-800 hover:border-slate-700"
@@ -866,7 +1002,7 @@ export default function StudentApplicationsPage() {
               <button
                 type="button"
                 onClick={() => setActiveDetailTab("documents")}
-                className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition whitespace-nowrap ${
+                className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition whitespace-nowrap shrink-0 ${
                   activeDetailTab === "documents"
                     ? "bg-tif-gold text-slate-950 font-bold border border-tif-gold shadow-md"
                     : "text-slate-300 hover:text-white bg-slate-900 border border-slate-800 hover:border-slate-700"
@@ -879,7 +1015,7 @@ export default function StudentApplicationsPage() {
               <button
                 type="button"
                 onClick={() => setActiveDetailTab("notes")}
-                className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition whitespace-nowrap ${
+                className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition whitespace-nowrap shrink-0 ${
                   activeDetailTab === "notes"
                     ? "bg-tif-gold text-slate-950 font-bold border border-tif-gold shadow-md"
                     : "text-slate-300 hover:text-white bg-slate-900 border border-slate-800 hover:border-slate-700"
@@ -1090,6 +1226,18 @@ export default function StudentApplicationsPage() {
                     </p>
                   </div>
                   <div className="flex items-center space-x-2">
+                    {selectedApp.documents && selectedApp.documents.length > 0 && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleDownloadAllDocs}
+                        disabled={isDownloadingZip}
+                        className="text-xs font-semibold border-slate-700 text-slate-200 hover:text-tif-gold hover:border-tif-gold"
+                      >
+                        <Download className="mr-1.5 h-3.5 w-3.5 text-tif-gold" />
+                        {isDownloadingZip ? "กำลังบีบอัด ZIP..." : "ดาวน์โหลดเอกสารทั้งหมด (ZIP)"}
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant="gold"
@@ -1232,14 +1380,38 @@ export default function StudentApplicationsPage() {
                               onClick={() => handleOpenDocModal(doc)}
                               className="relative h-36 w-full rounded-lg overflow-hidden bg-slate-900 border border-slate-800 cursor-pointer group-hover:opacity-95 transition-all flex items-center justify-center"
                             >
-                              <img
-                                src={doc.secureUrl}
-                                alt={doc.originalName}
-                                className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                              />
+                              {isPdfFile(doc.secureUrl, doc.originalName) ? (
+                                doc.secureUrl?.includes("cloudinary.com") ? (
+                                  <div className="relative w-full h-full">
+                                    <img
+                                      src={getCloudinaryPdfThumbnail(doc.secureUrl) || doc.secureUrl}
+                                      alt={doc.originalName}
+                                      className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                    />
+                                    <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-rose-950/90 border border-rose-500/40 text-[9px] font-bold text-rose-300 flex items-center shadow">
+                                      <FileText className="mr-1 h-3 w-3 text-rose-400" /> PDF
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="flex flex-col items-center justify-center p-3 text-center space-y-2 bg-slate-950/90 w-full h-full">
+                                    <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400">
+                                      <FileText className="h-8 w-8" />
+                                    </div>
+                                    <span className="text-[11px] font-bold text-rose-300 font-mono tracking-tight">
+                                      PDF Document
+                                    </span>
+                                  </div>
+                                )
+                              ) : (
+                                <img
+                                  src={doc.secureUrl}
+                                  alt={doc.originalName}
+                                  className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                />
+                              )}
                               <div className="absolute inset-0 bg-slate-950/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                 <span className="bg-slate-900/90 text-tif-gold text-xs font-semibold px-3 py-1.5 rounded-lg border border-tif-gold/40 flex items-center shadow-lg">
-                                  <Eye className="mr-1.5 h-3.5 w-3.5" /> คลิกดูรูปใหญ่
+                                  <Eye className="mr-1.5 h-3.5 w-3.5" /> {isPdfFile(doc.secureUrl, doc.originalName) ? "เปิดดูไฟล์ PDF" : "คลิกดูรูปใหญ่"}
                                 </span>
                               </div>
                             </div>
@@ -1262,7 +1434,7 @@ export default function StudentApplicationsPage() {
                                 onClick={() => handleOpenDocModal(doc)}
                                 className="text-[11px] text-tif-gold font-semibold hover:underline flex items-center"
                               >
-                                <ZoomIn className="mr-1 h-3.5 w-3.5" /> ขยายดูรูป
+                                <ZoomIn className="mr-1 h-3.5 w-3.5" /> {isPdfFile(doc.secureUrl, doc.originalName) ? "เปิดดู PDF" : "ขยายดูรูป"}
                               </button>
 
                               <button
@@ -2062,14 +2234,8 @@ export default function StudentApplicationsPage() {
               </div>
             </div>
 
-            {/* Document Image Display Box */}
-            <div className="relative bg-slate-950 p-2 rounded-2xl border border-slate-800 shadow-2xl max-h-[480px] overflow-auto flex justify-center items-center">
-              <img
-                src={selectedDoc.secureUrl}
-                alt={selectedDoc.originalName}
-                className="max-w-full h-auto object-contain rounded-lg shadow-md"
-              />
-            </div>
+            {/* Document Image or PDF Display Box */}
+            <DocumentPreviewBox doc={selectedDoc} />
 
             {/* Action Bar */}
             <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800">
@@ -2079,7 +2245,8 @@ export default function StudentApplicationsPage() {
                 rel="noreferrer"
                 className="text-xs text-slate-300 hover:text-tif-gold flex items-center font-medium bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl hover:border-tif-gold/50"
               >
-                <ExternalLink className="mr-1.5 h-3.5 w-3.5 text-tif-gold" /> เปิดไฟล์ภาพขนาดจริง
+                <ExternalLink className="mr-1.5 h-3.5 w-3.5 text-tif-gold" />{" "}
+                {isPdfFile(selectedDoc.secureUrl, selectedDoc.originalName) ? "เปิดไฟล์ PDF ในหน้าต่างใหม่" : "เปิดไฟล์ภาพขนาดจริง"}
               </a>
 
               <div className="flex items-center space-x-2">
@@ -2170,9 +2337,16 @@ export default function StudentApplicationsPage() {
           </div>
 
           {newDocUrl && (
-            <div className="p-2 rounded-xl bg-slate-950 border border-slate-800 text-center space-y-1">
-              <span className="text-[10px] text-slate-400 block">ตัวอย่างรูปภาพใหม่</span>
-              <img src={newDocUrl} alt="Preview" className="h-32 mx-auto rounded border border-slate-800 object-cover" />
+            <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-center space-y-2">
+              <span className="text-[10px] text-slate-400 block font-semibold">ตัวอย่างเอกสารใหม่</span>
+              {isPdfFile(newDocUrl) ? (
+                <div className="flex flex-col items-center justify-center p-4 bg-slate-900 rounded-lg border border-slate-800 text-rose-400 space-y-1">
+                  <FileText className="h-8 w-8 text-rose-500" />
+                  <span className="text-xs font-bold text-rose-300">ไฟล์ PDF</span>
+                </div>
+              ) : (
+                <img src={newDocUrl} alt="Preview" className="h-32 mx-auto rounded border border-slate-800 object-cover" />
+              )}
             </div>
           )}
 

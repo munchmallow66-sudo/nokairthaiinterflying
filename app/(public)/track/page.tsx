@@ -25,7 +25,7 @@ import { useLanguage } from "@/lib/i18n/language-context";
 import { PILOT_WORKFLOW_STEPS } from "@/types";
 import { compressImageIfNeeded } from "@/lib/image-compressor";
 import { useApplicationContext } from "@/lib/context/application-context";
-import { formatDocumentFileName } from "@/lib/utils";
+import { formatDocumentFileName, getCloudinaryPdfThumbnail } from "@/lib/utils";
 
 
 interface ApplicationData {
