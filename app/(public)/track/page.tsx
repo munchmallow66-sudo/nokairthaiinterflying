@@ -859,10 +859,6 @@ export default function TrackStatusPage() {
     }
   }, [ctxApps, result]);
 
-  const handleUseDemo = () => {
-    setNationalId("TIF-2026-1973");
-    setErrorMsg("");
-  };
 
   const steps = [
     { icon: CheckCircle2, label: t("step1Label"), subLabel: t("step1SubLabel") },
@@ -938,7 +934,7 @@ export default function TrackStatusPage() {
                 disabled={loading}
                 variant="gold"
                 size="lg"
-                className="flex-1 font-bold shadow-gold"
+                className="w-full font-bold shadow-gold"
               >
                 {loading ? (
                   <span className="flex items-center space-x-2 justify-center">
@@ -951,15 +947,6 @@ export default function TrackStatusPage() {
                     <span>{t("searchStatusBtn")}</span>
                   </span>
                 )}
-              </Button>
-              <Button
-                type="button"
-                onClick={handleUseDemo}
-                variant="outline"
-                size="lg"
-                className="border-tif-navy/20 text-tif-navy hover:bg-tif-navy hover:text-white font-semibold"
-              >
-                {t("demoBtnText")}
               </Button>
             </div>
           </form>
