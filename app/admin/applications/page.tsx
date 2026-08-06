@@ -300,8 +300,100 @@ export default function StudentApplicationsPage() {
     setDrawerOpen(true);
   };
 
+  const [writtenExamModalOpen, setWrittenExamModalOpen] = React.useState(false);
+
+  const handlePassWrittenExam = () => {
+    if (!selectedApp) return;
+    const congratRemark = "🎉 ขอแสดงความยินดีด้วย! ท่านผ่านการสอบข้อเขียน (Written Exam) คัดเลือกนักบินเรียบร้อยแล้ว และได้รับสิทธิ์เข้าสู่ขั้นตอนสอบสัมภาษณ์ต่อไป";
+    updateApplication(selectedApp.id, {
+      status: "WRITTEN_EXAM_PASSED",
+      remarks: congratRemark,
+      adminNotes: [
+        {
+          id: `note_${Date.now()}`,
+          content: congratRemark,
+          createdAt: new Date(),
+          author: { name: "Exam Committee", email: "exam@tif.ac.th" },
+        },
+        ...(selectedApp.adminNotes || []),
+      ],
+    });
+    setWrittenExamModalOpen(false);
+    alert("บันทึกผลการสอบ: ผ่านการสอบข้อเขียน เรียบร้อยแล้ว!");
+  };
+
+  const handleFailWrittenExam = () => {
+    if (!selectedApp) return;
+    const thankYouRemark = "💙 สถาบันไทย อินเตอร์ ไฟลอิ้ง ขอขอบพระคุณอย่างยิ่งที่ท่านให้ความสนใจและตั้งใจเข้าร่วมการสอบคัดเลือกนักบินในครั้งนี้ แม้ว่าผลการสอบในครั้งนี้จะยังไม่ผ่านเกณฑ์การคัดเลือก แต่สถาบันขอขอบคุณและเป็นกำลังใจให้ท่านในการเดินทางตามฝันสายการบินต่อไป และหวังเป็นอย่างยิ่งว่าจะได้มีโอกาสต้อนรับท่านอีกครั้งในโอกาสถัดไป";
+    updateApplication(selectedApp.id, {
+      status: "REJECTED",
+      remarks: thankYouRemark,
+      adminNotes: [
+        {
+          id: `note_${Date.now()}`,
+          content: "ผลสอบข้อเขียน: ไม่ผ่านเกณฑ์ (บันทึกข้อความขอบคุณและให้กำลังใจ)",
+          createdAt: new Date(),
+          author: { name: "Exam Committee", email: "exam@tif.ac.th" },
+        },
+        ...(selectedApp.adminNotes || []),
+      ],
+    });
+    setWrittenExamModalOpen(false);
+    alert("บันทึกผลการสอบ: ไม่ผ่านการสอบข้อเขียน (ส่งข้อความขอบคุณเรียบร้อยแล้ว)");
+  };
+
+  const [interviewResultModalOpen, setInterviewResultModalOpen] = React.useState(false);
+
+  const handlePassInterview = () => {
+    if (!selectedApp) return;
+    const congratRemark = "🎉 ขอแสดงความยินดีด้วย! ท่านผ่านการสอบสัมภาษณ์ (Panel Interview) คัดเลือกนักบินเรียบร้อยแล้ว และได้รับสิทธิ์เข้าสู่ขั้นตอนการตรวจสุขภาพนักบิน Class 1 ต่อไป";
+    updateApplication(selectedApp.id, {
+      status: "INTERVIEW_PASSED",
+      remarks: congratRemark,
+      adminNotes: [
+        {
+          id: `note_${Date.now()}`,
+          content: congratRemark,
+          createdAt: new Date(),
+          author: { name: "Interview Committee", email: "interview@tif.ac.th" },
+        },
+        ...(selectedApp.adminNotes || []),
+      ],
+    });
+    setInterviewResultModalOpen(false);
+    alert("บันทึกผลการสอบสัมภาษณ์: ผ่านการสัมภาษณ์ เรียบร้อยแล้ว!");
+  };
+
+  const handleFailInterview = () => {
+    if (!selectedApp) return;
+    const thankYouRemark = "💙 สถาบันไทย อินเตอร์ ไฟลอิ้ง ขอขอบพระคุณอย่างยิ่งที่ท่านให้ความสนใจและตั้งใจเข้าร่วมการสอบสัมภาษณ์คัดเลือกนักบินในครั้งนี้ แม้ว่าผลการสัมภาษณ์ในครั้งนี้จะยังไม่ผ่านเกณฑ์การคัดเลือก แต่คณะกรรมการขอขอบคุณและเป็นกำลังใจให้ท่านในการเดินทางตามฝันสายการบินต่อไป และหวังเป็นอย่างยิ่งว่าจะได้มีโอกาสต้อนรับท่านอีกครั้งในโอกาสถัดไป";
+    updateApplication(selectedApp.id, {
+      status: "REJECTED",
+      remarks: thankYouRemark,
+      adminNotes: [
+        {
+          id: `note_${Date.now()}`,
+          content: "ผลสอบสัมภาษณ์: ไม่ผ่านเกณฑ์ (บันทึกข้อความขอบคุณและให้กำลังใจ)",
+          createdAt: new Date(),
+          author: { name: "Interview Committee", email: "interview@tif.ac.th" },
+        },
+        ...(selectedApp.adminNotes || []),
+      ],
+    });
+    setInterviewResultModalOpen(false);
+    alert("บันทึกผลการสอบสัมภาษณ์: ไม่ผ่านการสัมภาษณ์ (ส่งข้อความขอบคุณเรียบร้อยแล้ว)");
+  };
+
   const handleUpdateStatus = (newStatus: any) => {
     if (!selectedApp) return;
+    if (newStatus === "WRITTEN_EXAM_PASSED") {
+      setWrittenExamModalOpen(true);
+      return;
+    }
+    if (newStatus === "INTERVIEW_PASSED") {
+      setInterviewResultModalOpen(true);
+      return;
+    }
     updateApplication(selectedApp.id, { status: newStatus });
   };
 
@@ -678,7 +770,7 @@ export default function StudentApplicationsPage() {
     if (decision === "PASS") {
       const newNote = {
         id: `note_${Date.now()}`,
-        content: `[ผ่านการตรวจเอกสาร]: เอกสารครบถ้วนและถูกต้อง ผู้สมัครสามารถชำระค่าสมัคร 1,800 บาทได้`,
+        content: `[ผ่านการตรวจเอกสาร]: เอกสารครบถ้วนและถูกต้อง อนุมัติเข้าสู่ขั้นตอนชำระค่าสมัคร 1,800 บาท (Step 5)`,
         createdAt: new Date(),
         author: {
           name: "Admin User",
@@ -686,7 +778,8 @@ export default function StudentApplicationsPage() {
         },
       };
 
-      updateApplication(selectedApp.id, {
+      const updatedAppData = {
+        ...selectedApp,
         status: "APPLICATION_FEE_PAID" as any,
         documents: (selectedApp.documents || []).map((d) => ({
           ...d,
@@ -694,9 +787,12 @@ export default function StudentApplicationsPage() {
           isRejected: false,
         })),
         adminNotes: [newNote, ...(selectedApp.adminNotes || [])],
-      });
+      };
 
-      alert("อนุมัติเอกสารเรียบร้อยแล้ว — ระบบได้เปิดหน้าชำระค่าสมัคร 1,800 บาทให้ผู้สมัครแล้ว");
+      updateApplication(selectedApp.id, updatedAppData);
+      setSelectedApp(updatedAppData);
+
+      alert("อนุมัติผ่านการตรวจเอกสารเรียบร้อยแล้ว — ระบบได้เปิดหน้าชำระค่าสมัคร 1,800 บาทใน Step 5 ให้ผู้สมัครเรียบร้อยแล้ว");
     } else {
       setReviewDecision("FAIL");
       setReviewComment("เอกสารไม่ครบถ้วน/ไม่ถูกต้อง กรุณาตรวจสอบและส่งใหม่");
@@ -721,13 +817,17 @@ export default function StudentApplicationsPage() {
       },
     };
 
-    updateApplication(selectedApp.id, {
+    const updatedAppData = {
+      ...selectedApp,
       status: "REJECTED" as any,
       adminNotes: [newNote, ...(selectedApp.adminNotes || [])],
-    });
+    };
+
+    updateApplication(selectedApp.id, updatedAppData);
+    setSelectedApp(updatedAppData);
 
     setReviewModalOpen(false);
-    alert("ปฏิเสธเอกสารเรียบร้อยแล้ว — ระบบได้แสดงคำแนะนำให้ผู้สมัครแก้ไขแล้ว");
+    alert("แจ้งปฏิเสธเอกสารเรียบร้อยแล้ว — ระบบได้แสดงคำแนะนำให้ผู้สมัครแก้ไขแล้ว");
   };
 
   const handleDeleteApp = (id: string) => {
@@ -779,21 +879,24 @@ export default function StudentApplicationsPage() {
         >
           {(() => {
             const remarksText = selectedApp.remarks || "";
-            const isExplicitNo =
-              (selectedApp as any).joinOpenHouse === false ||
-              remarksText.includes("ไม่ประสงค์เข้าร่วม") ||
-              remarksText.includes("ไม่เข้าร่วม") ||
-              (selectedApp.adminNotes || []).some((n) => n.content?.includes("ไม่ประสงค์เข้าร่วม"));
+            const explicitChoice = (selectedApp as any).joinOpenHouse;
 
             const isExplicitYes =
-              !isExplicitNo &&
-              ((selectedApp as any).joinOpenHouse === true ||
-                remarksText.includes("ลงทะเบียนเข้าร่วมงาน Open House") ||
-                remarksText.includes("มีความประสงค์เข้าร่วม") ||
-                (remarksText.includes("เข้าร่วมงาน Open House") && !remarksText.includes("ไม่ประสงค์")));
+              explicitChoice === true ||
+              (explicitChoice === undefined &&
+                (remarksText.includes("ลงทะเบียนเข้าร่วมงาน Open House") ||
+                  remarksText.includes("มีความประสงค์เข้าร่วม") ||
+                  (remarksText.includes("เข้าร่วมงาน Open House") && !remarksText.includes("ไม่ประสงค์"))));
 
-            const hasOpenHouseNo = isExplicitNo;
+            const isExplicitNo =
+              explicitChoice === false ||
+              (explicitChoice === undefined &&
+                (remarksText.includes("ไม่ประสงค์เข้าร่วม") ||
+                  remarksText.includes("ไม่เข้าร่วม") ||
+                  (selectedApp.adminNotes || []).some((n) => n.content?.includes("ไม่ประสงค์เข้าร่วม"))));
+
             const hasOpenHouseYes = isExplicitYes;
+            const hasOpenHouseNo = isExplicitNo && !isExplicitYes;
 
             return (
               <div className="space-y-5 text-slate-200">
@@ -989,6 +1092,76 @@ export default function StudentApplicationsPage() {
                     );
                   })}
                 </div>
+
+                {/* Written Exam Result Action Box for Admin */}
+                {(selectedApp.status === "WRITTEN_EXAM" || selectedApp.status === "WRITTEN_EXAM_PASSED" || (selectedApp.status === "REJECTED" && (selectedApp.remarks?.includes("ข้อเขียน") || (selectedApp.remarks?.includes("สอบ") && !selectedApp.remarks?.includes("สัมภาษณ์"))))) && (
+                  <div className="p-3.5 rounded-xl bg-purple-950/40 border border-purple-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                    <div className="space-y-0.5">
+                      <span className="font-bold text-purple-200 text-xs flex items-center gap-1.5">
+                        <Award className="h-4 w-4 text-purple-400" /> การประกาศผลสอบข้อเขียน (Step 9: ประกาศผลสอบ)
+                      </span>
+                      <p className="text-[11px] text-slate-400">
+                        {selectedApp.status === "WRITTEN_EXAM_PASSED"
+                          ? "สถานะปัจจุบัน: ผ่านการสอบข้อเขียนเรียบร้อยแล้ว (สามารถปรับเปลี่ยนผลได้)"
+                          : selectedApp.status === "REJECTED"
+                          ? "สถานะปัจจุบัน: ไม่ผ่านการสอบข้อเขียน (สามารถปรับเปลี่ยนผลเป็นผ่านได้)"
+                          : "เลือกผลการสอบข้อเขียนคัดเลือกนักบิน:"}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center space-x-2 shrink-0">
+                      <Button
+                        size="sm"
+                        onClick={handlePassWrittenExam}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-1.5 px-3"
+                      >
+                        ✓ ผ่านการสอบข้อเขียน
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={handleFailWrittenExam}
+                        className="bg-blue-900/80 hover:bg-blue-800 text-blue-200 border border-blue-700 font-bold text-xs py-1.5 px-3"
+                      >
+                        💙 ไม่ผ่าน (ส่งคำขอบคุณ)
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Interview Result Action Box for Admin */}
+                {(selectedApp.status === "INTERVIEW_SCHEDULED" || selectedApp.status === "INTERVIEW_PASSED" || (selectedApp.status === "REJECTED" && selectedApp.remarks?.includes("สัมภาษณ์"))) && (
+                  <div className="p-3.5 rounded-xl bg-purple-950/40 border border-purple-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                    <div className="space-y-0.5">
+                      <span className="font-bold text-purple-200 text-xs flex items-center gap-1.5">
+                        <User className="h-4 w-4 text-purple-400" /> การประกาศผลสอบสัมภาษณ์ (Step 11: ประกาศผลสัมภาษณ์)
+                      </span>
+                      <p className="text-[11px] text-slate-400">
+                        {selectedApp.status === "INTERVIEW_PASSED"
+                          ? "สถานะปัจจุบัน: ผ่านการสอบสัมภาษณ์เรียบร้อยแล้ว (สามารถปรับเปลี่ยนผลได้)"
+                          : selectedApp.status === "REJECTED"
+                          ? "สถานะปัจจุบัน: ไม่ผ่านการสอบสัมภาษณ์ (สามารถปรับเปลี่ยนผลเป็นผ่านได้)"
+                          : "เลือกผลการสอบสัมภาษณ์คัดเลือกนักบิน:"}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center space-x-2 shrink-0">
+                      <Button
+                        size="sm"
+                        onClick={handlePassInterview}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-1.5 px-3"
+                      >
+                        ✓ ผ่านการสัมภาษณ์
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={handleFailInterview}
+                        className="bg-blue-900/80 hover:bg-blue-800 text-blue-200 border border-blue-700 font-bold text-xs py-1.5 px-3"
+                      >
+                        💙 ไม่ผ่าน (ส่งคำขอบคุณ)
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1368,7 +1541,7 @@ export default function StudentApplicationsPage() {
                 </div>
 
                 {/* Document Review Decision Bar — Pass / Fail with comment */}
-                {(selectedApp.status === "SUBMITTED" || selectedApp.status === "WAITING_DOCUMENTS") && (
+                {(selectedApp.status === "SUBMITTED" || selectedApp.status === "DOCS_UNDER_REVIEW" || selectedApp.status === "WAITING_DOCUMENTS" || selectedApp.status === "DOCS_PASSED") && (
                   <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-3">
                     <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
                       <ShieldCheck className="h-4 w-4 text-tif-gold" />
@@ -1379,7 +1552,7 @@ export default function StudentApplicationsPage() {
                     <p className="text-[11px] text-slate-400 leading-relaxed">
                       หลังตรวจสอบเอกสารทั้งหมดแล้ว ให้กดปุ่มเพื่ออัปเดตสถานะให้ผู้สมัครทราบ:
                       <br />
-                      <strong className="text-emerald-400">ผ่าน</strong> = เปิดหน้าชำระค่าสมัคร 1,800 บาทให้ผู้สมัคร |
+                      <strong className="text-emerald-400">ผ่านการตรวจสอบ</strong> = เปิดหน้าชำระค่าสมัคร 1,800 บาทใน Step 5 ให้ผู้สมัคร |
                       <strong className="text-rose-400"> ไม่ผ่าน</strong> = แสดงคำแนะนำ/เหตุผลให้ผู้สมัครแก้ไข
                     </p>
                     <div className="flex flex-col sm:flex-row gap-2">
@@ -1389,7 +1562,7 @@ export default function StudentApplicationsPage() {
                         onClick={() => handleOpenReviewModal("PASS")}
                         className="flex-1 font-bold bg-emerald-600 hover:bg-emerald-700 border-emerald-500"
                       >
-                        <CheckCircle2 className="mr-1.5 h-4 w-4" /> ผ่านการตรวจเอกสาร → เปิดหน้าชำระเงิน
+                        <CheckCircle2 className="mr-1.5 h-4 w-4" /> ผ่านการตรวจสอบ → เปิดหน้าชำระเงิน (Step 5)
                       </Button>
                       <Button
                         size="sm"
@@ -1404,17 +1577,17 @@ export default function StudentApplicationsPage() {
                 )}
 
                 {/* Already reviewed status indicator */}
-                {(selectedApp.status === "DOCUMENT_VERIFIED" || selectedApp.status === "REJECTED") && (
+                {(selectedApp.status === "APPLICATION_FEE_PAID" || selectedApp.status === "DOCUMENT_VERIFIED" || selectedApp.status === "REJECTED") && (
                   <div className={`p-4 rounded-xl border space-y-2 ${
-                    selectedApp.status === "DOCUMENT_VERIFIED"
+                    selectedApp.status === "APPLICATION_FEE_PAID" || selectedApp.status === "DOCUMENT_VERIFIED"
                       ? "bg-emerald-950/30 border-emerald-800"
                       : "bg-rose-950/30 border-rose-800"
                   }`}>
                     <div className={`flex items-center gap-2 font-bold text-xs ${
-                      selectedApp.status === "DOCUMENT_VERIFIED" ? "text-emerald-400" : "text-rose-400"
+                      selectedApp.status === "APPLICATION_FEE_PAID" || selectedApp.status === "DOCUMENT_VERIFIED" ? "text-emerald-400" : "text-rose-400"
                     }`}>
-                      {selectedApp.status === "DOCUMENT_VERIFIED" ? (
-                        <><CheckCircle2 className="h-4 w-4" /> ผ่านการตรวจเอกสารแล้ว — ผู้สมัครสามารถชำระค่าสมัคร 1,800 บาทได้</>
+                      {selectedApp.status === "APPLICATION_FEE_PAID" || selectedApp.status === "DOCUMENT_VERIFIED" ? (
+                        <><CheckCircle2 className="h-4 w-4" /> ผ่านการตรวจเอกสารเรียบร้อยแล้ว — เปิดหน้าชำระค่าสมัคร 1,800 บาทใน Step 5 แล้ว</>
                       ) : (
                         <><XCircle className="h-4 w-4" /> ไม่ผ่านการตรวจเอกสาร — ได้แจ้งเหตุผลให้ผู้สมัครแล้ว</>
                       )}
@@ -1428,7 +1601,7 @@ export default function StudentApplicationsPage() {
                       onClick={() => handleOpenReviewModal("PASS")}
                       className="text-xs font-semibold border-slate-700 text-slate-300 hover:border-tif-gold"
                     >
-                      ตรวจสอบใหม่ (Re-review)
+                      ตรวจสอบใหม่ (Re-review Step 5)
                     </Button>
                   </div>
                 )}
@@ -1446,6 +1619,7 @@ export default function StudentApplicationsPage() {
                         HOUSE_REGISTRATION_CERTIFIED: "สำเนาทะเบียนบ้าน (รับรองสำเนาถูกต้อง)",
                         MEDICAL_CERTIFICATE_CLASS_1: "ใบสำคัญแพทย์ Class 1 (Medical Cert)",
                         CRIMINAL_RECORD_CHECK: "ผลตรวจสอบประวัติอาชญากรรม (ถ้ามี)",
+                        MILITARY_SERVICE_EXEMPTION: "ใบสำคัญแสดงการขอยกเว้นการรับราชการทหาร (สด.8 หรือ สด.43)",
 
                         // General / Admin keys
                         PASSPORT_PHOTO: "รูปถ่าย 1.5 นิ้ว",
@@ -2509,6 +2683,7 @@ export default function StudentApplicationsPage() {
               <option value="MEDICAL_CERTIFICATE_CLASS_1">ใบสำคัญแพทย์ CLASS 1 / ใบรับรองแพทย์เวชศาสตร์การบิน</option>
               <option value="PHOTO_1_INCH">รูปถ่าย 1.5 นิ้ว (1.5-Inch Photo)</option>
               <option value="CRIMINAL_RECORD_CHECK">ผลตรวจประวัติอาชญากรรม (Criminal Record Check)</option>
+              <option value="MILITARY_SERVICE_EXEMPTION">ใบสำคัญแสดงการขอยกเว้นการรับราชการทหาร (สด.8 / สด.43)</option>
             </select>
           </div>
 
@@ -2609,6 +2784,118 @@ export default function StudentApplicationsPage() {
             >
               {reviewDecision === "PASS" ? "ยืนยัน: ผ่านการตรวจเอกสาร" : "ยืนยัน: ไม่ผ่าน + ส่งคำแนะนำ"}
             </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* WRITTEN EXAM DECISION MODAL */}
+      <Modal
+        isOpen={writtenExamModalOpen}
+        onClose={() => setWrittenExamModalOpen(false)}
+        title={`📝 ประกาศผลสอบข้อเขียน — ${selectedApp?.student?.firstNameTh || ""} ${selectedApp?.student?.lastNameTh || ""}`}
+        description="เลือกผลการสอบข้อเขียนคัดเลือกนักบินประจำโครงการ:"
+        maxWidth="md"
+        variant="light"
+      >
+        <div className="space-y-4 text-xs text-slate-800">
+          <p className="text-slate-600 leading-relaxed font-medium">
+            กรุณาเลือกผลการสอบข้อเขียนของผู้สมัคร ระบบจะอัปเดตสถานะและแสดงข้อความแจ้งผลไปยังหน้าติดตามสถานะของผู้สมัครทันที:
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            {/* Option 1: PASS */}
+            <div className="p-4 rounded-xl border border-emerald-300 bg-emerald-50/80 space-y-3 flex flex-col justify-between shadow-xs">
+              <div className="space-y-1.5">
+                <span className="font-bold text-emerald-950 text-sm flex items-center gap-1.5">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" /> 🟢 ผ่านการสอบข้อเขียน
+                </span>
+                <p className="text-[11px] text-emerald-900 leading-relaxed">
+                  ผู้สมัครสอบผ่านเกณฑ์มาตรฐานการคัดเลือกนักบิน และได้รับสิทธิ์เข้าสู่ขั้นตอนสอบสัมภาษณ์ (Interview) ต่อไป
+                </p>
+              </div>
+              <Button
+                size="sm"
+                onClick={handlePassWrittenExam}
+                className="w-full font-bold text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs py-2.5"
+              >
+                ✓ ยืนยัน: ผ่านการสอบข้อเขียน
+              </Button>
+            </div>
+
+            {/* Option 2: FAIL / NOT PASSED (Gentle & Respectful Encouragement) */}
+            <div className="p-4 rounded-xl border border-blue-300 bg-blue-50/80 space-y-3 flex flex-col justify-between shadow-xs">
+              <div className="space-y-1.5">
+                <span className="font-bold text-blue-950 text-sm flex items-center gap-1.5">
+                  <Sparkles className="h-4 w-4 text-blue-600" /> 💙 ขอบคุณและเป็นกำลังใจ (ไม่ผ่าน)
+                </span>
+                <p className="text-[11px] text-blue-900 leading-relaxed">
+                  ผู้สมัครไม่ผ่านเกณฑ์การสอบข้อเขียน ระบบจะแสดงข้อความขอบคุณอย่างสุภาพ ให้กำลังใจ และขอบคุณความตั้งใจเข้าร่วมโครงการ
+                </p>
+              </div>
+              <Button
+                size="sm"
+                onClick={handleFailWrittenExam}
+                className="w-full font-bold text-xs bg-blue-600 hover:bg-blue-700 text-white shadow-xs py-2.5"
+              >
+                💙 ยืนยัน: ส่งข้อความขอบคุณ & เป็นกำลังใจ
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* INTERVIEW DECISION MODAL */}
+      <Modal
+        isOpen={interviewResultModalOpen}
+        onClose={() => setInterviewResultModalOpen(false)}
+        title={`🎙️ ประกาศผลสอบสัมภาษณ์ — ${selectedApp?.student?.firstNameTh || ""} ${selectedApp?.student?.lastNameTh || ""}`}
+        description="เลือกผลการสอบสัมภาษณ์คัดเลือกนักบินประจำโครงการ:"
+        maxWidth="md"
+        variant="light"
+      >
+        <div className="space-y-4 text-xs text-slate-800">
+          <p className="text-slate-600 leading-relaxed font-medium">
+            กรุณาเลือกผลการสอบสัมภาษณ์ของผู้สมัคร ระบบจะอัปเดตสถานะและแสดงข้อความแจ้งผลไปยังหน้าติดตามสถานะของผู้สมัครทันที:
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            {/* Option 1: PASS */}
+            <div className="p-4 rounded-xl border border-emerald-300 bg-emerald-50/80 space-y-3 flex flex-col justify-between shadow-xs">
+              <div className="space-y-1.5">
+                <span className="font-bold text-emerald-950 text-sm flex items-center gap-1.5">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" /> 🟢 ผ่านการสอบสัมภาษณ์
+                </span>
+                <p className="text-[11px] text-emerald-900 leading-relaxed">
+                  ผู้สมัครสอบผ่านการสัมภาษณ์และได้รับสิทธิ์เข้าสู่ขั้นตอนการตรวจสุขภาพนักบิน Class 1 เวชศาสตร์การบินต่อไป
+                </p>
+              </div>
+              <Button
+                size="sm"
+                onClick={handlePassInterview}
+                className="w-full font-bold text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs py-2.5"
+              >
+                ✓ ยืนยัน: ผ่านการสอบสัมภาษณ์
+              </Button>
+            </div>
+
+            {/* Option 2: FAIL / NOT PASSED (Gentle & Respectful Encouragement) */}
+            <div className="p-4 rounded-xl border border-blue-300 bg-blue-50/80 space-y-3 flex flex-col justify-between shadow-xs">
+              <div className="space-y-1.5">
+                <span className="font-bold text-blue-950 text-sm flex items-center gap-1.5">
+                  <Sparkles className="h-4 w-4 text-blue-600" /> 💙 ขอบคุณและเป็นกำลังใจ (ไม่ผ่าน)
+                </span>
+                <p className="text-[11px] text-blue-900 leading-relaxed">
+                  ผู้สมัครไม่ผ่านเกณฑ์การสอบสัมภาษณ์ ระบบจะแสดงข้อความขอบคุณอย่างสุภาพ ให้กำลังใจ และขอบคุณความตั้งใจเข้าร่วมโครงการ
+                </p>
+              </div>
+              <Button
+                size="sm"
+                onClick={handleFailInterview}
+                className="w-full font-bold text-xs bg-blue-600 hover:bg-blue-700 text-white shadow-xs py-2.5"
+              >
+                💙 ยืนยัน: ส่งข้อความขอบคุณ & เป็นกำลังใจ
+              </Button>
+            </div>
           </div>
         </div>
       </Modal>

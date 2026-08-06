@@ -179,9 +179,9 @@ export const PILOT_WORKFLOW_STEPS: WorkflowStepDef[] = [
   { step: 6, key: "OPEN_HOUSE_ATTENDED", titleTh: "เข้าร่วม Open House", titleEn: "Attended Open House", badgeClass: "bg-indigo-500/10 text-indigo-400 border-indigo-500/30" },
   { step: 7, key: "PHYSICAL_DOCS_SUBMITTED", titleTh: "ส่งเอกสารตัวจริง", titleEn: "Physical Docs Submitted", badgeClass: "bg-sky-500/10 text-sky-400 border-sky-500/30" },
   { step: 8, key: "WRITTEN_EXAM", titleTh: "สอบข้อเขียน", titleEn: "Written Exam", badgeClass: "bg-violet-500/10 text-violet-400 border-violet-500/30" },
-  { step: 9, key: "WRITTEN_EXAM_PASSED", titleTh: "ประกาศผล (ผ่านสอบข้อเขียน)", titleEn: "Written Exam Passed", badgeClass: "bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/30" },
+  { step: 9, key: "WRITTEN_EXAM_PASSED", titleTh: "ประกาศผลสอบ", titleEn: "Written Exam Results", badgeClass: "bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/30" },
   { step: 10, key: "INTERVIEW_SCHEDULED", titleTh: "สัมภาษณ์", titleEn: "Interview Scheduled", badgeClass: "bg-purple-500/10 text-purple-400 border-purple-500/30" },
-  { step: 11, key: "INTERVIEW_PASSED", titleTh: "ประกาศผล (ผ่านสัมภาษณ์)", titleEn: "Interview Passed", badgeClass: "bg-teal-500/10 text-teal-400 border-teal-500/30" },
+  { step: 11, key: "INTERVIEW_PASSED", titleTh: "ประกาศผลสัมภาษณ์", titleEn: "Interview Results", badgeClass: "bg-teal-500/10 text-teal-400 border-teal-500/30" },
   { step: 12, key: "MEDICAL_CHECK_CLASS_1", titleTh: "ตรวจสุขภาพ Class 1", titleEn: "Class 1 Medical Check", badgeClass: "bg-pink-500/10 text-pink-400 border-pink-500/30" },
   { step: 13, key: "ACCEPTANCE_CONFIRMED", titleTh: "ยืนยันสิทธิ์สำเร็จ", titleEn: "Acceptance Confirmed", badgeClass: "bg-tif-gold/10 text-tif-gold border-tif-gold/30" },
 ];

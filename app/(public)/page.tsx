@@ -27,6 +27,8 @@ import { ScrollReveal } from "@/components/ui/scroll-reveal";
 import { Card3D } from "@/components/ui/card-3d";
 import { Mascot3D } from "@/components/ui/mascot-3d";
 import { AnnouncementPopup } from "@/components/home/announcement-popup";
+import { RecruitmentJourney } from "@/components/home/recruitment-journey";
+import { CareerPathway } from "@/components/home/career-pathway";
 
 export default function HomePage() {
   const { t } = useLanguage();
@@ -125,6 +127,11 @@ export default function HomePage() {
       </section>
 
       {/* ================================================================ */}
+      {/* RECRUITMENT JOURNEY ROADMAP (Phase 1 - Phase 4)                 */}
+      {/* ================================================================ */}
+      <RecruitmentJourney />
+
+      {/* ================================================================ */}
       {/* 2. SECTION 01 — PROCESS (Horizontal Flow & Motion Timeline)     */}
       {/* ================================================================ */}
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 w-full pt-24 lg:pt-32">
@@ -220,6 +227,11 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ================================================================ */}
+      {/* CAREER PATHWAY SECTION                                           */}
+      {/* ================================================================ */}
+      <CareerPathway />
 
       {/* ================================================================ */}
       {/* 3. SECTION 02 — REQUIREMENTS (Interactive 3D Bento Grid)        */}

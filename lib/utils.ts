@@ -57,6 +57,7 @@ const DOC_TYPE_MAP: Record<string, string> = {
   APPLICATION_FEE_SLIP: "PaymentSlip",
   GRADUATION_CERTIFICATE: "GraduationCert",
   TOEIC: "TOEIC",
+  MILITARY_SERVICE_EXEMPTION: "MilitaryExemption",
   OTHER: "Document",
 };
 

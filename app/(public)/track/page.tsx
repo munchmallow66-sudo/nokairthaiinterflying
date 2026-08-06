@@ -20,6 +20,7 @@ import {
   Eye,
   MapPin,
   ExternalLink,
+  Globe,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -41,6 +42,7 @@ interface ApplicationData {
   stepIndex: number;
   remarks: string;
   updatedAt: string;
+  joinOpenHouse?: boolean;
   documents?: {
     id: string;
     type: string;
@@ -60,19 +62,68 @@ interface TrackingResponse {
   error?: string;
 }
 
-const getStepGuidance = (app: ApplicationData) => {
+const getStepGuidance = (app: ApplicationData, lang: "th" | "en" = "th") => {
   const status = app.status;
   const hasRejectedDocs = app.documents?.some((d) => d.isRejected);
+  const hasSlipUploaded =
+    status === "PAYMENT_PENDING" ||
+    app.remarks?.includes("สลิป") ||
+    app.remarks?.includes("Slip") ||
+    app.remarks?.includes("โอนเงิน");
+  const isEn = lang === "en";
+
+  if (status === "REJECTED" && !hasRejectedDocs && (app.remarks?.includes("ขอบพระคุณ") || app.remarks?.includes("กำลังใจ") || app.remarks?.includes("เกณฑ์") || app.remarks?.includes("สัมภาษณ์") || app.remarks?.includes("สอบ"))) {
+    const isInterview = app.remarks?.includes("สัมภาษณ์") || app.remarks?.includes("Interview");
+
+    return {
+      condition: isEn
+        ? isInterview
+          ? "💙 Condition: Thank You for Participating in Interview Selection (Step 11/13)"
+          : "💙 Condition: Thank You for Participating in Written Exam Selection (Step 9/13)"
+        : isInterview
+        ? "💙 เงื่อนไข: สถาบันไทย อินเตอร์ ไฟลอิ้ง ขอขอบพระคุณที่เข้าร่วมการสอบสัมภาษณ์ (Step 11/13: ประกาศผลสัมภาษณ์)"
+        : "💙 เงื่อนไข: สถาบันไทย อินเตอร์ ไฟลอิ้ง ขอขอบพระคุณที่เข้าร่วมการสอบข้อเขียน (Step 9/13: ประกาศผลสอบ)",
+      badgeBg: "bg-blue-100 border-blue-300 text-blue-900 font-bold",
+      icon: Sparkles,
+      title: isEn
+        ? isInterview
+          ? "Thank You for Participating in Panel Interview"
+          : "Thank You for Participating in Written Examination"
+        : isInterview
+        ? "💙 ขอขอบพระคุณอย่างยิ่งที่ท่านเข้าร่วมการสอบสัมภาษณ์คัดเลือกนักบิน"
+        : "💙 ขอขอบพระคุณอย่างยิ่งที่ท่านเข้าร่วมการสอบข้อเขียนคัดเลือกนักบิน",
+      description: isEn
+        ? isInterview
+          ? "Thai Inter Flying thanks you for your panel interview participation. Although you did not pass the interview criteria in this selection round, we encourage you on your aviation journey and hope to welcome you in the future."
+          : "Thai Inter Flying thanks you for your written examination participation. Although you did not pass the written exam criteria in this selection round, we encourage you on your aviation journey and hope to welcome you in the future."
+        : isInterview
+        ? "สถาบันไทย อินเตอร์ ไฟลอิ้ง ขอขอบพระคุณท่านอย่างยิ่งที่ตั้งใจเข้าร่วมการสอบสัมภาษณ์คัดเลือกนักบินในครั้งนี้ แม้ผลการสัมภาษณ์จะยังไม่ผ่านเกณฑ์การคัดเลือก แต่คณะกรรมการขอเป็นกำลังใจให้ท่านในการเดินทางตามฝันสายการบินต่อไป และหวังเป็นอย่างยิ่งว่าจะได้มีโอกาสต้อนรับท่านอีกครั้งในโอกาสถัดไป"
+        : "สถาบันไทย อินเตอร์ ไฟลอิ้ง ขอขอบพระคุณท่านอย่างยิ่งที่ตั้งใจเข้าร่วมการสอบข้อเขียนคัดเลือกนักบินในครั้งนี้ แม้ผลการสอบข้อเขียนจะยังไม่ผ่านเกณฑ์การคัดเลือก แต่สถาบันขอเป็นกำลังใจให้ท่านในการเดินทางตามฝันสายการบินต่อไป และหวังเป็นอย่างยิ่งว่าจะได้มีโอกาสต้อนรับท่านอีกครั้งในโอกาสถัดไป",
+      nextActionTitle: isEn ? "Message from Institute:" : "ข้อความจากสถาบัน:",
+      nextAction: isEn
+        ? "Thai Inter Flying wishes you success on your pilot journey."
+        : "สถาบันไทย อินเตอร์ ไฟลอิ้ง ขอขอบพระคุณและเป็นกำลังใจให้ท่านประสบความสำเร็จในเส้นทางสายการบินในอนาคต",
+      actionType: "WAIT",
+    };
+  }
 
   if (status === "REJECTED" || hasRejectedDocs) {
     return {
-      condition: "🔴 เงื่อนไข: เอกสารไม่สมบูรณ์ / ต้องแก้ไขไฟล์เอกสารแนบ",
+      condition: isEn
+        ? "🔴 Condition: Documents Incomplete / Action Required"
+        : "🔴 เงื่อนไข: เอกสารไม่สมบูรณ์ / ต้องแก้ไขไฟล์เอกสารแนบ",
       badgeBg: "bg-rose-100 border-rose-300 text-rose-800",
       icon: AlertCircle,
-      title: "เอกสารของคุณยังไม่ผ่านการอนุมัติ (กรุณาแก้ไขเอกสารแนบ)",
-      description: "เจ้าหน้าที่ตรวจพบเอกสารที่ไม่ถูกต้องหรือไม่ชัดเจน กรุณาตรวจสอบเหตุผลและทำการอัปโหลดไฟล์ใหม่ทดแทน",
-      nextActionTitle: "สิ่งที่ผู้สมัครต้องทำถัดไป:",
-      nextAction: "คลิกปุ่ม 'อัปโหลดส่งใหม่' ในรายการเอกสารด้านล่างที่ถูกแจ้งแก้ไข เพื่อส่งให้เจ้าหน้าที่ตรวจสอบอีกครั้ง",
+      title: isEn
+        ? "Your documents require attention (Please fix attached files)"
+        : "เอกสารของคุณยังไม่ผ่านการอนุมัติ (กรุณาแก้ไขเอกสารแนบ)",
+      description: isEn
+        ? "Staff found incomplete or invalid document attachments. Please check the reason and re-upload replacement files."
+        : "เจ้าหน้าที่ตรวจพบเอกสารที่ไม่ถูกต้องหรือไม่ชัดเจน กรุณาตรวจสอบเหตุผลและทำการอัปโหลดไฟล์ใหม่ทดแทน",
+      nextActionTitle: isEn ? "Next Action for Applicant:" : "สิ่งที่ผู้สมัครต้องทำถัดไป:",
+      nextAction: isEn
+        ? "Click 'Re-upload File' on the document items below to submit for staff review."
+        : "คลิกปุ่ม 'อัปโหลดส่งใหม่' ในรายการเอกสารด้านล่างที่ถูกแจ้งแก้ไข เพื่อส่งให้เจ้าหน้าที่ตรวจสอบอีกครั้ง",
       actionType: "REUPLOAD",
     };
   }
@@ -80,53 +131,122 @@ const getStepGuidance = (app: ApplicationData) => {
   switch (status) {
     case "ONLINE_REGISTRATION":
       return {
-        condition: "🔵 เงื่อนไข: เปิดรับสมัครออนไลน์ (Step 1/13)",
+        condition: isEn
+          ? "🔵 Condition: Online Application Open (Step 1/13)"
+          : "🔵 เงื่อนไข: เปิดรับสมัครออนไลน์ (Step 1/13)",
         badgeBg: "bg-blue-100 border-blue-300 text-blue-800",
         icon: Clock,
-        title: "เปิดรับสมัครออนไลน์เรียบร้อยแล้ว",
-        description: "ท่านได้ลงทะเบียนบัญชีสมัครเข้าสู่ระบบรับสมัครนักบินเรียบร้อยแล้ว",
-        nextActionTitle: "สิ่งที่ผู้สมัครต้องทำถัดไป:",
-        nextAction: "กรุณากรอกข้อมูลส่วนตัว ประวัติการศึกษา ผลสอบภาษา และอัปโหลดเอกสารแนบให้ครบถ้วน 6 รายการ",
+        title: isEn ? "Online Registration Opened" : "เปิดรับสมัครออนไลน์เรียบร้อยแล้ว",
+        description: isEn
+          ? "You have registered your applicant account in the pilot application system."
+          : "ท่านได้ลงทะเบียนบัญชีสมัครเข้าสู่ระบบรับสมัครนักบินเรียบร้อยแล้ว",
+        nextActionTitle: isEn ? "Next Action for Applicant:" : "สิ่งที่ผู้สมัครต้องทำถัดไป:",
+        nextAction: isEn
+          ? "Please fill in personal details, education history, language scores, and attach all required documents."
+          : "กรุณากรอกข้อมูลส่วนตัว ประวัติการศึกษา ผลสอบภาษา และอัปโหลดเอกสารแนบให้ครบถ้วนตามที่กำหนด",
         actionType: "FILL_FORM",
       };
 
     case "SUBMITTED":
+      return {
+        condition: isEn
+          ? "🟡 Condition: Application Submitted (Step 2/13)"
+          : "🟡 เงื่อนไข: ยื่นใบสมัครเรียบร้อยแล้ว (Step 2/13)",
+        badgeBg: "bg-amber-100 border-amber-300 text-amber-900",
+        icon: Clock,
+        title: isEn
+          ? "Application & Documents Submitted"
+          : "ยื่นใบสมัครและแนบเอกสารเรียบร้อยแล้ว (Submitted & Attached Docs)",
+        description: isEn
+          ? "Application data and attached documents are saved in the system, preparing for staff verification."
+          : "ระบบบันทึกข้อมูลใบสมัครและเอกสารแนบเรียบร้อยแล้ว อยู่ระหว่างการเตรียมเข้าสู่กระบวนการตรวจเอกสารโดยเจ้าหน้าที่",
+        nextActionTitle: isEn ? "Next Action for Applicant:" : "สิ่งที่ผู้สมัครต้องทำถัดไป:",
+        nextAction: isEn
+          ? "Please wait while staff conducts daily document verification."
+          : "รอเจ้าหน้าที่เริ่มทำการตรวจสอบเอกสารประจำวัน",
+        actionType: "WAIT",
+      };
+
     case "DOCS_UNDER_REVIEW":
     case "WAITING_DOCUMENTS":
       return {
-        condition: "🟡 เงื่อนไข: ยื่นเอกสารแล้ว อยู่ระหว่างรอการตรวจสอบ (Step 3/13)",
-        badgeBg: "bg-amber-100 border-amber-300 text-amber-900",
+        condition: isEn
+          ? "🟡 Condition: Initial Document Review in Progress (Step 3/13)"
+          : "🟡 เงื่อนไข: อยู่ระหว่างรอการตรวจเอกสารเบื้องต้น (Step 3/13)",
+        badgeBg: "bg-orange-100 border-orange-300 text-orange-900",
         icon: Clock,
-        title: "อยู่ระหว่างเจ้าหน้าที่ตรวจสอบเอกสารเบื้องต้น (Docs Under Review)",
-        description: "เอกสารแนบของคุณถูกส่งเข้าสู่ระบบแล้ว เจ้าหน้าที่กำลังดำเนินการตรวจสอบความถูกต้องและคุณสมบัติเบื้องต้น",
-        nextActionTitle: "สิ่งที่ผู้สมัครต้องทำถัดไป:",
-        nextAction: "ไม่ต้องดำเนินการใดๆ เจ้าหน้าที่จะทำการตรวจสอบและแจ้งผลอนุมัติภายใน 24 ชั่วโมง",
+        title: isEn
+          ? "Documents Currently Under Staff Review"
+          : "อยู่ระหว่างเจ้าหน้าที่ตรวจสอบเอกสารเบื้องต้น (Docs Under Review)",
+        description: isEn
+          ? "Your attached documents have been received. Staff is verifying accuracy and initial qualifications."
+          : "เอกสารแนบของคุณถูกส่งเข้าสู่ระบบแล้ว เจ้าหน้าที่กำลังดำเนินการตรวจสอบความถูกต้องและคุณสมบัติเบื้องต้น",
+        nextActionTitle: isEn ? "Next Action for Applicant:" : "สิ่งที่ผู้สมัครต้องทำถัดไป:",
+        nextAction: isEn
+          ? "No action needed. Staff will complete verification and notify approval within 24 hours."
+          : "ไม่ต้องดำเนินการใดๆ เจ้าหน้าที่จะทำการตรวจสอบและแจ้งผลอนุมัติภายใน 24 ชั่วโมง",
         actionType: "WAIT",
       };
 
     case "DOCS_PASSED":
     case "DOCUMENT_VERIFIED":
     case "APPLICATION_FEE_PAID":
+      if (hasSlipUploaded) {
+        return {
+          condition: isEn
+            ? "🟢 Condition: Payment Slip Uploaded (Pending Staff Verification)"
+            : "🟢 เงื่อนไข: แนบสลิปโอนเงินเรียบร้อยแล้ว (อยู่ระหว่างรอเจ้าหน้าที่ตรวจสอบ)",
+          badgeBg: "bg-emerald-100 border-emerald-300 text-emerald-900 font-bold",
+          icon: CheckCircle2,
+          title: isEn
+            ? "Payment Slip Received (Under Review)"
+            : "ได้รับสลิปโอนเงินเรียบร้อยแล้ว (อยู่ระหว่างรอตรวจสอบ)",
+          description: isEn
+            ? "Your 1,800 THB payment proof and Open House preference have been recorded. Finance team is verifying the payment transaction."
+            : "ระบบได้รับการแนบหลักฐานการโอนเงิน 1,800 บาท และบันทึกข้อมูลความประสงค์ Open House ของท่านเรียบร้อยแล้ว เจ้าหน้าที่จะทำการตรวจสอบยอดเงินและอนุมัติการสมัครภายใน 24 ชม.",
+          nextActionTitle: isEn ? "Next Action for Applicant:" : "สิ่งที่ผู้สมัครต้องทำถัดไป:",
+          nextAction: isEn
+            ? "Wait for staff payment verification. Status will automatically update upon approval. (You can view or re-attach slip using the button below)."
+            : "รอเจ้าหน้าที่ตรวจสอบสลิปโอนเงิน เมื่ออนุมัติแล้วระบบจะปรับสถานะเป็นขั้นตอนถัดไปให้อัตโนมัติ (ท่านสามารถคลิกดูหรือแนบสลิปใหม่ได้ที่ปุ่มด้านล่าง)",
+          actionType: "SLIP_SUBMITTED",
+        };
+      }
       return {
-        condition: "🟢 เงื่อนไข: ผ่านการตรวจเอกสารเรียบร้อยแล้ว (Step 5/13: Documents Review Completed)",
-        badgeBg: "bg-emerald-100 border-emerald-300 text-emerald-900",
+        condition: isEn
+          ? "🟢 Condition: Document Review Completed (Step 5/13: Pay 1,800 THB Application Fee)"
+          : "🟢 เงื่อนไข: ผ่านการตรวจเอกสารเรียบร้อยแล้ว (Step 5/13: ชำระค่าสมัคร 1,800 บาท)",
+        badgeBg: "bg-emerald-100 border-emerald-300 text-emerald-900 font-bold",
         icon: CheckCircle2,
-        title: "ผ่านการตรวจเอกสารเบื้องต้นเรียบร้อยแล้ว (พร้อมชำระค่าสมัคร 1,800 บาท)",
-        description: "เอกสารของท่านถูกต้องสมบูรณ์ ระบบได้รับการอนุมัติจากเจ้าหน้าที่ให้ท่านดำเนินการชำระค่าธรรมเนียมสมัครเรียน",
-        nextActionTitle: "สิ่งที่ผู้สมัครต้องทำถัดไป:",
-        nextAction: "โอนเงินค่าสมัคร 1,800 บาท เข้าบัญชี SCB เลขที่ 202-280661-2 (บจ. ไทย อินเตอร์ ไฟลอิ้ง) แล้วคลิกปุ่ม 'แนบสลิปชำระเงิน 1,800 THB' พร้อมเลือกความประสงค์เข้าร่วมงาน Open House",
+        title: isEn
+          ? "Initial Document Review Passed (Ready for 1,800 THB Fee Payment)"
+          : "ผ่านการตรวจเอกสารเบื้องต้นเรียบร้อยแล้ว (พร้อมชำระค่าสมัคร 1,800 บาท)",
+        description: isEn
+          ? "Your documents are complete and approved. Please transfer the 1,800 THB application fee and attach the payment slip."
+          : "เอกสารของท่านถูกต้องสมบูรณ์ ระบบได้รับการอนุมัติจากเจ้าหน้าที่ให้ท่านดำเนินการโอนเงินค่าธรรมเนียมสมัครเรียน 1,800 บาท และแนบสลิปชำระเงิน",
+        nextActionTitle: isEn ? "Next Action for Applicant:" : "สิ่งที่ผู้สมัครต้องทำถัดไป:",
+        nextAction: isEn
+          ? "Transfer 1,800 THB to SCB Acc # 202-280661-2 (Thai Inter Flying Co., Ltd.), then click 'Attach Payment Slip 1,800 THB' below and select Open House attendance preference."
+          : "โอนเงินค่าสมัคร 1,800 บาท เข้าบัญชี SCB เลขที่ 202-280661-2 (บจ. ไทย อินเตอร์ ไฟลอิ้ง) แล้วคลิกปุ่ม 'แนบสลิปชำระเงิน 1,800 THB' ด้านล่างพร้อมเลือกความประสงค์เข้าร่วมงาน Open House",
         actionType: "PAY",
       };
 
     case "PAYMENT_PENDING":
       return {
-        condition: "🟡 เงื่อนไข: อยู่ระหว่างตรวจสอบสลิปชำระเงิน 1,800 บาท (Step 5/13)",
+        condition: isEn
+          ? "🟡 Condition: Payment Slip Under Verification (Step 5/13)"
+          : "🟡 เงื่อนไข: อยู่ระหว่างตรวจสอบสลิปชำระเงิน 1,800 บาท (Step 5/13)",
         badgeBg: "bg-amber-100 border-amber-300 text-amber-900",
         icon: Clock,
-        title: "ได้รับสลิปชำระเงินเรียบร้อยแล้ว — อยู่ระหว่างการตรวจสอบสลิป",
-        description: "ระบบได้รับการแนบหลักฐานการโอนเงิน 1,800 บาทเรียบร้อยแล้ว ฝ่ายการเงินกำลังดำเนินการตรวจสอบยอดเงิน",
-        nextActionTitle: "สิ่งที่ผู้สมัครต้องทำถัดไป:",
-        nextAction: "รอเจ้าหน้าที่อนุมัติสลิปโอนเงิน เมื่ออนุมัติแล้วระบบจะเลื่อนสถานะเป็น Step 6 ให้อัตโนมัติ",
+        title: isEn
+          ? "Payment Slip Received — Verification in Progress"
+          : "ได้รับสลิปชำระเงินเรียบร้อยแล้ว — อยู่ระหว่างการตรวจสอบสลิป",
+        description: isEn
+          ? "1,800 THB transfer proof received. Finance team is verifying the payment transaction."
+          : "ระบบได้รับการแนบหลักฐานการโอนเงิน 1,800 บาทเรียบร้อยแล้ว ฝ่ายการเงินกำลังดำเนินการตรวจสอบยอดเงิน",
+        nextActionTitle: isEn ? "Next Action for Applicant:" : "สิ่งที่ผู้สมัครต้องทำถัดไป:",
+        nextAction: isEn
+          ? "Wait for staff payment approval. Upon approval, status will automatically update to Step 6."
+          : "รอเจ้าหน้าที่อนุมัติสลิปโอนเงิน เมื่ออนุมัติแล้วระบบจะเลื่อนสถานะเป็น Step 6 ให้อัตโนมัติ",
         actionType: "WAIT",
       };
 
@@ -134,85 +254,141 @@ const getStepGuidance = (app: ApplicationData) => {
     case "PAYMENT_VERIFIED":
     case "OPEN_HOUSE_ATTENDED":
       return {
-        condition: "🟢 เงื่อนไข: อนุมัติการชำระเงินเรียบร้อยแล้ว (Step 6/13: Open House Attended)",
+        condition: isEn
+          ? "🟢 Condition: Payment Approved (Step 6/13: Open House Attended)"
+          : "🟢 เงื่อนไข: อนุมัติการชำระเงินเรียบร้อยแล้ว (Step 6/13: Open House Attended)",
         badgeBg: "bg-indigo-100 border-indigo-300 text-indigo-900",
         icon: CheckCircle2,
-        title: "อนุมัติสลิปชำระเงินเรียบร้อยแล้ว (เตรียมเข้าร่วมงาน Open House)",
-        description: "เจ้าหน้าที่ยืนยันการชำระค่าสมัคร 1,800 บาทสำเร็จแล้ว ท่านได้รับสิทธิ์ในการเข้าร่วมกิจกรรมแนะนำโครงการ Open House",
-        nextActionTitle: "สิ่งที่ผู้สมัครต้องทำถัดไป:",
-        nextAction: "เตรียมความพร้อมเข้าร่วมงาน Open House ในวันที่ 12 กันยายน 2026 เวลา 09:00 - 15:00 น. ณ โรงแรม Best Western Plus Wanda Grand Hotel (Ballroom A)",
+        title: isEn
+          ? "Payment Slip Approved (Prepare for Open House Event)"
+          : "อนุมัติสลิปชำระเงินเรียบร้อยแล้ว (เตรียมเข้าร่วมงาน Open House)",
+        description: isEn
+          ? "Staff confirmed your 1,800 THB application fee payment. You are registered for the Open House event."
+          : "เจ้าหน้าที่ยืนยันการชำระค่าสมัคร 1,800 บาทสำเร็จแล้ว ท่านได้รับสิทธิ์ในการเข้าร่วมกิจกรรมแนะนำโครงการ Open House",
+        nextActionTitle: isEn ? "Next Action for Applicant:" : "สิ่งที่ผู้สมัครต้องทำถัดไป:",
+        nextAction: isEn
+          ? "Prepare to join Open House on September 12, 2026, 09:00 - 15:00 at Best Western Plus Wanda Grand Hotel (Ballroom A)."
+          : "เตรียมความพร้อมเข้าร่วมงาน Open House ในวันที่ 12 กันยายน 2026 เวลา 09:00 - 15:00 น. ณ โรงแรม Best Western Plus Wanda Grand Hotel (Ballroom A)",
         actionType: "OPEN_HOUSE",
       };
 
     case "PHYSICAL_DOCS_SUBMITTED":
       return {
-        condition: "🟢 เงื่อนไข: เข้าร่วมงาน Open House เรียบร้อย (Step 7/13: Physical Docs Submitted)",
+        condition: isEn
+          ? "🟢 Condition: Open House Attended (Step 7/13: Physical Docs Submitted)"
+          : "🟢 เงื่อนไข: เข้าร่วมงาน Open House เรียบร้อย (Step 7/13: Physical Docs Submitted)",
         badgeBg: "bg-sky-100 border-sky-300 text-sky-900",
         icon: CheckCircle2,
-        title: "ยื่นเอกสารฉบับจริงเรียบร้อยแล้ว",
-        description: "เอกสารฉบับจริงได้รับการตรวจสอบและบันทึกเข้าสู่แฟ้มประวัตินักบินเรียบร้อยแล้ว",
-        nextActionTitle: "สิ่งที่ผู้สมัครต้องทำถัดไป:",
-        nextAction: "เตรียมความพร้อมสำหรับการทดสอบภาคข้อเขียน (Written Examination)",
+        title: isEn
+          ? "Original Physical Documents Submitted"
+          : "ยื่นเอกสารฉบับจริงเรียบร้อยแล้ว",
+        description: isEn
+          ? "Original physical documents verified and logged into cadet pilot records."
+          : "เอกสารฉบับจริงได้รับการตรวจสอบและบันทึกเข้าสู่แฟ้มประวัตินักบินเรียบร้อยแล้ว",
+        nextActionTitle: isEn ? "Next Action for Applicant:" : "สิ่งที่ผู้สมัครต้องทำถัดไป:",
+        nextAction: isEn
+          ? "Prepare for the Written Examination."
+          : "เตรียมความพร้อมสำหรับการทดสอบภาคข้อเขียน (Written Examination)",
         actionType: "WAIT",
       };
 
     case "WRITTEN_EXAM":
       return {
-        condition: "🟡 เงื่อนไข: กำหนดวันสอบข้อเขียน (Step 8/13: Written Exam Scheduled)",
+        condition: isEn
+          ? "🟡 Condition: Written Exam Scheduled (Step 8/13)"
+          : "🟡 เงื่อนไข: กำหนดวันสอบข้อเขียน (Step 8/13: Written Exam Scheduled)",
         badgeBg: "bg-purple-100 border-purple-300 text-purple-900",
         icon: Clock,
-        title: "กำหนดการทดสอบภาคข้อเขียน (Written Examination Schedule)",
-        description: "ท่านได้รับการคัดเลือกและมีสิทธิ์เข้ารับการสอบข้อเขียนในโครงการ Nok Air Cadet Pilot Program",
-        nextActionTitle: "กำหนดการและสถานที่สอบข้อเขียน:",
-        nextAction: "📅 วันที่สอบ: 26 กันยายน 2569 | ⏰ เวลาสอบ: XX:XX - XX:XX น. (จะแจ้งให้ทราบอีกครั้ง) | 📍 สถานที่สอบ: มหาวิทยาลัยรังสิต",
+        title: isEn
+          ? "Written Examination Schedule Announced"
+          : "กำหนดการทดสอบภาคข้อเขียน (Written Examination Schedule)",
+        description: isEn
+          ? "You are qualified to sit for the Nok Air Cadet Pilot Program Written Examination."
+          : "ท่านได้รับการคัดเลือกและมีสิทธิ์เข้ารับการสอบข้อเขียนในโครงการ Nok Air Cadet Pilot Program",
+        nextActionTitle: isEn ? "Exam Schedule & Venue:" : "กำหนดการและสถานที่สอบข้อเขียน:",
+        nextAction: isEn
+          ? "📅 Exam Date: 26 Sept 2026 | ⏰ Time: TBD | 📍 Venue: Rangsit University"
+          : "📅 วันที่สอบ: 26 กันยายน 2569 | ⏰ เวลาสอบ: XX:XX - XX:XX น. (จะแจ้งให้ทราบอีกครั้ง) | 📍 สถานที่สอบ: มหาวิทยาลัยรังสิต",
         actionType: "EXAM",
       };
 
     case "WRITTEN_EXAM_PASSED":
       return {
-        condition: "🟢 เงื่อนไข: ผ่านการสอบข้อเขียนเรียบร้อยแล้ว (Step 9/13: Written Exam Passed)",
-        badgeBg: "bg-emerald-100 border-emerald-300 text-emerald-900",
+        condition: isEn
+          ? "🟢 Condition: Written Exam Results (Step 9/13: Passed Exam)"
+          : "🟢 เงื่อนไข: ประกาศผลสอบ (Step 9/13: ผ่านการสอบข้อเขียนเรียบร้อยแล้ว)",
+        badgeBg: "bg-emerald-100 border-emerald-300 text-emerald-900 font-bold",
         icon: CheckCircle2,
-        title: "ผ่านการสอบข้อเขียนเรียบร้อยแล้ว (Pass Written Exam)",
-        description: "ผลคะแนนสอบข้อเขียนของท่านผ่านเกณฑ์มาตรฐานการรับสมัครนักบินของโครงการ",
-        nextActionTitle: "สิ่งที่ผู้สมัครต้องทำถัดไป:",
-        nextAction: "รอเจ้าหน้าที่ประกาศตารางนัดหมายสอบสัมภาษณ์ (Interview Selection)",
+        title: isEn
+          ? "🎉 Congratulations! Passed Written Examination"
+          : "🎉 ขอแสดงความยินดีด้วย! ท่านผ่านการสอบข้อเขียนเรียบร้อยแล้ว",
+        description: isEn
+          ? "Your written exam score met the required standards for the Cadet Pilot Program. You are qualified for the panel interview stage."
+          : "ผลคะแนนสอบข้อเขียนของท่านผ่านเกณฑ์มาตรฐานการรับสมัครนักบินของโครงการ สถาบันขอแสดงความยินดีและขอให้ท่านเตรียมความพร้อมสำหรับขั้นตอนสอบสัมภาษณ์ต่อไป",
+        nextActionTitle: isEn ? "Next Action for Applicant:" : "สิ่งที่ผู้สมัครต้องทำถัดไป:",
+        nextAction: isEn
+          ? "Await official interview schedule announcement."
+          : "รอเจ้าหน้าที่ประกาศตารางนัดหมายและรายละเอียดวันสอบสัมภาษณ์ (Interview)",
         actionType: "WAIT",
       };
 
     case "INTERVIEW_SCHEDULED":
       return {
-        condition: "🟡 เงื่อนไข: กำหนดวันสอบสัมภาษณ์ (Step 10/13: Interview Scheduled)",
+        condition: isEn
+          ? "🟡 Condition: Interview Scheduled (Step 10/13)"
+          : "🟡 เงื่อนไข: กำหนดวันสอบสัมภาษณ์ (Step 10/13: Interview Scheduled)",
         badgeBg: "bg-purple-100 border-purple-300 text-purple-900",
         icon: Clock,
-        title: "กำหนดวันสอบสัมภาษณ์กับคณะกรรมการ (Interview)",
-        description: "เจ้าหน้าที่ได้ทำการนัดหมายวันสัมภาษณ์ประเมินทัศนคติ บุคลิกภาพ และความพร้อมในการเป็นนักบิน",
-        nextActionTitle: "สิ่งที่ผู้สมัครต้องทำถัดไป:",
-        nextAction: "เข้าร่วมการสัมภาษณ์ตามกำหนดการ แต่งกายชุดสุภาพเรียบร้อย และเตรียมเอกสารพอร์ตโฟลิโอ (ถ้ามี)",
+        title: isEn
+          ? "Panel Interview Scheduled"
+          : "กำหนดวันสอบสัมภาษณ์กับคณะกรรมการ (Interview)",
+        description: isEn
+          ? "Staff scheduled your panel interview to evaluate aptitude, personality, and pilot readiness."
+          : "เจ้าหน้าที่ได้ทำการนัดหมายวันสัมภาษณ์ประเมินทัศนคติ บุคลิกภาพ และความพร้อมในการเป็นนักบิน",
+        nextActionTitle: isEn ? "Next Action for Applicant:" : "สิ่งที่ผู้สมัครต้องทำถัดไป:",
+        nextAction: isEn
+          ? "Attend the interview in formal attire and bring portfolio documents if available."
+          : "เข้าร่วมการสัมภาษณ์ตามกำหนดการ แต่งกายชุดสุภาพเรียบร้อย และเตรียมเอกสารพอร์ตโฟลิโอ (ถ้ามี)",
         actionType: "INTERVIEW",
       };
 
     case "INTERVIEW_PASSED":
       return {
-        condition: "🟢 เงื่อนไข: ผ่านการสอบสัมภาษณ์เรียบร้อยแล้ว (Step 11/13: Interview Passed)",
-        badgeBg: "bg-teal-100 border-teal-300 text-teal-900",
+        condition: isEn
+          ? "🟢 Condition: Interview Results (Step 11/13: Passed Panel Interview)"
+          : "🟢 เงื่อนไข: ผ่านการสอบสัมภาษณ์เรียบร้อยแล้ว (Step 11/13: ประกาศผลสัมภาษณ์)",
+        badgeBg: "bg-emerald-100 border-emerald-300 text-emerald-900 font-bold",
         icon: CheckCircle2,
-        title: "ผ่านการสอบสัมภาษณ์เรียบร้อยแล้ว (Passed Panel Interview)",
-        description: "คณะกรรมการอนุมัติผลการสัมภาษณ์ ท่านผ่านเข้าสู่ขั้นตอนการตรวจร่างกายทางเวชศาสตร์การบิน",
-        nextActionTitle: "สิ่งที่ผู้สมัครต้องทำถัดไป:",
-        nextAction: "เข้ารับการตรวจสุขภาพนักบิน Class 1 (Medical Class 1 Check) ณ สถาบันเวชศาสตร์การบิน",
+        title: isEn
+          ? "🎉 Congratulations! Passed Panel Interview"
+          : "🎉 ขอแสดงความยินดีด้วย! ท่านผ่านการสอบสัมภาษณ์เรียบร้อยแล้ว",
+        description: isEn
+          ? "Panel approved your interview. You advance to Aviation Medical Class 1 Examination."
+          : "คณะกรรมการอนุมัติผลการสัมภาษณ์เรียบร้อยแล้ว ท่านผ่านเข้าสู่ขั้นตอนการตรวจร่างกายทางเวชศาสตร์การบิน (Medical Class 1 Check)",
+        nextActionTitle: isEn ? "Next Action for Applicant:" : "สิ่งที่ผู้สมัครต้องทำถัดไป:",
+        nextAction: isEn
+          ? "Undergo Medical Class 1 examination at an accredited aviation medical institute."
+          : "เข้ารับการตรวจสุขภาพนักบิน Class 1 (Medical Class 1 Check) ณ สถาบันเวชศาสตร์การบิน",
         actionType: "MEDICAL",
       };
 
     case "MEDICAL_CHECK_CLASS_1":
       return {
-        condition: "🟡 เงื่อนไข: ตรวจสุขภาพ Class 1 (Step 12/13: Class 1 Medical Check)",
+        condition: isEn
+          ? "🟡 Condition: Medical Class 1 Check (Step 12/13)"
+          : "🟡 เงื่อนไข: ตรวจสุขภาพ Class 1 (Step 12/13: Class 1 Medical Check)",
         badgeBg: "bg-pink-100 border-pink-300 text-pink-900",
         icon: Clock,
-        title: "เข้ารับการตรวจสุขภาพ Class 1 เวชศาสตร์การบิน",
-        description: "อยู่ระหว่างการตรวจร่างกายอย่างละเอียดและการออกใบรับรองแพทย์ชั้นหนึ่ง (Class 1 Medical Certificate)",
-        nextActionTitle: "สิ่งที่ผู้สมัครต้องทำถัดไป:",
-        nextAction: "เมื่อได้รับใบรับรองแพทย์ Class 1 แล้ว กรุณายื่นหลักฐานแก่เจ้าหน้าที่เพื่อยืนยันสิทธิ์สำเร็จ",
+        title: isEn
+          ? "Aviation Medical Class 1 Examination"
+          : "เข้ารับการตรวจสุขภาพ Class 1 เวชศาสตร์การบิน",
+        description: isEn
+          ? "Undergoing comprehensive medical evaluation for Class 1 Medical Certificate issuance."
+          : "อยู่ระหว่างการตรวจร่างกายอย่างละเอียดและการออกใบรับรองแพทย์ชั้นหนึ่ง (Class 1 Medical Certificate)",
+        nextActionTitle: isEn ? "Next Action for Applicant:" : "สิ่งที่ผู้สมัครต้องทำถัดไป:",
+        nextAction: isEn
+          ? "Once Class 1 Medical Certificate is issued, submit proof to confirm your enrollment."
+          : "เมื่อได้รับใบรับรองแพทย์ Class 1 แล้ว กรุณายื่นหลักฐานแก่เจ้าหน้าที่เพื่อยืนยันสิทธิ์สำเร็จ",
         actionType: "WAIT",
       };
 
@@ -220,25 +396,39 @@ const getStepGuidance = (app: ApplicationData) => {
     case "ACCEPTED":
     case "ENROLLED":
       return {
-        condition: "🏆 เงื่อนไข: ยืนยันสิทธิ์สำเร็จ (Step 13/13: Acceptance Confirmed)",
+        condition: isEn
+          ? "🏆 Condition: Acceptance Confirmed (Step 13/13)"
+          : "🏆 เงื่อนไข: ยืนยันสิทธิ์สำเร็จ (Step 13/13: Acceptance Confirmed)",
         badgeBg: "bg-amber-100 border-amber-300 text-amber-950 font-bold",
         icon: Sparkles,
-        title: "🎉 ยืนยันสิทธิ์เข้าศึกษาโครงการนักบินสำเร็จ (Acceptance Confirmed)",
-        description: "ท่านได้รับการคัดเลือกและยืนยันสิทธิ์เข้าศึกษาในหลักสูตร Nok Air Cadet Pilot Program เรียบร้อยแล้ว!",
-        nextActionTitle: "คำแนะนำสำหรับนักบินใหม่:",
-        nextAction: "ขอแสดงความยินดีด้วย! เจ้าหน้าที่จะติดต่อท่านเพื่อแจ้งกำหนดการทำสัญญาและการปฐมนิเทศนักบินใหม่",
+        title: isEn
+          ? "🎉 Cadet Pilot Program Acceptance Confirmed!"
+          : "🎉 ยืนยันสิทธิ์เข้าศึกษาโครงการนักบินสำเร็จ (Acceptance Confirmed)",
+        description: isEn
+          ? "Congratulations! You are officially selected and confirmed for Nok Air Cadet Pilot Program."
+          : "ท่านได้รับการคัดเลือกและยืนยันสิทธิ์เข้าศึกษาในหลักสูตร Nok Air Cadet Pilot Program เรียบร้อยแล้ว!",
+        nextActionTitle: isEn ? "Instructions for New Cadets:" : "คำแนะนำสำหรับนักบินใหม่:",
+        nextAction: isEn
+          ? "Congratulations! Staff will contact you with contract signing and orientation details."
+          : "ขอแสดงความยินดีด้วย! เจ้าหน้าที่จะติดต่อท่านเพื่อแจ้งกำหนดการทำสัญญาและการปฐมนิเทศนักบินใหม่",
         actionType: "SUCCESS",
       };
 
     default:
       return {
-        condition: "🔵 เงื่อนไข: ยื่นใบสมัครเรียบร้อยแล้ว",
+        condition: isEn
+          ? "🔵 Condition: Application Submitted"
+          : "🔵 เงื่อนไข: ยื่นใบสมัครเรียบร้อยแล้ว",
         badgeBg: "bg-slate-100 border-slate-300 text-slate-800",
         icon: Clock,
-        title: "ใบสมัครอยู่ระหว่างการประมวลผล",
-        description: "ข้อมูลของท่านเข้าสู่ระบบเรียบร้อยแล้ว",
-        nextActionTitle: "สิ่งที่ผู้สมัครต้องทำถัดไป:",
-        nextAction: "ติดตามการอัปเดตสถานะจากเจ้าหน้าที่ทางหน้าเว็บนี้",
+        title: isEn ? "Application Under Processing" : "ใบสมัครอยู่ระหว่างการประมวลผล",
+        description: isEn
+          ? "Your application data has been safely received."
+          : "ข้อมูลของท่านเข้าสู่ระบบเรียบร้อยแล้ว",
+        nextActionTitle: isEn ? "Next Action for Applicant:" : "สิ่งที่ผู้สมัครต้องทำถัดไป:",
+        nextAction: isEn
+          ? "Follow status updates on this portal."
+          : "ติดตามการอัปเดตสถานะจากเจ้าหน้าที่ทางหน้าเว็บนี้",
         actionType: "WAIT",
       };
   }
@@ -246,19 +436,44 @@ const getStepGuidance = (app: ApplicationData) => {
 
 const getDocTypeLabel = (type: string, t: (key: any) => string): string => {
   const map: Record<string, string> = {
-    PHOTO_1_INCH: "รูปถ่าย 1.5 นิ้ว",
-    PASSPORT_PHOTO: "รูปถ่าย 1.5 นิ้ว",
-    NATIONAL_ID_CERTIFIED: "สำเนาบัตรประชาชน",
-    NATIONAL_ID: "สำเนาบัตรประชาชน",
-    TRANSCRIPT_CERTIFIED: "สำเนาวุฒิการศึกษา",
-    TRANSCRIPT: "สำเนาวุฒิการศึกษา",
-    HOUSE_REGISTRATION_CERTIFIED: "สำเนาทะเบียนบ้าน",
-    HOUSE_REGISTRATION: "สำเนาทะเบียนบ้าน",
-    MEDICAL_CERTIFICATE_CLASS_1: "ใบรับรองแพทย์เวชศาสตร์การบิน",
-    MEDICAL_CERT: "ใบรับรองแพทย์เวชศาสตร์การบิน",
-    CRIMINAL_RECORD_CHECK: "ผลตรวจประวัติอาชญากรรม",
+    PHOTO_1_INCH: t("docPassportPhoto"),
+    PASSPORT_PHOTO: t("docPassportPhoto"),
+    NATIONAL_ID_CERTIFIED: t("docNationalId"),
+    NATIONAL_ID: t("docNationalId"),
+    TRANSCRIPT_CERTIFIED: t("docTranscript"),
+    TRANSCRIPT: t("docTranscript"),
+    HOUSE_REGISTRATION_CERTIFIED: t("docHouseRegistration"),
+    HOUSE_REGISTRATION: t("docHouseRegistration"),
+    MEDICAL_CERTIFICATE_CLASS_1: t("docMedicalCert"),
+    MEDICAL_CERT: t("docMedicalCert"),
+    CRIMINAL_RECORD_CHECK: t("docOther"),
+    MILITARY_SERVICE_EXEMPTION: t("docMilitary"),
   };
   return map[type] || type;
+};
+
+const formatRemarks = (remarks?: string, stepIndex?: number, lang: "th" | "en" = "th") => {
+  const isEn = lang === "en";
+  if (!remarks) return isEn ? "Staff is processing step by step" : "เจ้าหน้าที่กำลังดำเนินการตามลำดับขั้นตอน";
+  
+  if (stepIndex !== 5) {
+    let cleaned = remarks
+      .replace(/อนุมัติสลิปการชำระเงิน\s*1,800\s*บาทเรียบร้อยแล้ว/gi, "")
+      .replace(/อนุมัติสลิปการชำระเงิน\s*1800\s*บาทเรียบร้อยแล้ว/gi, "")
+      .replace(/อนุมัติสลิปการชำระเงิน\s*เรียบร้อยแล้ว/gi, "")
+      .replace(/ได้รับสลิปโอนเงินเรียบร้อยแล้ว/gi, "")
+      .replace(/อัปโหลดสลิป\s*1,800\s*บาทเรียบร้อยแล้ว/gi, "")
+      .replace(/ชำระค่าสมัคร\s*1,800\s*บาทเรียบร้อยแล้ว/gi, "")
+      .trim();
+
+    cleaned = cleaned.replace(/^\(\s*สถานะ:\s*/, "").replace(/\)\s*$/, "").trim();
+    if (!cleaned || cleaned.startsWith("ไม่ประสงค์เข้าร่วมงาน") || cleaned.startsWith("ลงทะเบียนเข้าร่วมงาน")) {
+      return isEn ? "Staff has verified application details" : "เจ้าหน้าที่ได้ดำเนินการตรวจสอบข้อมูลเรียบร้อยแล้ว";
+    }
+    return cleaned;
+  }
+
+  return remarks;
 };
 
 export default function TrackStatusPage() {
@@ -289,7 +504,8 @@ export default function TrackStatusPage() {
   const handleOpenPayModal = (appNum: string) => {
     setActivePayAppNum(appNum);
     setSlipFile(null);
-    setJoinOpenHouse(null);
+    const existingApp = result?.applications?.find((a) => a.applicationNumber === appNum);
+    setJoinOpenHouse(existingApp?.joinOpenHouse ?? null);
     setSlipSuccess(false);
     setPayModalOpen(true);
   };
@@ -352,7 +568,7 @@ export default function TrackStatusPage() {
 
   const handleConfirmSubmitSlip = async () => {
     if (joinOpenHouse === null) {
-      alert("กรุณาเลือกความประสงค์เข้าร่วมงาน Open House ก่อนกดยืนยัน");
+      alert(t("selectOpenHouseChoiceAlert"));
       return;
     }
     if (!slipFile) {
@@ -383,14 +599,14 @@ export default function TrackStatusPage() {
     } catch (e) {}
 
     const openHouseRemarks = joinOpenHouse
-      ? ` | ลงทะเบียนเข้าร่วมงาน Open House วันที่ 12 ก.ย. 2569 (จำนวน ${openHouseAttendees} ท่าน)`
-      : ` | ไม่ประสงค์เข้าร่วมงาน Open House`;
+      ? `${t("openHouseRemarkYes")} (จำนวน ${openHouseAttendees} ท่าน)`
+      : t("openHouseRemarkNo");
 
     setTimeout(() => {
       setUploadingSlip(false);
       setSlipSuccess(true);
 
-      const updatedRemarks = `ได้รับสลิปโอนเงินเรียบร้อยแล้ว${openHouseRemarks} เจ้าหน้าที่จะทำการตรวจสอบและอนุมัติใบสมัครภายใน 24 ชม.`;
+      const updatedRemarks = `${t("slipReceivedRemarks")}${openHouseRemarks}`;
 
       updateApplication(activePayAppNum, {
         remarks: updatedRemarks,
@@ -407,6 +623,7 @@ export default function TrackStatusPage() {
                   statusLabelTh: "อัปโหลดสลิป 1,800 บาทเรียบร้อยแล้ว (เจ้าหน้ากำลังตรวจสอบ)",
                   statusLabelEn: "Payment slip 1,800 THB uploaded (Staff reviewing)",
                   remarks: updatedRemarks,
+                  joinOpenHouse: joinOpenHouse,
                 }
               : a
           ),
@@ -448,25 +665,27 @@ export default function TrackStatusPage() {
       const student = firstMatch.student;
       const studentName = student
         ? `${student.title || ""} ${student.firstNameTh || student.firstNameEn || ""} ${student.lastNameTh || student.lastNameEn || ""} (${student.firstNameEn || ""} ${student.lastNameEn || ""})`.trim()
-        : "ไม่ทราบชื่อ";
+        : t("unknownStudentName");
 
-      const getStatusInfo = (status: string) => {
+      const getStatusInfo = (status: string, remarks?: string) => {
         switch (status) {
           case "ONLINE_REGISTRATION":
             return { stepIndex: 1, labelTh: "1/13: เปิดรับสมัครออนไลน์", labelEn: "1/13: Online Registration Open" };
           case "SUBMITTED":
+            return { stepIndex: 2, labelTh: "2/13: กรอกใบสมัคร + แนบเอกสาร", labelEn: "2/13: Submitted & Attached Docs" };
           case "DOCS_UNDER_REVIEW":
           case "WAITING_DOCUMENTS":
             return { stepIndex: 3, labelTh: "3/13: ตรวจเอกสารเบื้องต้น", labelEn: "3/13: Document Review in Progress" };
           case "DOCS_PASSED":
           case "DOCUMENT_VERIFIED":
+            return { stepIndex: 4, labelTh: "4/13: ผ่านการตรวจเอกสาร", labelEn: "4/13: Documents Review Passed" };
           case "APPLICATION_FEE_PAID":
-            return { stepIndex: 5, labelTh: "5/13: ผ่านการตรวจเอกสาร (พร้อมชำระค่าสมัคร 1,800 บาท)", labelEn: "5/13: Documents Review Completed (Ready for Payment)" };
+            return { stepIndex: 5, labelTh: "5/13: ชำระค่าสมัคร 1,800 บาท", labelEn: "5/13: App Fee Paid (1,800 THB)" };
           case "PAID":
           case "PAYMENT_PENDING":
           case "PAYMENT_VERIFIED":
           case "OPEN_HOUSE_ATTENDED":
-            return { stepIndex: 6, labelTh: "6/13: ชำระค่าสมัครเรียบร้อยแล้ว (เตรียมเข้าร่วมงาน Open House)", labelEn: "6/13: Payment Verified (Ready for Open House)" };
+            return { stepIndex: 6, labelTh: "6/13: เข้าร่วม Open House", labelEn: "6/13: Attended Open House" };
           case "PHYSICAL_DOCS_SUBMITTED":
             return { stepIndex: 7, labelTh: "7/13: ส่งเอกสารตัวจริงให้เจ้าหน้าที่เรียบร้อยแล้ว", labelEn: "7/13: Physical Documents Submitted" };
           case "WRITTEN_EXAM":
@@ -488,6 +707,12 @@ export default function TrackStatusPage() {
           case "ENROLLED":
             return { stepIndex: 13, labelTh: "13/13: ยืนยันสิทธิ์เข้าศึกษาสำเร็จ", labelEn: "13/13: Acceptance Confirmed" };
           case "REJECTED":
+            if (remarks?.includes("สัมภาษณ์") || remarks?.includes("Interview")) {
+              return { stepIndex: 11, labelTh: "11/13: ประกาศผลสัมภาษณ์ (ขอขอบพระคุณที่เข้าร่วมการคัดเลือก)", labelEn: "11/13: Panel Interview Results" };
+            }
+            if (remarks?.includes("ขอบพระคุณ") || remarks?.includes("กำลังใจ") || remarks?.includes("เกณฑ์") || remarks?.includes("สอบ")) {
+              return { stepIndex: 9, labelTh: "9/13: ประกาศผลสอบ (ขอขอบพระคุณที่เข้าร่วมการคัดเลือก)", labelEn: "9/13: Written Exam Results" };
+            }
             return { stepIndex: 0, labelTh: "ไม่ผ่านการคัดเลือก (Rejected)", labelEn: "Application Not Successful" };
           default:
             return { stepIndex: 1, labelTh: "ยื่นใบสมัครแล้ว", labelEn: "Application Submitted" };
@@ -495,18 +720,19 @@ export default function TrackStatusPage() {
       };
 
       const applications: ApplicationData[] = localMatches.map((app) => {
-        const info = getStatusInfo(app.status);
+        const info = getStatusInfo(app.status, app.remarks);
         return {
           id: app.id,
           applicationNumber: app.applicationNumber,
-          courseName: "แบบฟอร์มสมัครเรียนการบินออนไลน์ 8 ขั้นตอน",
+          courseName: t("trackCourseName"),
           status: app.status,
           statusLabelTh: info.labelTh,
           statusLabelEn: info.labelEn,
           submissionDate: app.createdAt ? new Date(app.createdAt).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
           stepIndex: info.stepIndex,
-          remarks: "เจ้าหน้าที่กำลังดำเนินการตามลำดับขั้นตอน",
-          updatedAt: app.updatedAt ? new Date(app.updatedAt).toLocaleString("th-TH") : "อัปเดตล่าสุดวันนี้",
+          remarks: t("staffProcessingProgress"),
+          updatedAt: app.updatedAt ? new Date(app.updatedAt).toLocaleString(language === "en" ? "en-US" : "th-TH") : t("lastUpdatedToday"),
+          joinOpenHouse: app.joinOpenHouse,
           documents: (app.documents || []).map((doc: any) => ({
             id: doc.id || `doc_${Date.now()}`,
             type: doc.type,
@@ -556,19 +782,19 @@ export default function TrackStatusPage() {
   React.useEffect(() => {
     if (!result || !result.applications || result.applications.length === 0) return;
 
-    const getStatusInfo = (status: string) => {
+    const getStatusInfo = (status: string, remarks?: string) => {
       switch (status) {
         case "ONLINE_REGISTRATION": return { stepIndex: 1, labelTh: "1/13: เปิดรับสมัครออนไลน์", labelEn: "1/13: Online Registration Open" };
-        case "SUBMITTED":
+        case "SUBMITTED": return { stepIndex: 2, labelTh: "2/13: กรอกใบสมัคร + แนบเอกสาร", labelEn: "2/13: Submitted & Attached Docs" };
         case "DOCS_UNDER_REVIEW":
         case "WAITING_DOCUMENTS": return { stepIndex: 3, labelTh: "3/13: ตรวจเอกสารเบื้องต้น", labelEn: "3/13: Document Review in Progress" };
         case "DOCS_PASSED":
-        case "DOCUMENT_VERIFIED":
-        case "APPLICATION_FEE_PAID": return { stepIndex: 5, labelTh: "5/13: ผ่านการตรวจเอกสาร (พร้อมชำระค่าสมัคร 1,800 บาท)", labelEn: "5/13: Documents Review Completed (Ready for Payment)" };
+        case "DOCUMENT_VERIFIED": return { stepIndex: 4, labelTh: "4/13: ผ่านการตรวจเอกสาร", labelEn: "4/13: Documents Review Passed" };
+        case "APPLICATION_FEE_PAID": return { stepIndex: 5, labelTh: "5/13: ชำระค่าสมัคร 1,800 บาท", labelEn: "5/13: App Fee Paid (1,800 THB)" };
         case "PAID":
         case "PAYMENT_PENDING":
         case "PAYMENT_VERIFIED":
-        case "OPEN_HOUSE_ATTENDED": return { stepIndex: 6, labelTh: "6/13: ชำระค่าสมัครเรียบร้อยแล้ว (เตรียมเข้าร่วมงาน Open House)", labelEn: "6/13: Payment Verified (Ready for Open House)" };
+        case "OPEN_HOUSE_ATTENDED": return { stepIndex: 6, labelTh: "6/13: เข้าร่วม Open House", labelEn: "6/13: Attended Open House" };
         case "PHYSICAL_DOCS_SUBMITTED": return { stepIndex: 7, labelTh: "7/13: ส่งเอกสารตัวจริงให้เจ้าหน้าที่เรียบร้อยแล้ว", labelEn: "7/13: Physical Documents Submitted" };
         case "WRITTEN_EXAM": return { stepIndex: 8, labelTh: "8/13: กำหนดวันสอบข้อเขียน", labelEn: "8/13: Written Exam Scheduled" };
         case "WRITTEN_EXAM_PASSED": return { stepIndex: 9, labelTh: "9/13: ผ่านการสอบข้อเขียน", labelEn: "9/13: Written Exam Passed" };
@@ -582,7 +808,14 @@ export default function TrackStatusPage() {
         case "ORIENTATION":
         case "PILOT_JOURNEY_BEGUN":
         case "ENROLLED": return { stepIndex: 13, labelTh: "13/13: ยืนยันสิทธิ์เข้าศึกษาสำเร็จ", labelEn: "13/13: Acceptance Confirmed" };
-        case "REJECTED": return { stepIndex: 0, labelTh: "ไม่ผ่านการคัดเลือก (Rejected)", labelEn: "Application Not Successful" };
+        case "REJECTED":
+          if (remarks?.includes("สัมภาษณ์") || remarks?.includes("Interview")) {
+            return { stepIndex: 11, labelTh: "11/13: ประกาศผลสัมภาษณ์ (ขอขอบพระคุณที่เข้าร่วมการคัดเลือก)", labelEn: "11/13: Panel Interview Results" };
+          }
+          if (remarks?.includes("ขอบพระคุณ") || remarks?.includes("กำลังใจ") || remarks?.includes("เกณฑ์") || remarks?.includes("สอบ")) {
+            return { stepIndex: 9, labelTh: "9/13: ประกาศผลสอบ (ขอขอบพระคุณที่เข้าร่วมการคัดเลือก)", labelEn: "9/13: Written Exam Results" };
+          }
+          return { stepIndex: 0, labelTh: "ไม่ผ่านการคัดเลือก (Rejected)", labelEn: "Application Not Successful" };
         default: return { stepIndex: 1, labelTh: "ยื่นใบสมัครแล้ว", labelEn: "Application Submitted" };
       }
     };
@@ -593,12 +826,9 @@ export default function TrackStatusPage() {
       );
       if (!liveApp) return resApp;
 
-      const info = getStatusInfo(liveApp.status);
+      const info = getStatusInfo(liveApp.status, liveApp.remarks);
 
-      let latestRemarks = resApp.remarks;
-      if (liveApp.adminNotes && liveApp.adminNotes.length > 0) {
-        latestRemarks = liveApp.adminNotes[0].content;
-      }
+      let latestRemarks = liveApp.remarks || (liveApp.adminNotes && liveApp.adminNotes.length > 0 ? liveApp.adminNotes[0].content : resApp.remarks);
 
       return {
         ...resApp,
@@ -793,119 +1023,116 @@ export default function TrackStatusPage() {
                 </div>
               </div>
 
-              {/* 8 Essential Student Milestone Timeline */}
-              <div className="space-y-5">
+              {/* 13 Pilot Workflow Steps Timeline */}
+              <div className="space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-3">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold tracking-[0.15em] text-tif-gold uppercase">
-                      {t("progressLabel")} (สถานะขั้นตอนการคัดเลือกนักบิน)
+                      {t("progressLabel")} ({t("workflow13StepsSubtitle")})
                     </span>
                   </div>
                   <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 shrink-0">
-                    ขั้นตอนปัจจุบัน: {app.stepIndex || 1} จาก 13 ({Math.round(((app.stepIndex || 1) / 13) * 100)}%)
+                    {t("currentStepProgress")} {app.stepIndex || 1} {t("ofSteps")} 13 ({Math.round(((app.stepIndex || 1) / 13) * 100)}%)
                   </span>
                 </div>
 
-                {/* Horizontal Stepper Grid (8 Key Milestones) */}
-                <div className="relative">
-                  {/* Connecting Line behind icons */}
-                  <div className="absolute top-5 left-[6%] right-[6%] h-0.5 bg-slate-200 hidden md:block" />
-                  <div
-                    className="absolute top-5 left-[6%] h-0.5 bg-emerald-500 transition-all duration-500 hidden md:block"
-                    style={{
-                      width: `${
-                        (app.stepIndex || 1) <= 2
-                          ? 0
-                          : (app.stepIndex || 1) <= 4
-                          ? 14
-                          : (app.stepIndex || 1) <= 5
-                          ? 28
-                          : (app.stepIndex || 1) <= 7
-                          ? 42
-                          : (app.stepIndex || 1) <= 9
-                          ? 57
-                          : (app.stepIndex || 1) <= 11
-                          ? 71
-                          : (app.stepIndex || 1) <= 12
-                          ? 85
-                          : 100
-                      }%`,
-                    }}
-                  />
+                {/* Progress bar line */}
+                <div className="relative pt-1 pb-2">
+                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden border border-slate-200">
+                    <div
+                      className="bg-gradient-to-r from-emerald-500 via-amber-400 to-tif-gold h-full transition-all duration-500 rounded-full"
+                      style={{
+                        width: `${Math.min(100, Math.max(7, ((app.stepIndex || 1) / 13) * 100))}%`,
+                      }}
+                    />
+                  </div>
+                </div>
 
-                  {/* 8 Milestone Items Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 relative z-10">
-                    {[
-                      { num: 1, labelTh: "1. ยื่นใบสมัคร", labelEn: "Application", icon: FileText, maxStep: 2 },
-                      { num: 2, labelTh: "2. ตรวจเอกสาร", labelEn: "Docs Review", icon: CheckCircle2, maxStep: 4 },
-                      { num: 3, labelTh: "3. ชำระค่าสมัคร 1,800 บาท", labelEn: "App Fee (1,800 THB)", icon: CreditCard, maxStep: 5 },
-                      { num: 4, labelTh: "4. ส่งเอกสารตัวจริง", labelEn: "Original Docs", icon: Upload, maxStep: 7 },
-                      { num: 5, labelTh: "5. สอบข้อเขียน", labelEn: "Written Exam", icon: PenTool, maxStep: 9 },
-                      { num: 6, labelTh: "6. สอบสัมภาษณ์", labelEn: "Interview", icon: User, maxStep: 11 },
-                      { num: 7, labelTh: "7. ตรวจสุขภาพ Class 1", labelEn: "Medical Check", icon: Award, maxStep: 12 },
-                      { num: 8, labelTh: "8. การยืนยันสิทธิ์ สำเร็จ", labelEn: "Acceptance Confirmed", icon: Sparkles, maxStep: 13 },
-                    ].map((milestone) => {
-                      const curStep = app.stepIndex || 1;
-                      const isComplete = curStep > milestone.maxStep || (milestone.num === 8 && curStep === 13);
-                      const isCurrent =
-                        (milestone.num === 1 && curStep <= 2) ||
-                        (milestone.num === 2 && curStep >= 3 && curStep <= 4) ||
-                        (milestone.num === 3 && curStep === 5) ||
-                        (milestone.num === 4 && curStep >= 6 && curStep <= 7) ||
-                        (milestone.num === 5 && curStep >= 8 && curStep <= 9) ||
-                        (milestone.num === 6 && curStep >= 10 && curStep <= 11) ||
-                        (milestone.num === 7 && curStep === 12) ||
-                        (milestone.num === 8 && curStep >= 13);
+                {/* 13 Milestone Cards Responsive Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 xl:grid-cols-13 gap-2">
+                  {PILOT_WORKFLOW_STEPS.map((stepDef) => {
+                    const curStep = app.stepIndex || 1;
+                    const isComplete = curStep > stepDef.step;
+                    const isCurrent = curStep === stepDef.step;
+                    const isFeeStep = stepDef.step === 5;
 
-                      const Icon = milestone.icon;
-                      const isFeeStep = milestone.num === 3;
+                    const getStepIcon = (s: number) => {
+                      switch (s) {
+                        case 1: return Globe;
+                        case 2: return Upload;
+                        case 3: return Clock;
+                        case 4: return CheckCircle2;
+                        case 5: return CreditCard;
+                        case 6: return Sparkles;
+                        case 7: return FileText;
+                        case 8: return PenTool;
+                        case 9: return CheckCircle2;
+                        case 10: return User;
+                        case 11: return CheckCircle2;
+                        case 12: return Award;
+                        case 13: return Sparkles;
+                        default: return CheckCircle2;
+                      }
+                    };
 
-                      return (
-                        <div
-                          key={milestone.num}
-                          className={`flex flex-col items-center text-center p-2.5 rounded-xl border transition-all ${
+                    const StepIcon = getStepIcon(stepDef.step);
+
+                    return (
+                      <div
+                        key={stepDef.step}
+                        className={`flex flex-col items-center text-center p-2 rounded-xl border transition-all ${
+                          isCurrent
+                            ? isFeeStep
+                              ? "bg-amber-50 border-amber-400 text-amber-900 shadow-md ring-2 ring-amber-400/30"
+                              : "bg-tif-gold/15 border-tif-gold text-tif-navy shadow-md ring-2 ring-tif-gold/30"
+                            : isComplete
+                            ? "bg-emerald-50/70 border-emerald-300 text-emerald-900"
+                            : "bg-white border-slate-200 text-slate-400"
+                        }`}
+                      >
+                        {/* Step Number Badge */}
+                        <span
+                          className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md mb-1 ${
                             isCurrent
-                              ? isFeeStep
-                                ? "bg-amber-50 border-amber-400 text-amber-900 shadow-md ring-2 ring-amber-400/30"
-                                : "bg-tif-gold/10 border-tif-gold text-tif-navy shadow-md ring-2 ring-tif-gold/20"
+                              ? "bg-tif-gold text-slate-950 font-extrabold"
                               : isComplete
-                              ? "bg-emerald-50/50 border-emerald-200 text-emerald-900"
-                              : "bg-white border-slate-200 text-slate-400"
+                              ? "bg-emerald-200 text-emerald-900 font-bold"
+                              : "bg-slate-100 text-slate-400"
                           }`}
                         >
-                          <div
-                            className={`w-9 h-9 rounded-full flex items-center justify-center border-2 transition-all mb-1.5 ${
-                              isComplete
-                                ? "bg-emerald-500 border-emerald-500 text-white shadow-sm"
-                                : isCurrent
-                                ? isFeeStep
-                                  ? "bg-amber-500 border-amber-500 text-white font-bold animate-pulse shadow-md"
-                                  : "bg-tif-gold border-tif-gold text-slate-950 font-bold animate-pulse shadow-md"
-                                : "bg-white border-slate-200 text-slate-300"
-                            }`}
-                          >
-                            <Icon className="h-4 w-4" />
-                          </div>
-                          <p
-                            className={`text-[11px] font-bold leading-tight line-clamp-2 ${
-                              isCurrent
-                                ? isFeeStep
-                                  ? "text-amber-800 font-extrabold"
-                                  : "text-tif-goldDark font-bold"
-                                : isComplete
-                                ? "text-tif-navy"
-                                : "text-slate-400"
-                            }`}
-                          >
-                            {milestone.labelTh}
-                          </p>
-                          <p className="text-[9px] text-slate-400 font-mono mt-0.5 hidden xl:block">
-                            {milestone.labelEn}
-                          </p>
+                          #{stepDef.step}
+                        </span>
+
+                        <div
+                          className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center border transition-all mb-1 ${
+                            isComplete
+                              ? "bg-emerald-500 border-emerald-500 text-white shadow-xs"
+                              : isCurrent
+                              ? isFeeStep
+                                ? "bg-amber-500 border-amber-500 text-white font-bold animate-pulse shadow-md"
+                                : "bg-tif-gold border-tif-gold text-slate-950 font-bold animate-pulse shadow-md"
+                              : "bg-slate-50 border-slate-200 text-slate-300"
+                          }`}
+                        >
+                          <StepIcon className="h-3.5 w-3.5" />
                         </div>
-                      );
-                    })}
-                  </div>
+
+                        <p
+                          className={`text-[10px] font-bold leading-tight line-clamp-2 ${
+                            isCurrent
+                              ? isFeeStep
+                                ? "text-amber-900 font-extrabold"
+                                : "text-tif-goldDark font-bold"
+                              : isComplete
+                              ? "text-slate-800"
+                              : "text-slate-400"
+                          }`}
+                        >
+                          {language === "en" ? stepDef.titleEn : stepDef.titleTh}
+                        </p>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -931,7 +1158,7 @@ export default function TrackStatusPage() {
                     <strong className="text-xs font-bold text-tif-navy block">
                       {t("staffRemarksLabel")}
                     </strong>
-                    <span className="text-sm">{app.remarks}</span>
+                    <span className="text-sm">{formatRemarks(app.remarks, app.stepIndex, language)}</span>
 
                     {/* Document Re-upload Warning */}
                     {(app.status === "WAITING_DOCUMENTS" || app.documents?.some((d) => d.isRejected)) && (
@@ -995,7 +1222,7 @@ export default function TrackStatusPage() {
 
                     {/* Dynamic Step Guidance & Condition Met Card */}
                     {(() => {
-                      const guidance = getStepGuidance(app);
+                      const guidance = getStepGuidance(app, language);
                       const IconComp = guidance.icon;
 
                       return (
@@ -1006,7 +1233,7 @@ export default function TrackStatusPage() {
                               {guidance.condition}
                             </span>
                             <span className="text-[11px] font-medium text-slate-500">
-                              ขั้นตอนปัจจุบัน: <strong className="text-tif-navy font-bold">{app.stepIndex || 1} / 13</strong>
+                              {t("currentStepLabel")}: <strong className="text-tif-navy font-bold">{app.stepIndex || 1} / 13</strong>
                             </span>
                           </div>
 
@@ -1027,38 +1254,65 @@ export default function TrackStatusPage() {
                               {guidance.nextAction}
                             </p>
 
-                            {guidance.actionType === "PAY" && (
-                              <div className="pt-2 flex justify-end border-t border-slate-100 mt-2">
-                                <Button
-                                  size="sm"
-                                  variant="gold"
-                                  onClick={() => handleOpenPayModal(app.applicationNumber)}
-                                  className="font-bold text-xs shadow-gold"
-                                >
-                                  <CreditCard className="mr-1.5 h-3.5 w-3.5" /> {t("attachPaymentSlipBtn")}
-                                </Button>
-                              </div>
-                            )}
+                            {(guidance.actionType === "PAY" || guidance.actionType === "SLIP_SUBMITTED" || (app.stepIndex === 5 && app.status !== "PAYMENT_PENDING")) && (() => {
+                              const isSubmitted = guidance.actionType === "SLIP_SUBMITTED" || app.status === "PAYMENT_PENDING" || app.remarks?.includes("สลิป") || app.remarks?.includes("Slip") || app.remarks?.includes("โอนเงิน");
+
+                              return (
+                                <div className={`pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t mt-3 p-3.5 rounded-xl border ${
+                                  isSubmitted
+                                    ? "bg-emerald-50/90 border-emerald-300 text-emerald-950"
+                                    : "bg-amber-50/70 border-amber-300 text-amber-950"
+                                }`}>
+                                  <span className="text-xs font-bold flex items-center gap-1.5">
+                                    {isSubmitted
+                                      ? t("paymentSlipSubmittedPrompt")
+                                      : t("paymentSlipInstructionPrompt")}
+                                  </span>
+                                  <Button
+                                    size="sm"
+                                    variant={isSubmitted ? "outline" : "gold"}
+                                    onClick={() => handleOpenPayModal(app.applicationNumber)}
+                                    className={`font-bold text-xs shrink-0 py-2.5 px-4 ${
+                                      isSubmitted
+                                        ? "border-emerald-400 text-emerald-950 hover:bg-emerald-100 bg-white shadow-xs"
+                                        : "shadow-gold"
+                                    }`}
+                                  >
+                                    {isSubmitted ? (
+                                      <>
+                                        <CheckCircle2 className="mr-1.5 h-4 w-4 text-emerald-600" />
+                                        {t("slipSubmittedBtn")}
+                                      </>
+                                    ) : (
+                                      <>
+                                        <CreditCard className="mr-1.5 h-4 w-4" />
+                                        {t("attachPaymentSlipBtn")}
+                                      </>
+                                    )}
+                                  </Button>
+                                </div>
+                              );
+                            })()}
 
                             {guidance.actionType === "EXAM" && (
                               <div className="mt-3 p-3.5 rounded-xl bg-purple-950/5 border border-purple-200 space-y-2">
                                 <div className="flex items-center gap-1.5 font-bold text-purple-950 text-xs border-b border-purple-200/60 pb-2">
                                   <Calendar className="h-4 w-4 text-purple-600 shrink-0" />
-                                  <span>ข้อมูลการสอบข้อเขียน (Written Exam Details)</span>
+                                  <span>{t("writtenExamDetailsTitle")}</span>
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 font-medium">
                                   <div className="bg-white p-2.5 rounded-lg border border-purple-100 shadow-xs space-y-0.5">
-                                    <span className="text-[10px] text-slate-400 font-bold block">📅 วันที่สอบ (Date)</span>
-                                    <span className="font-bold text-slate-900 text-xs">26 กันยายน 2569</span>
+                                    <span className="text-[10px] text-slate-400 font-bold block">{t("writtenExamDateLabel")}</span>
+                                    <span className="font-bold text-slate-900 text-xs">{t("writtenExamDateValue")}</span>
                                   </div>
                                   <div className="bg-white p-2.5 rounded-lg border border-purple-100 shadow-xs space-y-0.5">
-                                    <span className="text-[10px] text-slate-400 font-bold block">⏰ เวลาสอบ (Time)</span>
-                                    <span className="font-bold text-slate-900 text-xs">XX:XX - XX:XX น.</span>
-                                    <span className="text-[9px] font-medium text-purple-700 block">(จะแจ้งอีกครั้ง)</span>
+                                    <span className="text-[10px] text-slate-400 font-bold block">{t("writtenExamTimeLabel")}</span>
+                                    <span className="font-bold text-slate-900 text-xs">{t("writtenExamTimeValue")}</span>
+                                    <span className="text-[9px] font-medium text-purple-700 block">{t("writtenExamTimeNotice")}</span>
                                   </div>
                                   <div className="bg-white p-2.5 rounded-lg border border-purple-100 shadow-xs space-y-0.5">
-                                    <span className="text-[10px] text-slate-400 font-bold block">📍 สถานที่สอบ (Location)</span>
-                                    <span className="font-bold text-purple-950 text-xs">มหาวิทยาลัยรังสิต</span>
+                                    <span className="text-[10px] text-slate-400 font-bold block">{t("writtenExamLocationLabel")}</span>
+                                    <span className="font-bold text-purple-950 text-xs">{t("writtenExamLocationValue")}</span>
                                   </div>
                                 </div>
                               </div>
@@ -1083,39 +1337,8 @@ export default function TrackStatusPage() {
                   app.status !== "DOCS_PENDING" &&
                   app.status !== "REJECTED";
 
-                // 1. If all 6 documents are uploaded and none are rejected: show clean green success banner
-                if (isAllUploadedAndClean && !showAll) {
-                  return (
-                    <div className="p-5 rounded-2xl border border-emerald-200 bg-emerald-50/70 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-sm">
-                          <CheckCircle2 className="h-5 w-5" />
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-bold text-emerald-950 font-display">
-                            อัปโหลดเอกสารครบถ้วนเรียบร้อยแล้ว ({docs.length}/6 รายการ)
-                          </h4>
-                          <p className="text-xs text-emerald-700 mt-0.5">
-                            เอกสารของคุณแนบเข้าสู่ระบบครบถ้วนแล้ว อยู่ระหว่างเจ้าหน้าที่ตรวจสอบความถูกต้องและอนุมัติใบสมัคร
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setShowAllDocsMap((prev) => ({ ...prev, [app.id]: true }))}
-                          className="text-xs font-bold border-emerald-300 text-emerald-900 hover:bg-emerald-100 bg-white"
-                        >
-                          <Eye className="mr-1.5 h-3.5 w-3.5 text-emerald-600" /> ดูเอกสารทั้งหมดที่แนบไว้ ({docs.length})
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                }
-
-                // 2. If there are rejected docs OR missing docs OR user clicked show all
-                const displayedDocs = rejectedDocs.length > 0 && !showAll ? rejectedDocs : docs;
+                // Always display all attached document cards directly
+                const displayedDocs = docs;
 
                 return (
                   <div className="space-y-4">
@@ -1124,33 +1347,23 @@ export default function TrackStatusPage() {
                         <FileText className="h-4 w-4 text-tif-gold" />
                         <div>
                           <h4 className="text-xs font-bold text-tif-navy uppercase tracking-wider font-display">
-                            {rejectedDocs.length > 0 && !showAll
-                              ? `⚠️ เอกสารที่ต้องแก้ไข / ส่งใหม่ (${rejectedDocs.length} รายการ)`
+                            {rejectedDocs.length > 0
+                              ? `${t("rejectedDocsActionRequiredTitle")} (${rejectedDocs.length})`
                               : t("attachedDocsTitle")}
                           </h4>
                           <p className="text-[11px] text-slate-400 mt-0.5">
-                            {rejectedDocs.length > 0 && !showAll
-                              ? "แสดงเฉพาะเอกสารที่เจ้าหน้าที่แจ้งให้ส่งใหม่ กรุณาอัปโหลดไฟล์ทดแทน"
+                            {rejectedDocs.length > 0
+                              ? t("showRejectedDocsOnlyDesc")
                               : t("attachedDocsSub")}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        {showAll && isAllUploadedAndClean && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setShowAllDocsMap((prev) => ({ ...prev, [app.id]: false }))}
-                            className="text-xs text-slate-500 hover:text-slate-900"
-                          >
-                            ซ่อนรายการเอกสาร
-                          </Button>
-                        )}
                         {/* Lock editing & adding docs if status passed document verification */}
                         {isDocLocked ? (
                           <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100/90 px-3 py-1.5 rounded-xl border border-emerald-300 flex items-center shadow-sm">
                             <CheckCircle2 className="mr-1.5 h-3.5 w-3.5 text-emerald-600" />
-                            ผ่านการตรวจสอบเอกสารแล้ว (ล็อคการแก้ไข)
+                            {t("docsVerifiedLockedBadge")}
                           </span>
                         ) : (
                           <Button
@@ -1237,7 +1450,7 @@ export default function TrackStatusPage() {
                                 )}
                                 {isSingleDocLocked && !doc.isRejected && (
                                   <span className="text-[10px] font-medium text-slate-400 italic">
-                                    ✓ เอกสารได้รับการตรวจสอบแล้ว
+                                    {t("docVerifiedBadgeLabel")}
                                   </span>
                                 )}
                               </div>
@@ -1266,13 +1479,14 @@ export default function TrackStatusPage() {
         onClose={() => setPayModalOpen(false)}
         title={`${t("payModalTitle")} (${activePayAppNum})`}
         description={t("payModalDesc")}
-        maxWidth="2xl"
+        maxWidth="md"
+        variant="light"
       >
         {slipSuccess ? (
-          <div className="bg-emerald-950/80 border border-emerald-500/50 rounded-2xl p-6 text-center space-y-3">
-            <CheckCircle2 className="h-10 w-10 text-emerald-400 mx-auto" />
-            <h4 className="text-lg font-bold text-emerald-300">{t("slipUploadSuccessTitle")}</h4>
-            <p className="text-xs text-emerald-200">
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-5 text-center space-y-2">
+            <CheckCircle2 className="h-8 w-8 text-emerald-600 mx-auto" />
+            <h4 className="text-base font-bold text-emerald-950">{t("slipUploadSuccessTitle")}</h4>
+            <p className="text-xs text-emerald-700">
               {t("slipUploadSuccessDesc")} (<strong className="font-mono">{activePayAppNum}</strong>)
             </p>
             <Button variant="gold" size="sm" onClick={() => setPayModalOpen(false)}>
@@ -1280,171 +1494,151 @@ export default function TrackStatusPage() {
             </Button>
           </div>
         ) : (
-            <div className="space-y-4 text-xs text-slate-200">
-              {/* Bank Info (SCB & KBANK) */}
-              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3 font-mono">
-                <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
-                    {t("bankAccountHeader")} (INSTITUTE BANK ACCOUNTS)
+          <div className="space-y-2.5 text-xs text-slate-700">
+            {/* Bank Info (SCB Single Ultra-Compact Card) */}
+            <div className="bg-gradient-to-r from-purple-950 via-indigo-950 to-purple-900 text-white p-3 rounded-xl border border-purple-800 shadow-xs flex items-center justify-between gap-2">
+              <div className="space-y-0.5 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-bold text-xs text-white truncate">{t("scbBankName")}</span>
+                  <span className="text-[9px] text-purple-200 bg-purple-800/70 px-1.5 py-0.2 rounded font-medium shrink-0">
+                    {t("savingsAccountType")}
                   </span>
-                  <span className="text-[11px] font-bold text-tif-gold">ยอดชำระ: 1,800.00 THB</span>
                 </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* SCB */}
-                  <div className="bg-purple-950/30 p-3 rounded-xl border border-purple-900/50 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <p className="text-purple-300 font-bold text-xs">ธนาคารไทยพาณิชย์ (SCB)</p>
-                      <span className="text-[9px] text-purple-300 bg-purple-900/60 px-1.5 py-0.5 rounded border border-purple-700/50">
-                        ออมทรัพย์
-                      </span>
-                    </div>
-                    <p className="text-tif-gold font-bold text-sm tracking-wider">202-280661-2</p>
-                    <p className="text-slate-300 text-[10px]">ชื่อบัญชี: บริษัท ไทย อินเตอร์ ไฟลอิ้ง จำกัด</p>
-                  </div>
-
-                  {/* KBANK */}
-                  <div className="bg-emerald-950/20 p-3 rounded-xl border border-emerald-900/40 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <p className="text-emerald-400 font-bold text-xs">{t("kbankName")}</p>
-                      <span className="text-[9px] text-emerald-300 bg-emerald-900/60 px-1.5 py-0.5 rounded border border-emerald-700/50">
-                        ออมทรัพย์
-                      </span>
-                    </div>
-                    <p className="text-tif-gold font-bold text-sm tracking-wider">012-3-45678-9</p>
-                    <p className="text-slate-300 text-[10px]">ชื่อบัญชี: {t("companyAccountName")}</p>
-                  </div>
-                </div>
+                <p className="text-slate-300 text-[10px] truncate">{t("scbAccountOwner")}</p>
               </div>
 
-              {/* Open House Registration Box */}
-              <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2.5 shadow-md">
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
-                  การเข้าร่วมงาน OPEN HOUSE (NOK AIR CADET PILOT PROGRAM)
-                </span>
-
-                <div className="space-y-2">
-                  {/* Radio 1: YES */}
-                  <label className="flex items-start space-x-2.5 p-2.5 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 cursor-pointer transition">
-                    <input
-                      type="radio"
-                      name="openHouseChoiceTrack"
-                      checked={joinOpenHouse === true}
-                      onChange={() => setJoinOpenHouse(true)}
-                      className="w-4 h-4 mt-0.5 border-slate-700 bg-slate-900 text-tif-gold focus:ring-tif-gold accent-tif-gold shrink-0 cursor-pointer"
-                    />
-                    <div>
-                      <span className="text-xs font-bold text-white block">
-                        มีความประสงค์เข้าร่วมงาน Open House (Nok Air Cadet Pilot Program)
-                      </span>
-                      <span className="text-[11px] text-amber-400/90 font-medium block mt-0.5">
-                        * จำกัดผู้เข้าร่วมสูงสุด 2 ท่าน ต่อ 1 การลงทะเบียน
-                      </span>
-                    </div>
-                  </label>
-
-                  {/* Event Details when YES is selected */}
-                  {joinOpenHouse && (
-                    <div className="ml-6 p-3 rounded-xl bg-slate-900/90 border border-tif-gold/30 space-y-2 text-xs text-slate-300">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <p className="flex items-center text-slate-200">
-                          <Calendar className="h-3.5 w-3.5 mr-1.5 text-tif-gold shrink-0" />
-                          <span><strong>Date:</strong> 12 September 2026</span>
-                        </p>
-                        <p className="flex items-center text-slate-200">
-                          <Clock className="h-3.5 w-3.5 mr-1.5 text-tif-gold shrink-0" />
-                          <span><strong>Time:</strong> 09:00 - 15:00 PM</span>
-                        </p>
-                      </div>
-
-                      <p className="flex items-start text-slate-200">
-                        <MapPin className="h-3.5 w-3.5 mr-1.5 text-tif-gold shrink-0 mt-0.5" />
-                        <span>
-                          <strong>Location:</strong> Best Western Plus Wanda Grand Hotel Chaengwattana, 5th Floor, Ballroom A
-                        </span>
-                      </p>
-
-                      <div className="pt-1">
-                        <a
-                          href="https://maps.app.goo.gl/Dou74zVtK9MWUbW18"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center text-[11px] font-bold text-tif-gold hover:underline bg-tif-gold/10 px-2.5 py-1 rounded-lg border border-tif-gold/30"
-                        >
-                          <ExternalLink className="h-3 w-3 mr-1" />
-                          ดูแผนที่ Google Maps ↗
-                        </a>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Radio 2: NO */}
-                  <label className="flex items-center space-x-2.5 p-2.5 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 cursor-pointer transition">
-                    <input
-                      type="radio"
-                      name="openHouseChoiceTrack"
-                      checked={joinOpenHouse === false}
-                      onChange={() => setJoinOpenHouse(false)}
-                      className="w-4 h-4 border-slate-700 bg-slate-900 text-tif-gold focus:ring-tif-gold accent-tif-gold shrink-0 cursor-pointer"
-                    />
-                    <span className="text-xs font-bold text-slate-300">
-                      ไม่ประสงค์เข้าร่วมงาน Open House
-                    </span>
-                  </label>
-                </div>
+              <div className="bg-purple-900/90 border border-purple-700/80 px-2.5 py-1 rounded-lg text-right shrink-0">
+                <div className="text-sm font-extrabold font-mono text-tif-gold tracking-wider">202-280661-2</div>
+                <div className="text-[9px] font-mono text-purple-200 font-bold">{t("amountToPayLabel")}</div>
               </div>
-
-              {/* Upload Input */}
-              <div className="space-y-1.5">
-                <label className="font-bold text-slate-200 block">{t("selectSlipFileLabel")} (Auto Compress to 5MB) *</label>
-                <input
-                  type="file"
-                  accept="image/*,.pdf"
-                  onChange={async (e) => {
-                    let selected = e.target.files?.[0];
-                    if (!selected) return;
-
-                    if (selected.size > 5 * 1024 * 1024 && selected.type.startsWith("image/")) {
-                      selected = await compressImageIfNeeded(selected, 5 * 1024 * 1024);
-                    }
-
-                    if (selected && selected.size > 5 * 1024 * 1024) {
-                      alert("ขนาดไฟล์สลิปเกิน 5MB กรุณาเลือกไฟล์รูปภาพหรือ PDF ขนาดไม่เกิน 5MB");
-                      e.target.value = "";
-                      setSlipFile(null);
-                      return;
-                    }
-                    setSlipFile(selected || null);
-                  }}
-                  className="w-full text-xs text-slate-300 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-tif-gold file:text-tif-navy hover:file:bg-amber-400 cursor-pointer bg-slate-950 p-1.5 rounded-xl border border-slate-800"
-                />
-                <span className="text-[10px] text-slate-400 block">รองรับไฟล์ JPG, PNG, PDF (รูปภาพขนาดใหญ่จะถูกย่อให้อัตโนมัติไม่เกิน 5MB)</span>
-                {slipFile && (
-                  <p className="text-[11px] text-emerald-400 font-mono">
-                    {t("selectedFileLabel")} {slipFile.name} ({Math.round(slipFile.size / 1024)} KB)
-                  </p>
-                )}
-              </div>
-
-              <Button
-                variant="gold"
-                className="w-full font-bold shadow-lg mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                onClick={handleConfirmSubmitSlip}
-                disabled={joinOpenHouse === null || !slipFile || uploadingSlip}
-              >
-                {uploadingSlip
-                  ? t("submittingSlipBtn")
-                  : joinOpenHouse === null && !slipFile
-                  ? "กรุณาเลือกความประสงค์ Open House และแนบสลิปโอนเงิน"
-                  : joinOpenHouse === null
-                  ? "กรุณาเลือกความประสงค์เข้าร่วมงาน Open House"
-                  : !slipFile
-                  ? "กรุณาแนบไฟล์สลิปโอนเงินก่อนกดยืนยัน"
-                  : t("confirmSubmitSlipBtn")}
-              </Button>
             </div>
-          )}
-        </Modal>
+
+            {/* Open House Registration (Horizontal Compact Choice) */}
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-tif-navy uppercase tracking-wider block font-display">
+                  📋 {t("openHouseRegistrationHeader")}
+                </span>
+                <span className="text-[10px] text-amber-700 font-medium">
+                  {t("openHouseLimitNotice")}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {/* Radio 1: YES */}
+                <label className={`flex items-center space-x-2 p-2.5 rounded-lg border transition cursor-pointer ${
+                  joinOpenHouse === true 
+                    ? "border-tif-gold bg-amber-50/80 ring-1 ring-tif-gold/40 shadow-xs" 
+                    : "border-slate-200 bg-white hover:bg-slate-50"
+                }`}>
+                  <input
+                    type="radio"
+                    name="openHouseChoiceTrack"
+                    checked={joinOpenHouse === true}
+                    onChange={() => setJoinOpenHouse(true)}
+                    className="w-4 h-4 text-tif-gold focus:ring-tif-gold accent-tif-gold shrink-0 cursor-pointer"
+                  />
+                  <span className="text-[11px] font-bold text-slate-900 leading-snug">
+                    {t("openHouseChoiceYes")}
+                  </span>
+                </label>
+
+                {/* Radio 2: NO */}
+                <label className={`flex items-center space-x-2 p-2.5 rounded-lg border transition cursor-pointer ${
+                  joinOpenHouse === false 
+                    ? "border-tif-gold bg-amber-50/80 ring-1 ring-tif-gold/40 shadow-xs" 
+                    : "border-slate-200 bg-white hover:bg-slate-50"
+                }`}>
+                  <input
+                    type="radio"
+                    name="openHouseChoiceTrack"
+                    checked={joinOpenHouse === false}
+                    onChange={() => setJoinOpenHouse(false)}
+                    className="w-4 h-4 text-tif-gold focus:ring-tif-gold accent-tif-gold shrink-0 cursor-pointer"
+                  />
+                  <span className="text-[11px] font-bold text-slate-800 leading-snug">
+                    {t("openHouseChoiceNo")}
+                  </span>
+                </label>
+              </div>
+
+              {/* Minimal Event Summary when YES */}
+              {joinOpenHouse && (
+                <div className="p-2 rounded-lg bg-white border border-amber-200 text-[10px] text-slate-700 flex flex-wrap items-center justify-between gap-1 shadow-2xs">
+                  <span>📅 12 Sep 2026 (09:00 - 15:00 น.)</span>
+                  <a
+                    href="https://maps.app.goo.gl/Dou74zVtK9MWUbW18"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-bold text-tif-navy hover:text-tif-gold underline flex items-center gap-0.5"
+                  >
+                    📍 Best Western Chaengwattana <ExternalLink className="h-2.5 w-2.5" />
+                  </a>
+                </div>
+              )}
+            </div>
+
+            {/* Upload Input Box */}
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
+              <label className="font-bold text-tif-navy block text-[11px]">
+                📎 {t("selectSlipFileLabel")} *
+              </label>
+              
+              <input
+                type="file"
+                accept="image/*,.pdf"
+                onChange={async (e) => {
+                  let selected = e.target.files?.[0];
+                  if (!selected) return;
+
+                  if (selected.size > 5 * 1024 * 1024 && selected.type.startsWith("image/")) {
+                    selected = await compressImageIfNeeded(selected, 5 * 1024 * 1024);
+                  }
+
+                  if (selected && selected.size > 5 * 1024 * 1024) {
+                    alert(t("fileTooLargeSlipAlert"));
+                    e.target.value = "";
+                    setSlipFile(null);
+                    return;
+                  }
+                  setSlipFile(selected || null);
+                }}
+                className="w-full text-[11px] text-slate-700 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-[11px] file:font-bold file:bg-tif-navy file:text-white hover:file:bg-tif-navyDark cursor-pointer bg-white p-1 rounded-lg border border-slate-200"
+              />
+
+              <span className="text-[10px] text-slate-500 block">{t("autoCompressHint")}</span>
+              
+              {slipFile && (
+                <div className="p-1.5 bg-emerald-50 rounded-lg border border-emerald-200 flex items-center justify-between text-[11px] text-emerald-800 font-medium">
+                  <span className="flex items-center gap-1 truncate">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                    <span className="truncate">{slipFile.name}</span>
+                  </span>
+                  <span className="font-mono text-[10px] shrink-0 font-bold">({Math.round(slipFile.size / 1024)} KB)</span>
+                </div>
+              )}
+            </div>
+
+            <Button
+              variant="gold"
+              size="sm"
+              className="w-full font-bold shadow-gold py-2.5 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleConfirmSubmitSlip}
+              disabled={joinOpenHouse === null || !slipFile || uploadingSlip}
+            >
+              {uploadingSlip
+                ? t("submittingSlipBtn")
+                : joinOpenHouse === null && !slipFile
+                ? t("selectOpenHouseAndSlipPrompt")
+                : joinOpenHouse === null
+                ? t("selectOpenHouseChoicePrompt")
+                : !slipFile
+                ? t("attachSlipPrompt")
+                : t("confirmSubmitSlipBtn")}
+            </Button>
+          </div>
+        )}
+      </Modal>
 
       {/* ================================================================ */}
       {/* RE-UPLOAD DOCUMENT MODAL                                          */}
@@ -1454,34 +1648,37 @@ export default function TrackStatusPage() {
         onClose={() => setReuploadModalOpen(false)}
         title={`${t("reuploadModalTitle")} (${activePayAppNum})`}
         description={t("reuploadModalDesc")}
+        maxWidth="md"
+        variant="light"
       >
-        <div className="space-y-4 text-xs text-slate-200">
+        <div className="space-y-3 text-xs text-slate-700">
           {/* Document Type Selector */}
-          <div>
-            <label className="font-bold text-slate-200 block mb-1.5">{t("selectDocTypeLabel")}</label>
+          <div className="space-y-1">
+            <label className="font-bold text-tif-navy block text-[11px]">{t("selectDocTypeLabel")}</label>
             <select
               value={reuploadType}
               onChange={(e) => setReuploadType(e.target.value)}
-              className="w-full rounded-xl border border-slate-800 bg-slate-950 p-2.5 text-xs text-white focus:border-tif-gold focus:outline-none font-medium"
+              className="w-full rounded-lg border border-slate-200 bg-white p-2 text-xs text-slate-900 focus:border-tif-gold focus:outline-none font-medium shadow-xs"
             >
-              <option value="NATIONAL_ID_CERTIFIED">สำเนาบัตรประชาชน</option>
-              <option value="TRANSCRIPT_CERTIFIED">สำเนาวุฒิการศึกษา</option>
-              <option value="HOUSE_REGISTRATION_CERTIFIED">สำเนาทะเบียนบ้าน</option>
-              <option value="MEDICAL_CERTIFICATE_CLASS_1">ใบรับรองแพทย์เวชศาสตร์การบิน</option>
-              <option value="PHOTO_1_INCH">รูปถ่าย 1.5 นิ้ว</option>
-              <option value="CRIMINAL_RECORD_CHECK">ผลตรวจประวัติอาชญากรรม</option>
+              <option value="NATIONAL_ID_CERTIFIED">{t("docNationalId")}</option>
+              <option value="TRANSCRIPT_CERTIFIED">{t("docTranscript")}</option>
+              <option value="HOUSE_REGISTRATION_CERTIFIED">{t("docHouseRegistration")}</option>
+              <option value="MEDICAL_CERTIFICATE_CLASS_1">{t("docMedicalCert")}</option>
+              <option value="PHOTO_1_INCH">{t("docPassportPhoto")}</option>
+              <option value="CRIMINAL_RECORD_CHECK">{t("docOther")}</option>
+              <option value="MILITARY_SERVICE_EXEMPTION">{t("docMilitary")}</option>
             </select>
           </div>
 
           {activeReuploadDoc?.rejectReason && (
-            <div className="p-3 bg-rose-950/40 rounded-xl border border-rose-800 space-y-1 text-rose-300">
-              <span className="text-[10px] text-rose-400 font-bold uppercase block">{t("previousRejectReasonTitle")}</span>
-              <p className="text-xs">{activeReuploadDoc.rejectReason}</p>
+            <div className="p-2.5 bg-rose-50 rounded-lg border border-rose-200 space-y-0.5 text-rose-800">
+              <span className="text-[9px] text-rose-600 font-bold uppercase block">{t("previousRejectReasonTitle")}</span>
+              <p className="text-[11px] font-medium">{activeReuploadDoc.rejectReason}</p>
             </div>
           )}
 
-          <div className="space-y-1.5">
-            <label className="font-bold text-slate-200 block">{t("selectNewDocFileLabel")} (Auto Compress to 5MB)</label>
+          <div className="space-y-1.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <label className="font-bold text-tif-navy block text-[11px]">{t("selectNewDocFileLabel")}</label>
             <input
               type="file"
               accept="image/*,.pdf"
@@ -1494,24 +1691,29 @@ export default function TrackStatusPage() {
                 }
 
                 if (selected && selected.size > 5 * 1024 * 1024) {
-                  alert("ขนาดไฟล์เอกสารเกิน 5MB กรุณาเลือกไฟล์รูปภาพหรือ PDF ขนาดไม่เกิน 5MB");
+                  alert(t("fileTooLargeDocAlert"));
                   e.target.value = "";
                   setReuploadFile(null);
                   return;
                 }
                 setReuploadFile(selected || null);
               }}
-              className="w-full text-xs text-slate-300 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-tif-gold file:text-tif-navy hover:file:bg-amber-400 cursor-pointer bg-slate-950 p-2 rounded-xl border border-slate-800"
+              className="w-full text-[11px] text-slate-700 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-[11px] file:font-bold file:bg-tif-navy file:text-white hover:file:bg-tif-navyDark cursor-pointer bg-white p-1 rounded-lg border border-slate-200"
             />
-            <span className="text-[10px] text-slate-400 block">รองรับไฟล์ JPG, PNG, PDF (รูปภาพขนาดใหญ่จะถูกย่อให้อัตโนมัติไม่เกิน 5MB)</span>
+            <span className="text-[10px] text-slate-500 block">{t("autoCompressHint")}</span>
+            
             {reuploadFile && (
-              <p className="text-[11px] text-emerald-400 font-mono">
-                {t("selectedFileLabel")} {reuploadFile.name} ({Math.round(reuploadFile.size / 1024)} KB)
-              </p>
+              <div className="p-1.5 bg-emerald-50 rounded-lg border border-emerald-200 flex items-center justify-between text-[11px] text-emerald-800 font-medium">
+                <span className="flex items-center gap-1 truncate">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                  <span className="truncate">{reuploadFile.name}</span>
+                </span>
+                <span className="font-mono text-[10px] shrink-0 font-bold">({Math.round(reuploadFile.size / 1024)} KB)</span>
+              </div>
             )}
           </div>
 
-          <div className="flex items-center justify-end space-x-2 pt-2">
+          <div className="flex items-center justify-end space-x-2 pt-1">
             <Button variant="outline" size="sm" onClick={() => setReuploadModalOpen(false)}>
               {t("cancelBtn")}
             </Button>
@@ -1520,7 +1722,7 @@ export default function TrackStatusPage() {
               size="sm"
               onClick={handleConfirmReupload}
               disabled={uploadingReupload}
-              className="font-bold"
+              className="font-bold px-4"
             >
               {uploadingReupload ? t("uploadingDocBtn") : t("confirmUploadDocBtn")}
             </Button>

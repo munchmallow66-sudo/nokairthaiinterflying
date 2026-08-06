@@ -160,19 +160,31 @@ export function MultiStepForm() {
     }
   };
 
+  const gender = watch("gender");
+  const isMale = gender?.toLowerCase() === "male" || gender === "ชาย";
+
   const REQUIRED_DOCS_CONFIG = [
     { type: "PHOTO_1_INCH", titleTh: "1. รูปถ่าย 1.5 นิ้ว", titleEn: "1. 1.5-inch Photo" },
     { type: "NATIONAL_ID_CERTIFIED", titleTh: "2. สำเนาบัตรประชาชน (รับรองสำเนาถูกต้อง)", titleEn: "2. Certified National ID" },
     { type: "TRANSCRIPT_CERTIFIED", titleTh: "3. สำเนาวุฒิการศึกษา (รับรองสำเนาถูกต้อง)", titleEn: "3. Certified Academic Transcript" },
     { type: "HOUSE_REGISTRATION_CERTIFIED", titleTh: "4. สำเนาทะเบียนบ้าน (รับรองสำเนาถูกต้อง)", titleEn: "4. Certified House Registration" },
-    { type: "MEDICAL_CERTIFICATE_CLASS_1", titleTh: "5. ใบสำคัญแพทย์ CLASS 1", titleEn: "5. Class 1 Medical Certificate" },
     { type: "CRIMINAL_RECORD_CHECK", titleTh: "6. ผลตรวจประวัติอาชญากรรม", titleEn: "6. Criminal Record Check" },
+    ...(isMale
+      ? [
+          {
+            type: "MILITARY_SERVICE_EXEMPTION",
+            titleTh: "7. ใบสำคัญแสดงการขอยกเว้นการรับราชการทหาร (สด.8 หรือ สด.43)",
+            titleEn: "7. Military Service Exemption Certificate (Sor Dor 8 or Sor Dor 43)",
+          },
+        ]
+      : []),
   ];
 
   const documents = watch("documents") || [];
   const uploadedDocTypes = new Set((documents || []).map((d: any) => d.type));
   const missingRequiredDocs = REQUIRED_DOCS_CONFIG.filter((doc) => !uploadedDocTypes.has(doc.type));
   const isAllDocsUploaded = missingRequiredDocs.length === 0;
+  const totalRequiredCount = REQUIRED_DOCS_CONFIG.length;
 
   const lastStepChangeRef = React.useRef<number>(Date.now());
 
@@ -193,8 +205,8 @@ export function MultiStepForm() {
         .join("\n- ");
       alert(
         language === "th"
-          ? `กรุณาอัปโหลดเอกสารประกอบการสมัครให้ครบถ้วนทั้ง 6 รายการก่อนส่งใบสมัคร\n\nเอกสารที่ยังขาดอยู่ (${missingRequiredDocs.length} รายการ):\n- ${missingTitles}`
-          : `Please upload all 6 required documents before submitting your application.\n\nMissing documents (${missingRequiredDocs.length}):\n- ${missingTitles}`
+          ? `กรุณาอัปโหลดเอกสารประกอบการสมัครให้ครบถ้วนทั้ง ${totalRequiredCount} รายการก่อนส่งใบสมัคร\n\nเอกสารที่ยังขาดอยู่ (${missingRequiredDocs.length} รายการ):\n- ${missingTitles}`
+          : `Please upload all ${totalRequiredCount} required documents before submitting your application.\n\nMissing documents (${missingRequiredDocs.length}):\n- ${missingTitles}`
       );
       return;
     }
@@ -299,7 +311,7 @@ export function MultiStepForm() {
           applicationNumber: finalAppNum,
           branch: "Bangkok Headquarters",
           preferredStartDate: new Date("2026-09-01"),
-          status: "SUBMITTED",
+          status: "DOCS_UNDER_REVIEW",
           createdAt: new Date(),
           updatedAt: new Date(),
           student: {
@@ -1035,15 +1047,15 @@ export function MultiStepForm() {
                   {isAllDocsUploaded ? (
                     <>
                       <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                      <span>{language === "th" ? "อัปโหลดเอกสารครบถ้วน (6/6)" : "All Documents Uploaded (6/6)"}</span>
+                      <span>{language === "th" ? `อัปโหลดเอกสารครบถ้วน (${totalRequiredCount}/${totalRequiredCount})` : `All Documents Uploaded (${totalRequiredCount}/${totalRequiredCount})`}</span>
                     </>
                   ) : (
                     <>
                       <AlertTriangle className="h-4 w-4 text-amber-600" />
                       <span>
                         {language === "th"
-                          ? `อัปโหลดแล้ว ${6 - missingRequiredDocs.length}/6 รายการ (ยังไม่ครบ)`
-                          : `Uploaded ${6 - missingRequiredDocs.length}/6 items (Incomplete)`}
+                          ? `อัปโหลดแล้ว ${totalRequiredCount - missingRequiredDocs.length}/${totalRequiredCount} รายการ (ยังไม่ครบ)`
+                          : `Uploaded ${totalRequiredCount - missingRequiredDocs.length}/${totalRequiredCount} items (Incomplete)`}
                       </span>
                     </>
                   )}
@@ -1093,6 +1105,15 @@ export function MultiStepForm() {
                   onUploadSuccess={handleDocumentUpload}
                   onRemove={() => handleDocumentRemove("CRIMINAL_RECORD_CHECK")}
                 />
+                {isMale && (
+                  <Uploader
+                    label={t("docMilitaryLabel")}
+                    type="MILITARY_SERVICE_EXEMPTION"
+                    existingFile={documents.find((d: any) => d?.type === "MILITARY_SERVICE_EXEMPTION")}
+                    onUploadSuccess={handleDocumentUpload}
+                    onRemove={() => handleDocumentRemove("MILITARY_SERVICE_EXEMPTION")}
+                  />
+                )}
               </div>
 
               {/* Incomplete / Complete Documents Status Banner */}
@@ -1102,8 +1123,8 @@ export function MultiStepForm() {
                     <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
                     <span>
                       {language === "th"
-                        ? "กรุณาอัปโหลดเอกสารให้ครบถ้วนทั้ง 6 รายการเพื่อเปิดใช้งานปุ่มส่งใบสมัคร"
-                        : "Please upload all 6 required documents to enable application submission"}
+                        ? `กรุณาอัปโหลดเอกสารให้ครบถ้วนทั้ง ${totalRequiredCount} รายการเพื่อเปิดใช้งานปุ่มส่งใบสมัคร`
+                        : `Please upload all ${totalRequiredCount} required documents to enable application submission`}
                     </span>
                   </div>
                   <p className="font-semibold text-amber-800">
@@ -1124,8 +1145,8 @@ export function MultiStepForm() {
                   <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
                   <span>
                     {language === "th"
-                      ? "อัปโหลดเอกสารครบถ้วนทั้ง 6 รายการเรียบร้อยแล้ว! สามารถกด \"ยืนยันส่งใบสมัครเรียน\" ได้ทันที"
-                      : "All 6 documents uploaded successfully! You can now click \"Submit Application\""}
+                      ? `อัปโหลดเอกสารครบถ้วนทั้ง ${totalRequiredCount} รายการเรียบร้อยแล้ว! สามารถกด "ยืนยันส่งใบสมัครเรียน" ได้ทันที`
+                      : `All ${totalRequiredCount} documents uploaded successfully! You can now click "Submit Application"`}
                   </span>
                 </div>
               )}

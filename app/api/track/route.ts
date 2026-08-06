@@ -108,6 +108,10 @@ export async function POST(req: Request) {
           statusLabelEn = "1/13: Online Application Open";
           break;
         case "SUBMITTED":
+          stepIndex = 2;
+          statusLabelTh = "2/13: กรอกใบสมัคร + แนบเอกสารเรียบร้อย";
+          statusLabelEn = "2/13: Submitted & Attached Docs";
+          break;
         case "DOCS_UNDER_REVIEW":
         case "WAITING_DOCUMENTS":
           stepIndex = 3;
@@ -116,18 +120,22 @@ export async function POST(req: Request) {
           break;
         case "DOCS_PASSED":
         case "DOCUMENT_VERIFIED":
+          stepIndex = 4;
+          statusLabelTh = "4/13: ผ่านการตรวจเอกสารเบื้องต้น";
+          statusLabelEn = "4/13: Documents Review Passed";
+          break;
         case "APPLICATION_FEE_PAID":
           stepIndex = 5;
-          statusLabelTh = "5/13: ผ่านการตรวจเอกสารเบื้องต้น (พร้อมชำระค่าสมัคร)";
-          statusLabelEn = "5/13: Documents Review Completed (Ready for Payment)";
+          statusLabelTh = "5/13: ชำระค่าสมัคร 1,800 บาทเรียบร้อยแล้ว";
+          statusLabelEn = "5/13: App Fee Paid (1,800 THB)";
           break;
         case "PAID":
         case "PAYMENT_PENDING":
         case "PAYMENT_VERIFIED":
         case "OPEN_HOUSE_ATTENDED":
           stepIndex = 6;
-          statusLabelTh = "6/13: ชำระค่าสมัครเรียบร้อยแล้ว (เตรียมเข้าร่วมงาน Open House)";
-          statusLabelEn = "6/13: Payment Verified (Ready for Open House)";
+          statusLabelTh = "6/13: เข้าร่วมงาน Open House";
+          statusLabelEn = "6/13: Attended Open House";
           break;
         case "PHYSICAL_DOCS_SUBMITTED":
           stepIndex = 7;
@@ -171,9 +179,19 @@ export async function POST(req: Request) {
           statusLabelEn = "13/13: Seat Acceptance Confirmed";
           break;
         case "REJECTED":
-          stepIndex = 0;
-          statusLabelTh = "ไม่ผ่านการคัดเลือก (Rejected)";
-          statusLabelEn = "Application Not Successful";
+          if (app.remarks?.includes("สัมภาษณ์") || app.remarks?.includes("Interview")) {
+            stepIndex = 11;
+            statusLabelTh = "11/13: ประกาศผลสัมภาษณ์ (ขอขอบพระคุณที่เข้าร่วมการคัดเลือก)";
+            statusLabelEn = "11/13: Panel Interview Results";
+          } else if (app.remarks?.includes("ขอบพระคุณ") || app.remarks?.includes("กำลังใจ") || app.remarks?.includes("เกณฑ์") || app.remarks?.includes("สอบ")) {
+            stepIndex = 9;
+            statusLabelTh = "9/13: ประกาศผลสอบ (ขอขอบพระคุณที่เข้าร่วมการคัดเลือก)";
+            statusLabelEn = "9/13: Written Exam Results";
+          } else {
+            stepIndex = 0;
+            statusLabelTh = "ไม่ผ่านการคัดเลือก (Rejected)";
+            statusLabelEn = "Application Not Successful";
+          }
           break;
         default:
           stepIndex = 1;

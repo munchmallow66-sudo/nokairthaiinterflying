@@ -94,29 +94,14 @@ export const step8Schema = z.object({
 });
 
 export const step9Schema = z.object({
-  documents: z
-    .array(
-      z.object({
-        type: z.string(),
-        secureUrl: z.string(),
-        publicId: z.string(),
-        originalName: z.string(),
-      })
-    )
-    .refine(
-      (docs) => {
-        const types = new Set((docs || []).map((d) => d.type));
-        return (
-          types.has("PHOTO_1_INCH") &&
-          types.has("NATIONAL_ID_CERTIFIED") &&
-          types.has("TRANSCRIPT_CERTIFIED") &&
-          types.has("HOUSE_REGISTRATION_CERTIFIED") &&
-          types.has("MEDICAL_CERTIFICATE_CLASS_1") &&
-          types.has("CRIMINAL_RECORD_CHECK")
-        );
-      },
-      { message: "กรุณาอัปโหลดเอกสารประกอบการสมัครให้ครบถ้วนทั้ง 6 รายการ" }
-    ),
+  documents: z.array(
+    z.object({
+      type: z.string(),
+      secureUrl: z.string(),
+      publicId: z.string(),
+      originalName: z.string(),
+    })
+  ),
 });
 
 export const fullApplicationSchema = step1Schema
@@ -127,6 +112,26 @@ export const fullApplicationSchema = step1Schema
   .merge(step6Schema)
   .merge(step7Schema)
   .merge(step8Schema)
-  .merge(step9Schema);
+  .merge(step9Schema)
+  .refine(
+    (data) => {
+      const types = new Set((data.documents || []).map((d) => d.type));
+      const isMale = data.gender?.toLowerCase() === "male" || data.gender === "ชาย";
+      const hasBase =
+        types.has("PHOTO_1_INCH") &&
+        types.has("NATIONAL_ID_CERTIFIED") &&
+        types.has("TRANSCRIPT_CERTIFIED") &&
+        types.has("HOUSE_REGISTRATION_CERTIFIED") &&
+        types.has("CRIMINAL_RECORD_CHECK");
+      if (isMale) {
+        return hasBase && types.has("MILITARY_SERVICE_EXEMPTION");
+      }
+      return hasBase;
+    },
+    {
+      message: "กรุณาอัปโหลดเอกสารประกอบการสมัครให้ครบถ้วนตามที่กำหนด",
+      path: ["documents"],
+    }
+  );
 
 export type FullApplicationInput = z.infer<typeof fullApplicationSchema>;
