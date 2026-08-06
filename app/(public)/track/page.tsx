@@ -1312,10 +1312,31 @@ export default function TrackStatusPage() {
                 </div>
               </div>
 
-              {/* Submitted Documents Section — Smart display based on status & completeness */}
+              {/* Submitted Documents Section — Completely hidden once Step 4 (Document Review) is passed */}
               {(() => {
                 const docs = app.documents || [];
                 const rejectedDocs = docs.filter((d) => d.isRejected);
+                const isStep4OrNext =
+                  (app.stepIndex || 1) >= 4 ||
+                  app.status === "DOCS_PASSED" ||
+                  app.status === "DOCUMENT_VERIFIED" ||
+                  app.status === "APPLICATION_FEE_PAID" ||
+                  app.status === "PAID" ||
+                  app.status === "PAYMENT_PENDING" ||
+                  app.status === "PAYMENT_VERIFIED" ||
+                  app.status === "OPEN_HOUSE_ATTENDED" ||
+                  app.status === "PHYSICAL_DOCS_SUBMITTED" ||
+                  app.status === "WRITTEN_EXAM" ||
+                  app.status === "WRITTEN_EXAM_PASSED" ||
+                  app.status === "INTERVIEW_SCHEDULED" ||
+                  app.status === "INTERVIEW_PASSED" ||
+                  app.status === "MEDICAL_CHECK_CLASS_1" ||
+                  app.status === "ACCEPTANCE_CONFIRMED";
+
+                // Step 4 passed & subsequent steps: Hide attached documents section completely if no rejected docs
+                if (isStep4OrNext && rejectedDocs.length === 0) {
+                  return null;
+                }
                 const isAllUploadedAndClean = docs.length >= 6 && rejectedDocs.length === 0;
                 const showAll = showAllDocsMap[app.id] || false;
                 const isDocLocked =
