@@ -324,7 +324,7 @@ export default function StudentApplicationsPage() {
 
   const handleFailWrittenExam = () => {
     if (!selectedApp) return;
-    const thankYouRemark = "💙 สถาบันไทย อินเตอร์ ไฟลอิ้ง ขอขอบพระคุณอย่างยิ่งที่ท่านให้ความสนใจและตั้งใจเข้าร่วมการสอบคัดเลือกนักบินในครั้งนี้ แม้ว่าผลการสอบในครั้งนี้จะยังไม่ผ่านเกณฑ์การคัดเลือก แต่สถาบันขอขอบคุณและเป็นกำลังใจให้ท่านในการเดินทางตามฝันสายการบินต่อไป และหวังเป็นอย่างยิ่งว่าจะได้มีโอกาสต้อนรับท่านอีกครั้งในโอกาสถัดไป";
+    const thankYouRemark = "สถาบันไทย อินเตอร์ ไฟลอิ้ง ขอขอบพระคุณอย่างยิ่งที่ท่านให้ความสนใจและตั้งใจเข้าร่วมการสอบคัดเลือกนักบินในครั้งนี้ แม้ว่าผลการสอบในครั้งนี้จะยังไม่ผ่านเกณฑ์การคัดเลือก แต่สถาบันขอขอบคุณและเป็นกำลังใจให้ท่านในการเดินทางตามฝันสายการบินต่อไป และหวังเป็นอย่างยิ่งว่าจะได้มีโอกาสต้อนรับท่านอีกครั้งในโอกาสถัดไป";
     updateApplication(selectedApp.id, {
       status: "REJECTED",
       remarks: thankYouRemark,
@@ -346,7 +346,7 @@ export default function StudentApplicationsPage() {
 
   const handlePassInterview = () => {
     if (!selectedApp) return;
-    const congratRemark = "🎉 ขอแสดงความยินดีด้วย! ท่านผ่านการสอบสัมภาษณ์ (Panel Interview) คัดเลือกนักบินเรียบร้อยแล้ว และได้รับสิทธิ์เข้าสู่ขั้นตอนการตรวจสุขภาพนักบิน Class 1 ต่อไป";
+    const congratRemark = "ขอแสดงความยินดีด้วย! ท่านผ่านการสอบสัมภาษณ์ (Panel Interview) คัดเลือกนักบินเรียบร้อยแล้ว และได้รับสิทธิ์เข้าสู่ขั้นตอนการตรวจสุขภาพนักบิน Class 1 ต่อไป";
     updateApplication(selectedApp.id, {
       status: "INTERVIEW_PASSED",
       remarks: congratRemark,
@@ -366,7 +366,7 @@ export default function StudentApplicationsPage() {
 
   const handleFailInterview = () => {
     if (!selectedApp) return;
-    const thankYouRemark = "💙 สถาบันไทย อินเตอร์ ไฟลอิ้ง ขอขอบพระคุณอย่างยิ่งที่ท่านให้ความสนใจและตั้งใจเข้าร่วมการสอบสัมภาษณ์คัดเลือกนักบินในครั้งนี้ แม้ว่าผลการสัมภาษณ์ในครั้งนี้จะยังไม่ผ่านเกณฑ์การคัดเลือก แต่คณะกรรมการขอขอบคุณและเป็นกำลังใจให้ท่านในการเดินทางตามฝันสายการบินต่อไป และหวังเป็นอย่างยิ่งว่าจะได้มีโอกาสต้อนรับท่านอีกครั้งในโอกาสถัดไป";
+    const thankYouRemark = "สถาบันไทย อินเตอร์ ไฟลอิ้ง ขอขอบพระคุณอย่างยิ่งที่ท่านให้ความสนใจและตั้งใจเข้าร่วมการสอบสัมภาษณ์คัดเลือกนักบินในครั้งนี้ แม้ว่าผลการสัมภาษณ์ในครั้งนี้จะยังไม่ผ่านเกณฑ์การคัดเลือก แต่คณะกรรมการขอขอบคุณและเป็นกำลังใจให้ท่านในการเดินทางตามฝันสายการบินต่อไป และหวังเป็นอย่างยิ่งว่าจะได้มีโอกาสต้อนรับท่านอีกครั้งในโอกาสถัดไป";
     updateApplication(selectedApp.id, {
       status: "REJECTED",
       remarks: thankYouRemark,
@@ -2826,7 +2826,7 @@ export default function StudentApplicationsPage() {
             <div className="p-4 rounded-xl border border-blue-300 bg-blue-50/80 space-y-3 flex flex-col justify-between shadow-xs">
               <div className="space-y-1.5">
                 <span className="font-bold text-blue-950 text-sm flex items-center gap-1.5">
-                  <Sparkles className="h-4 w-4 text-blue-600" /> 💙 ขอบคุณและเป็นกำลังใจ (ไม่ผ่าน)
+                  <Sparkles className="h-4 w-4 text-blue-600" /> ขอบคุณและเป็นกำลังใจ (ไม่ผ่าน)
                 </span>
                 <p className="text-[11px] text-blue-900 leading-relaxed">
                   ผู้สมัครไม่ผ่านเกณฑ์การสอบข้อเขียน ระบบจะแสดงข้อความขอบคุณอย่างสุภาพ ให้กำลังใจ และขอบคุณความตั้งใจเข้าร่วมโครงการ
@@ -2837,7 +2837,7 @@ export default function StudentApplicationsPage() {
                 onClick={handleFailWrittenExam}
                 className="w-full font-bold text-xs bg-blue-600 hover:bg-blue-700 text-white shadow-xs py-2.5"
               >
-                💙 ยืนยัน: ส่งข้อความขอบคุณ & เป็นกำลังใจ
+                ยืนยัน: ส่งข้อความขอบคุณ & เป็นกำลังใจ
               </Button>
             </div>
           </div>
@@ -2848,7 +2848,7 @@ export default function StudentApplicationsPage() {
       <Modal
         isOpen={interviewResultModalOpen}
         onClose={() => setInterviewResultModalOpen(false)}
-        title={`🎙️ ประกาศผลสอบสัมภาษณ์ — ${selectedApp?.student?.firstNameTh || ""} ${selectedApp?.student?.lastNameTh || ""}`}
+        title={`ประกาศผลสอบสัมภาษณ์ — ${selectedApp?.student?.firstNameTh || ""} ${selectedApp?.student?.lastNameTh || ""}`}
         description="เลือกผลการสอบสัมภาษณ์คัดเลือกนักบินประจำโครงการ:"
         maxWidth="md"
         variant="light"
@@ -2863,7 +2863,7 @@ export default function StudentApplicationsPage() {
             <div className="p-4 rounded-xl border border-emerald-300 bg-emerald-50/80 space-y-3 flex flex-col justify-between shadow-xs">
               <div className="space-y-1.5">
                 <span className="font-bold text-emerald-950 text-sm flex items-center gap-1.5">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-600" /> 🟢 ผ่านการสอบสัมภาษณ์
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" /> ผ่านการสอบสัมภาษณ์
                 </span>
                 <p className="text-[11px] text-emerald-900 leading-relaxed">
                   ผู้สมัครสอบผ่านการสัมภาษณ์และได้รับสิทธิ์เข้าสู่ขั้นตอนการตรวจสุขภาพนักบิน Class 1 เวชศาสตร์การบินต่อไป
@@ -2882,7 +2882,7 @@ export default function StudentApplicationsPage() {
             <div className="p-4 rounded-xl border border-blue-300 bg-blue-50/80 space-y-3 flex flex-col justify-between shadow-xs">
               <div className="space-y-1.5">
                 <span className="font-bold text-blue-950 text-sm flex items-center gap-1.5">
-                  <Sparkles className="h-4 w-4 text-blue-600" /> 💙 ขอบคุณและเป็นกำลังใจ (ไม่ผ่าน)
+                  <Sparkles className="h-4 w-4 text-blue-600" /> ขอบคุณและเป็นกำลังใจ (ไม่ผ่าน)
                 </span>
                 <p className="text-[11px] text-blue-900 leading-relaxed">
                   ผู้สมัครไม่ผ่านเกณฑ์การสอบสัมภาษณ์ ระบบจะแสดงข้อความขอบคุณอย่างสุภาพ ให้กำลังใจ และขอบคุณความตั้งใจเข้าร่วมโครงการ
@@ -2893,7 +2893,7 @@ export default function StudentApplicationsPage() {
                 onClick={handleFailInterview}
                 className="w-full font-bold text-xs bg-blue-600 hover:bg-blue-700 text-white shadow-xs py-2.5"
               >
-                💙 ยืนยัน: ส่งข้อความขอบคุณ & เป็นกำลังใจ
+                ยืนยัน: ส่งข้อความขอบคุณ & เป็นกำลังใจ
               </Button>
             </div>
           </div>

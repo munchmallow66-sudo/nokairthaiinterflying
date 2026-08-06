@@ -21,6 +21,8 @@ import {
   MapPin,
   ExternalLink,
   Globe,
+  Pin,
+  XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -78,11 +80,11 @@ const getStepGuidance = (app: ApplicationData, lang: "th" | "en" = "th") => {
     return {
       condition: isEn
         ? isInterview
-          ? "💙 Condition: Thank You for Participating in Interview Selection (Step 11/13)"
-          : "💙 Condition: Thank You for Participating in Written Exam Selection (Step 9/13)"
+          ? "Condition: Thank You for Participating in Interview Selection (Step 11/13)"
+          : "Condition: Thank You for Participating in Written Exam Selection (Step 9/13)"
         : isInterview
-        ? "💙 เงื่อนไข: สถาบันไทย อินเตอร์ ไฟลอิ้ง ขอขอบพระคุณที่เข้าร่วมการสอบสัมภาษณ์ (Step 11/13: ประกาศผลสัมภาษณ์)"
-        : "💙 เงื่อนไข: สถาบันไทย อินเตอร์ ไฟลอิ้ง ขอขอบพระคุณที่เข้าร่วมการสอบข้อเขียน (Step 9/13: ประกาศผลสอบ)",
+        ? "เงื่อนไข: สถาบันไทย อินเตอร์ ไฟลอิ้ง ขอขอบพระคุณที่เข้าร่วมการสอบสัมภาษณ์ (Step 11/13: ประกาศผลสัมภาษณ์)"
+        : "เงื่อนไข: สถาบันไทย อินเตอร์ ไฟลอิ้ง ขอขอบพระคุณที่เข้าร่วมการสอบข้อเขียน (Step 9/13: ประกาศผลสอบ)",
       badgeBg: "bg-blue-100 border-blue-300 text-blue-900 font-bold",
       icon: Sparkles,
       title: isEn
@@ -90,8 +92,8 @@ const getStepGuidance = (app: ApplicationData, lang: "th" | "en" = "th") => {
           ? "Thank You for Participating in Panel Interview"
           : "Thank You for Participating in Written Examination"
         : isInterview
-        ? "💙 ขอขอบพระคุณอย่างยิ่งที่ท่านเข้าร่วมการสอบสัมภาษณ์คัดเลือกนักบิน"
-        : "💙 ขอขอบพระคุณอย่างยิ่งที่ท่านเข้าร่วมการสอบข้อเขียนคัดเลือกนักบิน",
+        ? "ขอขอบพระคุณอย่างยิ่งที่ท่านเข้าร่วมการสอบสัมภาษณ์คัดเลือกนักบิน"
+        : "ขอขอบพระคุณอย่างยิ่งที่ท่านเข้าร่วมการสอบข้อเขียนคัดเลือกนักบิน",
       description: isEn
         ? isInterview
           ? "Thai Inter Flying thanks you for your panel interview participation. Although you did not pass the interview criteria in this selection round, we encourage you on your aviation journey and hope to welcome you in the future."
@@ -110,8 +112,8 @@ const getStepGuidance = (app: ApplicationData, lang: "th" | "en" = "th") => {
   if (status === "REJECTED" || hasRejectedDocs) {
     return {
       condition: isEn
-        ? "🔴 Condition: Documents Incomplete / Action Required"
-        : "🔴 เงื่อนไข: เอกสารไม่สมบูรณ์ / ต้องแก้ไขไฟล์เอกสารแนบ",
+        ? "Condition: Documents Incomplete / Action Required"
+        : "เงื่อนไข: เอกสารไม่สมบูรณ์ / ต้องแก้ไขไฟล์เอกสารแนบ",
       badgeBg: "bg-rose-100 border-rose-300 text-rose-800",
       icon: AlertCircle,
       title: isEn
@@ -132,8 +134,8 @@ const getStepGuidance = (app: ApplicationData, lang: "th" | "en" = "th") => {
     case "ONLINE_REGISTRATION":
       return {
         condition: isEn
-          ? "🔵 Condition: Online Application Open (Step 1/13)"
-          : "🔵 เงื่อนไข: เปิดรับสมัครออนไลน์ (Step 1/13)",
+          ? "Condition: Online Application Open (Step 1/13)"
+          : "เงื่อนไข: เปิดรับสมัครออนไลน์ (Step 1/13)",
         badgeBg: "bg-blue-100 border-blue-300 text-blue-800",
         icon: Clock,
         title: isEn ? "Online Registration Opened" : "เปิดรับสมัครออนไลน์เรียบร้อยแล้ว",
@@ -150,8 +152,8 @@ const getStepGuidance = (app: ApplicationData, lang: "th" | "en" = "th") => {
     case "SUBMITTED":
       return {
         condition: isEn
-          ? "🟡 Condition: Application Submitted (Step 2/13)"
-          : "🟡 เงื่อนไข: ยื่นใบสมัครเรียบร้อยแล้ว (Step 2/13)",
+          ? "Condition: Application Submitted (Step 2/13)"
+          : "เงื่อนไข: ยื่นใบสมัครเรียบร้อยแล้ว (Step 2/13)",
         badgeBg: "bg-amber-100 border-amber-300 text-amber-900",
         icon: Clock,
         title: isEn
@@ -171,8 +173,8 @@ const getStepGuidance = (app: ApplicationData, lang: "th" | "en" = "th") => {
     case "WAITING_DOCUMENTS":
       return {
         condition: isEn
-          ? "🟡 Condition: Initial Document Review in Progress (Step 3/13)"
-          : "🟡 เงื่อนไข: อยู่ระหว่างรอการตรวจเอกสารเบื้องต้น (Step 3/13)",
+          ? "Condition: Initial Document Review in Progress (Step 3/13)"
+          : "เงื่อนไข: อยู่ระหว่างรอการตรวจเอกสารเบื้องต้น (Step 3/13)",
         badgeBg: "bg-orange-100 border-orange-300 text-orange-900",
         icon: Clock,
         title: isEn
@@ -194,8 +196,8 @@ const getStepGuidance = (app: ApplicationData, lang: "th" | "en" = "th") => {
       if (hasSlipUploaded) {
         return {
           condition: isEn
-            ? "🟢 Condition: Payment Slip Uploaded (Pending Staff Verification)"
-            : "🟢 เงื่อนไข: แนบสลิปโอนเงินเรียบร้อยแล้ว (อยู่ระหว่างรอเจ้าหน้าที่ตรวจสอบ)",
+            ? "Condition: Payment Slip Uploaded (Pending Staff Verification)"
+            : "เงื่อนไข: แนบสลิปโอนเงินเรียบร้อยแล้ว (อยู่ระหว่างรอเจ้าหน้าที่ตรวจสอบ)",
           badgeBg: "bg-emerald-100 border-emerald-300 text-emerald-900 font-bold",
           icon: CheckCircle2,
           title: isEn
@@ -213,8 +215,8 @@ const getStepGuidance = (app: ApplicationData, lang: "th" | "en" = "th") => {
       }
       return {
         condition: isEn
-          ? "🟢 Condition: Document Review Completed (Step 5/13: Pay 1,800 THB Application Fee)"
-          : "🟢 เงื่อนไข: ผ่านการตรวจเอกสารเรียบร้อยแล้ว (Step 5/13: ชำระค่าสมัคร 1,800 บาท)",
+          ? "Condition: Document Review Completed (Step 5/13: Pay 1,800 THB Application Fee)"
+          : "เงื่อนไข: ผ่านการตรวจเอกสารเรียบร้อยแล้ว (Step 5/13: ชำระค่าสมัคร 1,800 บาท)",
         badgeBg: "bg-emerald-100 border-emerald-300 text-emerald-900 font-bold",
         icon: CheckCircle2,
         title: isEn
@@ -233,8 +235,8 @@ const getStepGuidance = (app: ApplicationData, lang: "th" | "en" = "th") => {
     case "PAYMENT_PENDING":
       return {
         condition: isEn
-          ? "🟡 Condition: Payment Slip Under Verification (Step 5/13)"
-          : "🟡 เงื่อนไข: อยู่ระหว่างตรวจสอบสลิปชำระเงิน 1,800 บาท (Step 5/13)",
+          ? "Condition: Payment Slip Under Verification (Step 5/13)"
+          : "เงื่อนไข: อยู่ระหว่างตรวจสอบสลิปชำระเงิน 1,800 บาท (Step 5/13)",
         badgeBg: "bg-amber-100 border-amber-300 text-amber-900",
         icon: Clock,
         title: isEn
@@ -255,8 +257,8 @@ const getStepGuidance = (app: ApplicationData, lang: "th" | "en" = "th") => {
     case "OPEN_HOUSE_ATTENDED":
       return {
         condition: isEn
-          ? "🟢 Condition: Payment Approved (Step 6/13: Open House Attended)"
-          : "🟢 เงื่อนไข: อนุมัติการชำระเงินเรียบร้อยแล้ว (Step 6/13: Open House Attended)",
+          ? "Condition: Payment Approved (Step 6/13: Open House Attended)"
+          : "เงื่อนไข: อนุมัติการชำระเงินเรียบร้อยแล้ว (Step 6/13: Open House Attended)",
         badgeBg: "bg-indigo-100 border-indigo-300 text-indigo-900",
         icon: CheckCircle2,
         title: isEn
@@ -275,8 +277,8 @@ const getStepGuidance = (app: ApplicationData, lang: "th" | "en" = "th") => {
     case "PHYSICAL_DOCS_SUBMITTED":
       return {
         condition: isEn
-          ? "🟢 Condition: Open House Attended (Step 7/13: Physical Docs Submitted)"
-          : "🟢 เงื่อนไข: เข้าร่วมงาน Open House เรียบร้อย (Step 7/13: Physical Docs Submitted)",
+          ? "Condition: Open House Attended (Step 7/13: Physical Docs Submitted)"
+          : "เงื่อนไข: เข้าร่วมงาน Open House เรียบร้อย (Step 7/13: Physical Docs Submitted)",
         badgeBg: "bg-sky-100 border-sky-300 text-sky-900",
         icon: CheckCircle2,
         title: isEn
@@ -295,8 +297,8 @@ const getStepGuidance = (app: ApplicationData, lang: "th" | "en" = "th") => {
     case "WRITTEN_EXAM":
       return {
         condition: isEn
-          ? "🟡 Condition: Written Exam Scheduled (Step 8/13)"
-          : "🟡 เงื่อนไข: กำหนดวันสอบข้อเขียน (Step 8/13: Written Exam Scheduled)",
+          ? "Condition: Written Exam Scheduled (Step 8/13)"
+          : "เงื่อนไข: กำหนดวันสอบข้อเขียน (Step 8/13: Written Exam Scheduled)",
         badgeBg: "bg-purple-100 border-purple-300 text-purple-900",
         icon: Clock,
         title: isEn
@@ -307,21 +309,21 @@ const getStepGuidance = (app: ApplicationData, lang: "th" | "en" = "th") => {
           : "ท่านได้รับการคัดเลือกและมีสิทธิ์เข้ารับการสอบข้อเขียนในโครงการ Nok Air Cadet Pilot Program",
         nextActionTitle: isEn ? "Exam Schedule & Venue:" : "กำหนดการและสถานที่สอบข้อเขียน:",
         nextAction: isEn
-          ? "📅 Exam Date: 26 Sept 2026 | ⏰ Time: TBD | 📍 Venue: Rangsit University"
-          : "📅 วันที่สอบ: 26 กันยายน 2569 | ⏰ เวลาสอบ: XX:XX - XX:XX น. (จะแจ้งให้ทราบอีกครั้ง) | 📍 สถานที่สอบ: มหาวิทยาลัยรังสิต",
+          ? "Exam Date: 26 Sept 2026 | Time: TBD | Venue: Rangsit University"
+          : "วันที่สอบ: 26 กันยายน 2569 | เวลาสอบ: XX:XX - XX:XX น. (จะแจ้งให้ทราบอีกครั้ง) | สถานที่สอบ: มหาวิทยาลัยรังสิต",
         actionType: "EXAM",
       };
 
     case "WRITTEN_EXAM_PASSED":
       return {
         condition: isEn
-          ? "🟢 Condition: Written Exam Results (Step 9/13: Passed Exam)"
-          : "🟢 เงื่อนไข: ประกาศผลสอบ (Step 9/13: ผ่านการสอบข้อเขียนเรียบร้อยแล้ว)",
+          ? "Condition: Written Exam Results (Step 9/13: Passed Exam)"
+          : "เงื่อนไข: ประกาศผลสอบ (Step 9/13: ผ่านการสอบข้อเขียนเรียบร้อยแล้ว)",
         badgeBg: "bg-emerald-100 border-emerald-300 text-emerald-900 font-bold",
         icon: CheckCircle2,
         title: isEn
-          ? "🎉 Congratulations! Passed Written Examination"
-          : "🎉 ขอแสดงความยินดีด้วย! ท่านผ่านการสอบข้อเขียนเรียบร้อยแล้ว",
+          ? "Congratulations! Passed Written Examination"
+          : "ขอแสดงความยินดีด้วย! ท่านผ่านการสอบข้อเขียนเรียบร้อยแล้ว",
         description: isEn
           ? "Your written exam score met the required standards for the Cadet Pilot Program. You are qualified for the panel interview stage."
           : "ผลคะแนนสอบข้อเขียนของท่านผ่านเกณฑ์มาตรฐานการรับสมัครนักบินของโครงการ สถาบันขอแสดงความยินดีและขอให้ท่านเตรียมความพร้อมสำหรับขั้นตอนสอบสัมภาษณ์ต่อไป",
@@ -335,8 +337,8 @@ const getStepGuidance = (app: ApplicationData, lang: "th" | "en" = "th") => {
     case "INTERVIEW_SCHEDULED":
       return {
         condition: isEn
-          ? "🟡 Condition: Interview Scheduled (Step 10/13)"
-          : "🟡 เงื่อนไข: กำหนดวันสอบสัมภาษณ์ (Step 10/13: Interview Scheduled)",
+          ? "Condition: Interview Scheduled (Step 10/13)"
+          : "เงื่อนไข: กำหนดวันสอบสัมภาษณ์ (Step 10/13: Interview Scheduled)",
         badgeBg: "bg-purple-100 border-purple-300 text-purple-900",
         icon: Clock,
         title: isEn
@@ -355,13 +357,13 @@ const getStepGuidance = (app: ApplicationData, lang: "th" | "en" = "th") => {
     case "INTERVIEW_PASSED":
       return {
         condition: isEn
-          ? "🟢 Condition: Interview Results (Step 11/13: Passed Panel Interview)"
-          : "🟢 เงื่อนไข: ผ่านการสอบสัมภาษณ์เรียบร้อยแล้ว (Step 11/13: ประกาศผลสัมภาษณ์)",
+          ? "Condition: Interview Results (Step 11/13: Passed Panel Interview)"
+          : "เงื่อนไข: ผ่านการสอบสัมภาษณ์เรียบร้อยแล้ว (Step 11/13: ประกาศผลสัมภาษณ์)",
         badgeBg: "bg-emerald-100 border-emerald-300 text-emerald-900 font-bold",
         icon: CheckCircle2,
         title: isEn
-          ? "🎉 Congratulations! Passed Panel Interview"
-          : "🎉 ขอแสดงความยินดีด้วย! ท่านผ่านการสอบสัมภาษณ์เรียบร้อยแล้ว",
+          ? "Congratulations! Passed Panel Interview"
+          : "ขอแสดงความยินดีด้วย! ท่านผ่านการสอบสัมภาษณ์เรียบร้อยแล้ว",
         description: isEn
           ? "Panel approved your interview. You advance to Aviation Medical Class 1 Examination."
           : "คณะกรรมการอนุมัติผลการสัมภาษณ์เรียบร้อยแล้ว ท่านผ่านเข้าสู่ขั้นตอนการตรวจร่างกายทางเวชศาสตร์การบิน (Medical Class 1 Check)",
@@ -375,8 +377,8 @@ const getStepGuidance = (app: ApplicationData, lang: "th" | "en" = "th") => {
     case "MEDICAL_CHECK_CLASS_1":
       return {
         condition: isEn
-          ? "🟡 Condition: Medical Class 1 Check (Step 12/13)"
-          : "🟡 เงื่อนไข: ตรวจสุขภาพ Class 1 (Step 12/13: Class 1 Medical Check)",
+          ? "Condition: Medical Class 1 Check (Step 12/13)"
+          : "เงื่อนไข: ตรวจสุขภาพ Class 1 (Step 12/13: Class 1 Medical Check)",
         badgeBg: "bg-pink-100 border-pink-300 text-pink-900",
         icon: Clock,
         title: isEn
@@ -397,13 +399,13 @@ const getStepGuidance = (app: ApplicationData, lang: "th" | "en" = "th") => {
     case "ENROLLED":
       return {
         condition: isEn
-          ? "🏆 Condition: Acceptance Confirmed (Step 13/13)"
-          : "🏆 เงื่อนไข: ยืนยันสิทธิ์สำเร็จ (Step 13/13: Acceptance Confirmed)",
+          ? "Condition: Acceptance Confirmed (Step 13/13)"
+          : "เงื่อนไข: ยืนยันสิทธิ์สำเร็จ (Step 13/13: Acceptance Confirmed)",
         badgeBg: "bg-amber-100 border-amber-300 text-amber-950 font-bold",
         icon: Sparkles,
         title: isEn
-          ? "🎉 Cadet Pilot Program Acceptance Confirmed!"
-          : "🎉 ยืนยันสิทธิ์เข้าศึกษาโครงการนักบินสำเร็จ (Acceptance Confirmed)",
+          ? "Cadet Pilot Program Acceptance Confirmed!"
+          : "ยืนยันสิทธิ์เข้าศึกษาโครงการนักบินสำเร็จ (Acceptance Confirmed)",
         description: isEn
           ? "Congratulations! You are officially selected and confirmed for Nok Air Cadet Pilot Program."
           : "ท่านได้รับการคัดเลือกและยืนยันสิทธิ์เข้าศึกษาในหลักสูตร Nok Air Cadet Pilot Program เรียบร้อยแล้ว!",
@@ -417,8 +419,8 @@ const getStepGuidance = (app: ApplicationData, lang: "th" | "en" = "th") => {
     default:
       return {
         condition: isEn
-          ? "🔵 Condition: Application Submitted"
-          : "🔵 เงื่อนไข: ยื่นใบสมัครเรียบร้อยแล้ว",
+          ? "Condition: Application Submitted"
+          : "เงื่อนไข: ยื่นใบสมัครเรียบร้อยแล้ว",
         badgeBg: "bg-slate-100 border-slate-300 text-slate-800",
         icon: Clock,
         title: isEn ? "Application Under Processing" : "ใบสมัครอยู่ระหว่างการประมวลผล",
@@ -1258,7 +1260,7 @@ export default function TrackStatusPage() {
                       <div className="rounded-xl bg-white border border-amber-200/90 p-4 sm:p-5 space-y-2.5 shadow-2xs relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-24 h-24 bg-amber-400/5 rounded-full blur-xl pointer-events-none" />
                         <span className="text-xs font-extrabold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
-                          <span className="text-base">📌</span> {guidance.nextActionTitle}
+                          <Pin className="h-3.5 w-3.5 text-amber-700 shrink-0" /> {guidance.nextActionTitle}
                         </span>
                         <p className="text-xs sm:text-sm text-slate-900 font-bold leading-relaxed">
                           {guidance.nextAction}
