@@ -22,6 +22,8 @@ import {
   Save,
   CreditCard,
   Clock,
+  Copy,
+  Check,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -38,6 +40,7 @@ const DRAFT_STORAGE_KEY = "tif_cadet_application_draft";
 
 export function MultiStepForm() {
   const router = useRouter();
+  const [copied, setCopied] = React.useState(false);
   const { t, language } = useLanguage();
   const { addApplication } = useApplicationContext();
   const [currentStep, setCurrentStep] = React.useState(1);
@@ -72,11 +75,6 @@ export function MultiStepForm() {
       title: "Mr.",
       nationality: "Thai",
       gender: "Male",
-      gpax: 3.25,
-      graduationYear: 2024,
-      height: 175,
-      weight: 68,
-      bloodType: "O",
       documents: [],
     },
   });
@@ -105,6 +103,25 @@ export function MultiStepForm() {
 
   // 2. State Persistence: Auto-save draft on form input or step changes
   const watchedValues = watch();
+  const watchedBirthday = watch("birthday");
+
+  // Auto-calculate Age when Birthday changes
+  React.useEffect(() => {
+    if (watchedBirthday) {
+      const birthDate = new Date(watchedBirthday);
+      if (!isNaN(birthDate.getTime())) {
+        const today = new Date();
+        let calculatedAge = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          calculatedAge--;
+        }
+        if (calculatedAge >= 0 && calculatedAge <= 120) {
+          setValue("age", calculatedAge, { shouldValidate: true, shouldDirty: true });
+        }
+      }
+    }
+  }, [watchedBirthday, setValue]);
 
   React.useEffect(() => {
     if (!isRestored || submitSuccess) return;
@@ -136,11 +153,6 @@ export function MultiStepForm() {
         title: "Mr.",
         nationality: "Thai",
         gender: "Male",
-        gpax: 3.25,
-        graduationYear: 2024,
-        height: 175,
-        weight: 68,
-        bloodType: "O",
         documents: [],
       });
       setCurrentStep(1);
@@ -394,7 +406,7 @@ export function MultiStepForm() {
           applicationNumber: appNum,
           branch: "Bangkok Headquarters",
           preferredStartDate: new Date("2026-09-01"),
-          status: "SUBMITTED",
+          status: "DOCS_UNDER_REVIEW",
           createdAt: new Date(),
           updatedAt: new Date(),
           student: {
@@ -534,8 +546,38 @@ export function MultiStepForm() {
           <CardDescription className="text-sm text-slate-600 mb-4">
             หมายเลขใบสมัครเรียนของคุณคือ
           </CardDescription>
-          <div className="inline-block bg-tif-navy text-tif-gold text-2xl font-bold font-mono px-6 py-3 rounded-2xl mb-6 shadow-lg tracking-wider border border-tif-gold/30">
-            {submitSuccess.appNum}
+
+          <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
+            <div className="bg-tif-navy text-tif-gold text-2xl font-bold font-mono px-6 py-3 rounded-2xl shadow-lg tracking-wider border border-tif-gold/30">
+              {submitSuccess.appNum}
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (submitSuccess?.appNum) {
+                  navigator.clipboard.writeText(submitSuccess.appNum);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2500);
+                }
+              }}
+              className={`flex items-center gap-1.5 px-4 py-3.5 rounded-2xl font-bold text-xs transition shadow-md border ${
+                copied
+                  ? "bg-emerald-600 text-white border-emerald-500 scale-105"
+                  : "bg-tif-gold hover:bg-amber-400 text-slate-950 border-amber-300 active:scale-95"
+              }`}
+            >
+              {copied ? (
+                <>
+                  <Check className="h-4 w-4 text-white" />
+                  <span>คัดลอกสำเร็จ!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="h-4 w-4 text-slate-950" />
+                  <span>คัดลอกเลขใบสมัคร</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
 
@@ -614,12 +656,26 @@ export function MultiStepForm() {
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-700 uppercase">{t("firstNameThLabel")} *</label>
-                  <input {...register("firstNameTh")} placeholder="สมชาย" className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold" />
+                  <input
+                    {...register("firstNameTh")}
+                    placeholder="สมชาย"
+                    onInput={(e: React.FormEvent<HTMLInputElement>) => {
+                      e.currentTarget.value = e.currentTarget.value.replace(/[^ก-๙\s-]/g, "");
+                    }}
+                    className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold"
+                  />
                   {errors.firstNameTh && <p className="text-xs text-rose-600 mt-1">{errors.firstNameTh.message}</p>}
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-700 uppercase">{t("lastNameThLabel")} *</label>
-                  <input {...register("lastNameTh")} placeholder="ใจดี" className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold" />
+                  <input
+                    {...register("lastNameTh")}
+                    placeholder="ใจดี"
+                    onInput={(e: React.FormEvent<HTMLInputElement>) => {
+                      e.currentTarget.value = e.currentTarget.value.replace(/[^ก-๙\s-]/g, "");
+                    }}
+                    className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold"
+                  />
                   {errors.lastNameTh && <p className="text-xs text-rose-600 mt-1">{errors.lastNameTh.message}</p>}
                 </div>
               </div>
@@ -627,12 +683,26 @@ export function MultiStepForm() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="text-xs font-semibold text-slate-700 uppercase">{t("firstNameEnLabel")} *</label>
-                  <input {...register("firstNameEn")} placeholder="Somchai" className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold" />
+                  <input
+                    {...register("firstNameEn")}
+                    placeholder="Somchai"
+                    onInput={(e: React.FormEvent<HTMLInputElement>) => {
+                      e.currentTarget.value = e.currentTarget.value.replace(/[^a-zA-Z\s-]/g, "");
+                    }}
+                    className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold"
+                  />
                   {errors.firstNameEn && <p className="text-xs text-rose-600 mt-1">{errors.firstNameEn.message}</p>}
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-700 uppercase">{t("lastNameEnLabel")} *</label>
-                  <input {...register("lastNameEn")} placeholder="Jaidee" className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold" />
+                  <input
+                    {...register("lastNameEn")}
+                    placeholder="Jaidee"
+                    onInput={(e: React.FormEvent<HTMLInputElement>) => {
+                      e.currentTarget.value = e.currentTarget.value.replace(/[^a-zA-Z\s-]/g, "");
+                    }}
+                    className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold"
+                  />
                   {errors.lastNameEn && <p className="text-xs text-rose-600 mt-1">{errors.lastNameEn.message}</p>}
                 </div>
                 <div>
@@ -667,7 +737,18 @@ export function MultiStepForm() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-semibold text-slate-700 uppercase">{t("nationalIdLabel")}</label>
-                  <input {...register("nationalId")} placeholder="1100200345678" className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold" />
+                  <input
+                    {...register("nationalId")}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={13}
+                    placeholder="1100200345678"
+                    onInput={(e: React.FormEvent<HTMLInputElement>) => {
+                      e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "").slice(0, 13);
+                    }}
+                    className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold font-mono"
+                  />
+                  {errors.nationalId && <p className="text-xs text-rose-600 mt-1">{errors.nationalId.message}</p>}
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-700 uppercase">{t("passportLabel")}</label>
@@ -678,7 +759,17 @@ export function MultiStepForm() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-semibold text-slate-700 uppercase">{t("phoneLabel")} *</label>
-                  <input {...register("phone")} placeholder="0819998888" className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold" />
+                  <input
+                    {...register("phone")}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={10}
+                    placeholder="0819998888"
+                    onInput={(e: React.FormEvent<HTMLInputElement>) => {
+                      e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "").slice(0, 10);
+                    }}
+                    className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold font-mono"
+                  />
                   {errors.phone && <p className="text-xs text-rose-600 mt-1">{errors.phone.message}</p>}
                 </div>
                 <div>
@@ -724,7 +815,17 @@ export function MultiStepForm() {
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-700 uppercase">{t("postalCodeLabel")} *</label>
-                  <input {...register("postalCode")} placeholder="10900" className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold" />
+                  <input
+                    {...register("postalCode")}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={5}
+                    placeholder="10900"
+                    onInput={(e: React.FormEvent<HTMLInputElement>) => {
+                      e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "").slice(0, 5);
+                    }}
+                    className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold font-mono"
+                  />
                   {errors.postalCode && <p className="text-xs text-rose-600 mt-1">{errors.postalCode.message}</p>}
                 </div>
               </div>
@@ -756,12 +857,13 @@ export function MultiStepForm() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-semibold text-slate-700 uppercase">{t("gpaxLabel")} *</label>
-                  <input type="number" step="0.01" {...register("gpax")} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold" />
+                  <input type="number" step="0.01" placeholder="3.50" {...register("gpax", { valueAsNumber: true })} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold" />
                   {errors.gpax && <p className="text-xs text-rose-600 mt-1">{errors.gpax.message}</p>}
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-700 uppercase">{t("graduationYearLabel")} *</label>
-                  <input type="number" {...register("graduationYear")} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold" />
+                  <input type="number" placeholder="2025" {...register("graduationYear", { valueAsNumber: true })} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold" />
+                  {errors.graduationYear && <p className="text-xs text-rose-600 mt-1">{errors.graduationYear.message}</p>}
                 </div>
               </div>
             </div>
@@ -790,7 +892,17 @@ export function MultiStepForm() {
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-700 uppercase">{t("emergencyPhoneLabel")} *</label>
-                  <input {...register("emergencyPhone")} placeholder="0812345678" className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold" />
+                  <input
+                    {...register("emergencyPhone")}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={10}
+                    placeholder="0812345678"
+                    onInput={(e: React.FormEvent<HTMLInputElement>) => {
+                      e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "").slice(0, 10);
+                    }}
+                    className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold font-mono"
+                  />
                   {errors.emergencyPhone && <p className="text-xs text-rose-600 mt-1">{errors.emergencyPhone.message}</p>}
                 </div>
               </div>
@@ -816,11 +928,13 @@ export function MultiStepForm() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="text-xs font-semibold text-slate-700 uppercase">{t("heightLabel")} *</label>
-                  <input type="number" {...register("height")} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold" />
+                  <input type="number" placeholder="175" {...register("height", { valueAsNumber: true })} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold" />
+                  {errors.height && <p className="text-xs text-rose-600 mt-1">{errors.height.message}</p>}
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-700 uppercase">{t("weightLabel")} *</label>
-                  <input type="number" {...register("weight")} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold" />
+                  <input type="number" placeholder="65" {...register("weight", { valueAsNumber: true })} className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold" />
+                  {errors.weight && <p className="text-xs text-rose-600 mt-1">{errors.weight.message}</p>}
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-700 uppercase">{t("bloodTypeLabel")} *</label>

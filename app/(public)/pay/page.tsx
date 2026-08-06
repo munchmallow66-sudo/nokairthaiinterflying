@@ -15,13 +15,19 @@ import {
   ShieldCheck,
   ArrowRight,
   Loader2,
+  Calendar,
+  Clock,
+  MapPin,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { compressImageIfNeeded } from "@/lib/image-compressor";
+import { useApplicationContext } from "@/lib/context/application-context";
 
 export default function PaymentPage() {
   const { t } = useLanguage();
+  const { applications: ctxApps, updateApplication } = useApplicationContext();
   const [appNumber, setAppNumber] = useState("");
   const [searching, setSearching] = useState(false);
   const [foundApp, setFoundApp] = useState<any>(null);
@@ -30,11 +36,14 @@ export default function PaymentPage() {
   const [slipFile, setSlipFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [joinOpenHouse, setJoinOpenHouse] = useState<boolean | null>(null);
+  const [openHouseAttendees, setOpenHouseAttendees] = useState(1);
 
   const handleSearchApp = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
     setFoundApp(null);
+    setJoinOpenHouse(null);
     setUploadSuccess(false);
 
     if (!appNumber.trim()) {
@@ -56,6 +65,10 @@ export default function PaymentPage() {
   };
 
   const handleUploadSlip = async () => {
+    if (joinOpenHouse === null) {
+      alert("กรุณาเลือกความประสงค์เข้าร่วมงาน Open House ก่อนกดยืนยัน");
+      return;
+    }
     if (!slipFile) {
       alert("กรุณาเลือกไฟล์สลิปโอนเงิน (JPG, PNG หรือ PDF)");
       return;
@@ -81,9 +94,21 @@ export default function PaymentPage() {
       });
     } catch (e) {}
 
+    const openHouseRemarks = joinOpenHouse
+      ? ` | ลงทะเบียนเข้าร่วมงาน Open House วันที่ 12 ก.ย. 2569 (จำนวน ${openHouseAttendees} ท่าน)`
+      : ` | ไม่ประสงค์เข้าร่วมงาน Open House`;
+
     setTimeout(() => {
       setUploading(false);
       setUploadSuccess(true);
+
+      if (foundApp?.appNum) {
+        updateApplication(foundApp.appNum, {
+          remarks: `ได้รับสลิปโอนเงินเรียบร้อยแล้ว${openHouseRemarks} เจ้าหน้าที่จะทำการตรวจสอบและอนุมัติใบสมัครภายใน 24 ชม.`,
+          joinOpenHouse: joinOpenHouse,
+        });
+      }
+
       alert(`อัปโหลดสลิปสำเร็จ! ระบบได้ผูกสลิปโอนเงินเข้ากับใบสมัคร ${foundApp?.appNum} และส่งไปยังหน้า Admin เรียบร้อยแล้ว`);
     }, 1200);
   };
@@ -169,72 +194,168 @@ export default function PaymentPage() {
               </div>
             ) : (
               /* Payment Methods & Upload Slip Form */
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 items-center">
-                {/* QR PromptPay */}
-                <div className="bg-white p-5 rounded-2xl text-slate-900 text-center space-y-2 shadow-xl">
-                  <span className="text-xs font-extrabold uppercase tracking-wider text-slate-600 block">
-                    สแกน QR PromptPay ชำระเงิน 1,800 บาท
-                  </span>
-                  <img
-                    src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=ThaiInterFlying_ApplicationFee_1800THB"
-                    alt="PromptPay QR Code"
-                    className="w-48 h-48 mx-auto rounded-xl border border-slate-200 p-1"
-                  />
-                  <p className="text-xs font-bold text-tif-navy font-mono">
-                    ยอดชำระ: 1,800.00 บาท
-                  </p>
+              <div className="space-y-4 text-xs">
+                {/* Bank Account */}
+                <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3 font-mono">
+                  <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+                      โอนเงินผ่านบัญชีธนาคาร (INSTITUTE BANK ACCOUNTS)
+                    </span>
+                    <span className="text-[11px] font-bold text-tif-gold">ยอดชำระ: 1,800.00 THB</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* SCB */}
+                    <div className="bg-purple-950/30 p-3 rounded-xl border border-purple-900/50 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <p className="text-purple-300 font-bold text-xs">ธนาคารไทยพาณิชย์ (SCB)</p>
+                        <span className="text-[9px] text-purple-300 bg-purple-900/60 px-1.5 py-0.5 rounded border border-purple-700/50">
+                          ออมทรัพย์
+                        </span>
+                      </div>
+                      <p className="text-tif-gold font-bold text-base tracking-wider">202-280661-2</p>
+                      <p className="text-slate-300 text-[10px]">ชื่อบัญชี: บริษัท ไทย อินเตอร์ ไฟลอิ้ง จำกัด</p>
+                    </div>
+
+                    {/* KBANK */}
+                    <div className="bg-emerald-950/20 p-3 rounded-xl border border-emerald-900/40 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <p className="text-emerald-400 font-bold text-xs">ธนาคารกสิกรไทย (KBANK)</p>
+                        <span className="text-[9px] text-emerald-300 bg-emerald-900/60 px-1.5 py-0.5 rounded border border-emerald-700/50">
+                          ออมทรัพย์
+                        </span>
+                      </div>
+                      <p className="text-tif-gold font-bold text-base tracking-wider">012-3-45678-9</p>
+                      <p className="text-slate-300 text-[10px]">ชื่อบัญชี: บจก. ไทย อินเตอร์ ไฟลายอิ้ง</p>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Bank Account & Slip Upload */}
-                <div className="space-y-5 text-xs">
-                  <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-1.5 font-mono">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase block">โอนเงินผ่านบัญชีธนาคาร</span>
-                    <p className="text-white font-bold text-sm">ธนาคารกสิกรไทย (KBANK)</p>
-                    <p className="text-tif-gold font-bold text-lg">012-3-45678-9</p>
-                    <p className="text-slate-300 text-[11px]">ชื่อบัญชี: บจก. ไทย อินเตอร์ ไฟลายอิ้ง</p>
-                  </div>
+                {/* Open House Registration Box */}
+                <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2.5 shadow-md">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+                    การเข้าร่วมงาน OPEN HOUSE (NOK AIR CADET PILOT PROGRAM)
+                  </span>
 
                   <div className="space-y-2">
-                    <label className="font-bold text-slate-200 block">แนบสลิปโอนเงิน (Upload Payment Slip - Auto Compress to 5MB) *</label>
-                    <input
-                      type="file"
-                      accept="image/*,.pdf"
-                      onChange={async (e) => {
-                        let selected = e.target.files?.[0];
-                        if (!selected) return;
+                    {/* Radio 1: YES */}
+                    <label className="flex items-start space-x-2.5 p-2.5 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 cursor-pointer transition">
+                      <input
+                        type="radio"
+                        name="openHouseChoicePay"
+                        checked={joinOpenHouse === true}
+                        onChange={() => setJoinOpenHouse(true)}
+                        className="w-4 h-4 mt-0.5 border-slate-700 bg-slate-900 text-tif-gold focus:ring-tif-gold accent-tif-gold shrink-0 cursor-pointer"
+                      />
+                      <div>
+                        <span className="text-xs font-bold text-white block">
+                          มีความประสงค์เข้าร่วมงาน Open House (Nok Air Cadet Pilot Program)
+                        </span>
+                        <span className="text-[11px] text-amber-400/90 font-medium block mt-0.5">
+                          * จำกัดผู้เข้าร่วมสูงสุด 2 ท่าน ต่อ 1 การลงทะเบียน
+                        </span>
+                      </div>
+                    </label>
 
-                        if (selected.size > 5 * 1024 * 1024 && selected.type.startsWith("image/")) {
-                          selected = await compressImageIfNeeded(selected, 5 * 1024 * 1024);
-                        }
+                    {/* Event Details when YES is selected */}
+                    {joinOpenHouse && (
+                      <div className="ml-6 p-3 rounded-xl bg-slate-900/90 border border-tif-gold/30 space-y-2 text-xs text-slate-300">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <p className="flex items-center text-slate-200">
+                            <Calendar className="h-3.5 w-3.5 mr-1.5 text-tif-gold shrink-0" />
+                            <span><strong>Date:</strong> 12 September 2026</span>
+                          </p>
+                          <p className="flex items-center text-slate-200">
+                            <Clock className="h-3.5 w-3.5 mr-1.5 text-tif-gold shrink-0" />
+                            <span><strong>Time:</strong> 09:00 - 15:00 PM</span>
+                          </p>
+                        </div>
 
-                        if (selected.size > 5 * 1024 * 1024) {
-                          alert("ขนาดไฟล์สลิปเกิน 5MB กรุณาเลือกไฟล์ที่มีขนาดไม่เกิน 5MB");
-                          e.target.value = "";
-                          setSlipFile(null);
-                          return;
-                        }
-                        setSlipFile(selected);
-                      }}
-                      className="w-full text-xs text-slate-300 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-tif-gold file:text-tif-navy hover:file:bg-amber-400 cursor-pointer bg-slate-950 p-2 rounded-xl border border-slate-800"
-                    />
-                    <span className="text-[11px] text-slate-400 block">รองรับไฟล์ JPG, PNG, PDF (รูปภาพขนาดใหญ่จะถูกย่อขนาดลงให้อัตโนมัติไม่เกิน 5MB)</span>
-                    {slipFile && (
-                      <p className="text-[11px] text-emerald-400 font-mono">
-                        ✓ เลือกไฟล์: {slipFile.name} ({Math.round(slipFile.size / 1024)} KB)
-                      </p>
+                        <p className="flex items-start text-slate-200">
+                          <MapPin className="h-3.5 w-3.5 mr-1.5 text-tif-gold shrink-0 mt-0.5" />
+                          <span>
+                            <strong>Location:</strong> Best Western Plus Wanda Grand Hotel Chaengwattana, 5th Floor, Ballroom A
+                          </span>
+                        </p>
+
+                        <div className="pt-1">
+                          <a
+                            href="https://maps.app.goo.gl/Dou74zVtK9MWUbW18"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center text-[11px] font-bold text-tif-gold hover:underline bg-tif-gold/10 px-2.5 py-1 rounded-lg border border-tif-gold/30"
+                          >
+                            <ExternalLink className="h-3 w-3 mr-1" />
+                            ดูแผนที่ Google Maps ↗
+                          </a>
+                        </div>
+                      </div>
                     )}
-                  </div>
 
-                  <Button
-                    variant="gold"
-                    size="lg"
-                    className="w-full font-bold shadow-lg"
-                    onClick={handleUploadSlip}
-                    disabled={uploading}
-                  >
-                    {uploading ? "กำลังส่งสลิป..." : "ยืนยันส่งสลิปค่าสมัคร 1,800 บาท"}
-                  </Button>
+                    {/* Radio 2: NO */}
+                    <label className="flex items-center space-x-2.5 p-2.5 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 cursor-pointer transition">
+                      <input
+                        type="radio"
+                        name="openHouseChoicePay"
+                        checked={joinOpenHouse === false}
+                        onChange={() => setJoinOpenHouse(false)}
+                        className="w-4 h-4 border-slate-700 bg-slate-900 text-tif-gold focus:ring-tif-gold accent-tif-gold shrink-0 cursor-pointer"
+                      />
+                      <span className="text-xs font-bold text-slate-300">
+                        ไม่ประสงค์เข้าร่วมงาน Open House
+                      </span>
+                    </label>
+                  </div>
                 </div>
+
+                <div className="space-y-2">
+                  <label className="font-bold text-slate-200 block">แนบสลิปโอนเงิน (Upload Payment Slip - Auto Compress to 5MB) *</label>
+                  <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={async (e) => {
+                      let selected = e.target.files?.[0];
+                      if (!selected) return;
+
+                      if (selected.size > 5 * 1024 * 1024 && selected.type.startsWith("image/")) {
+                        selected = await compressImageIfNeeded(selected, 5 * 1024 * 1024);
+                      }
+
+                      if (selected.size > 5 * 1024 * 1024) {
+                        alert("ขนาดไฟล์สลิปเกิน 5MB กรุณาเลือกไฟล์ที่มีขนาดไม่เกิน 5MB");
+                        e.target.value = "";
+                        setSlipFile(null);
+                        return;
+                      }
+                      setSlipFile(selected);
+                    }}
+                    className="w-full text-xs text-slate-300 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-tif-gold file:text-tif-navy hover:file:bg-amber-400 cursor-pointer bg-slate-950 p-2 rounded-xl border border-slate-800"
+                  />
+                  <span className="text-[11px] text-slate-400 block">รองรับไฟล์ JPG, PNG, PDF (รูปภาพขนาดใหญ่จะถูกย่อขนาดลงให้อัตโนมัติไม่เกิน 5MB)</span>
+                  {slipFile && (
+                    <p className="text-[11px] text-emerald-400 font-mono">
+                      ✓ เลือกไฟล์: {slipFile.name} ({Math.round(slipFile.size / 1024)} KB)
+                    </p>
+                  )}
+                </div>
+
+                <Button
+                  variant="gold"
+                  size="lg"
+                  className="w-full font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={handleUploadSlip}
+                  disabled={joinOpenHouse === null || !slipFile || uploading}
+                >
+                  {uploading
+                    ? "กำลังส่งสลิป..."
+                    : joinOpenHouse === null && !slipFile
+                    ? "กรุณาเลือกความประสงค์ Open House และแนบสลิปโอนเงิน"
+                    : joinOpenHouse === null
+                    ? "กรุณาเลือกความประสงค์เข้าร่วมงาน Open House"
+                    : !slipFile
+                    ? "กรุณาแนบไฟล์สลิปโอนเงินก่อนกดยืนยัน"
+                    : "ยืนยันส่งสลิปค่าสมัคร 1,800 บาท"}
+                </Button>
               </div>
             )}
           </div>

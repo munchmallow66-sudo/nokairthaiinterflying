@@ -119,12 +119,16 @@ export default function PaymentsPage() {
         (a) => a.applicationNumber === targetAppNum || a.id === targetAppNum
       );
       if (targetApp) {
+        const openHouseStatusText = (targetApp as any).joinOpenHouse === false
+          ? "ไม่ประสงค์เข้าร่วมงาน Open House"
+          : "เตรียมเข้าร่วมงาน Open House";
+
         updateApplication(targetApp.id, {
-          status: "APPLICATION_FEE_PAID",
+          status: "OPEN_HOUSE_ATTENDED",
           adminNotes: [
             {
               id: `note_${Date.now()}`,
-              content: "อนุมัติสลิปการชำระเงิน 1,800 บาทเรียบร้อยแล้ว (สถานะ: ชำระค่าสมัครแล้ว)",
+              content: `อนุมัติสลิปการชำระเงิน 1,800 บาทเรียบร้อยแล้ว (สถานะ: ${openHouseStatusText})`,
               createdAt: new Date(),
               author: { name: "Finance Admin", email: "admin@tif.ac.th" },
             },

@@ -38,6 +38,7 @@ export interface ApplicationWithDetails {
   branch: string;
   preferredStartDate?: Date | null;
   status: ApplicationStatus;
+  remarks?: string;
   createdAt: Date;
   updatedAt: Date;
   student: {
@@ -147,6 +148,8 @@ export interface ApplicationWithDetails {
       email: string;
     };
   }[];
+  joinOpenHouse?: boolean;
+  openHouseAttendees?: number;
 }
 
 export interface SearchFilterParams {
@@ -171,7 +174,7 @@ export const PILOT_WORKFLOW_STEPS: WorkflowStepDef[] = [
   { step: 1, key: "ONLINE_REGISTRATION", titleTh: "เปิดรับสมัครออนไลน์", titleEn: "Online Application Open", badgeClass: "bg-blue-500/10 text-blue-400 border-blue-500/30" },
   { step: 2, key: "SUBMITTED", titleTh: "กรอกใบสมัคร + แนบเอกสาร", titleEn: "Submitted & Attached Docs", badgeClass: "bg-amber-500/10 text-amber-400 border-amber-500/30" },
   { step: 3, key: "DOCS_UNDER_REVIEW", titleTh: "ตรวจเอกสารเบื้องต้น", titleEn: "Docs Under Review", badgeClass: "bg-orange-500/10 text-orange-400 border-orange-500/30" },
-  { step: 4, key: "DOCS_PASSED", titleTh: "ผ่านการตรวจเอกสาร", titleEn: "Docs Passed", badgeClass: "bg-cyan-500/10 text-cyan-400 border-cyan-500/30" },
+  { step: 4, key: "DOCS_PASSED", titleTh: "ผ่านการตรวจเอกสาร", titleEn: "Documents Review Completed", badgeClass: "bg-cyan-500/10 text-cyan-400 border-cyan-500/30" },
   { step: 5, key: "APPLICATION_FEE_PAID", titleTh: "ชำระค่าสมัคร 1,800 บาท", titleEn: "App Fee Paid (1,800 THB)", badgeClass: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" },
   { step: 6, key: "OPEN_HOUSE_ATTENDED", titleTh: "เข้าร่วม Open House", titleEn: "Attended Open House", badgeClass: "bg-indigo-500/10 text-indigo-400 border-indigo-500/30" },
   { step: 7, key: "PHYSICAL_DOCS_SUBMITTED", titleTh: "ส่งเอกสารตัวจริง", titleEn: "Physical Docs Submitted", badgeClass: "bg-sky-500/10 text-sky-400 border-sky-500/30" },
@@ -180,9 +183,5 @@ export const PILOT_WORKFLOW_STEPS: WorkflowStepDef[] = [
   { step: 10, key: "INTERVIEW_SCHEDULED", titleTh: "สัมภาษณ์", titleEn: "Interview Scheduled", badgeClass: "bg-purple-500/10 text-purple-400 border-purple-500/30" },
   { step: 11, key: "INTERVIEW_PASSED", titleTh: "ประกาศผล (ผ่านสัมภาษณ์)", titleEn: "Interview Passed", badgeClass: "bg-teal-500/10 text-teal-400 border-teal-500/30" },
   { step: 12, key: "MEDICAL_CHECK_CLASS_1", titleTh: "ตรวจสุขภาพ Class 1", titleEn: "Class 1 Medical Check", badgeClass: "bg-pink-500/10 text-pink-400 border-pink-500/30" },
-  { step: 13, key: "ACCEPTANCE_CONFIRMED", titleTh: "ยืนยันสิทธิ์", titleEn: "Acceptance Confirmed", badgeClass: "bg-tif-gold/10 text-tif-gold border-tif-gold/30" },
-  { step: 14, key: "CONTRACT_SIGNED", titleTh: "ลงนามสัญญา", titleEn: "Contract Signed", badgeClass: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" },
-  { step: 15, key: "TUITION_FIRST_INSTALLMENT_PAID", titleTh: "ชำระค่าเรียนงวดแรก", titleEn: "1st Installment Paid", badgeClass: "bg-green-500/10 text-green-400 border-green-500/30" },
-  { step: 16, key: "ORIENTATION", titleTh: "ปฐมนิเทศ", titleEn: "Orientation", badgeClass: "bg-blue-600/10 text-blue-300 border-blue-500/30" },
-  { step: 17, key: "PILOT_JOURNEY_BEGUN", titleTh: "เริ่มเส้นทางนักบิน", titleEn: "Start Pilot Journey", badgeClass: "bg-amber-400/20 text-amber-300 border-amber-400/50" },
+  { step: 13, key: "ACCEPTANCE_CONFIRMED", titleTh: "ยืนยันสิทธิ์สำเร็จ", titleEn: "Acceptance Confirmed", badgeClass: "bg-tif-gold/10 text-tif-gold border-tif-gold/30" },
 ];

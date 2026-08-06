@@ -687,7 +687,12 @@ export default function StudentApplicationsPage() {
       };
 
       updateApplication(selectedApp.id, {
-        status: "DOCS_PASSED" as any,
+        status: "APPLICATION_FEE_PAID" as any,
+        documents: (selectedApp.documents || []).map((d) => ({
+          ...d,
+          isVerified: true,
+          isRejected: false,
+        })),
         adminNotes: [newNote, ...(selectedApp.adminNotes || [])],
       });
 
@@ -772,26 +777,55 @@ export default function StudentApplicationsPage() {
           title={`ข้อมูลผู้สมัคร: ${selectedApp.student.firstNameTh} ${selectedApp.student.lastNameTh} (${selectedApp.applicationNumber})`}
           size="xl"
         >
-          <div className="space-y-5 text-slate-200">
-            {/* Header Profile Summary & Action Bar */}
-            <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
-                <div className="flex items-center space-x-4">
-                  <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-tif-gold/20 to-amber-500/10 border border-tif-gold/40 text-tif-gold flex items-center justify-center font-bold text-lg shrink-0 font-mono shadow-md">
-                    {selectedApp.student.firstNameEn ? selectedApp.student.firstNameEn.slice(0, 2).toUpperCase() : "ST"}
-                  </div>
-                  <div>
-                    <div className="flex items-center space-x-2 flex-wrap gap-y-1">
-                      <h3 className="text-lg font-bold text-white font-display tracking-tight">
-                        {selectedApp.student.firstNameTh} {selectedApp.student.lastNameTh}
-                      </h3>
-                      {selectedApp.student.nickname && (
-                        <span className="text-xs text-slate-400 font-normal bg-slate-800/80 px-2 py-0.5 rounded-md">({selectedApp.student.nickname})</span>
-                      )}
-                      <span className="text-xs font-semibold text-tif-gold bg-tif-gold/10 px-2.5 py-0.5 rounded-full border border-tif-gold/30">
-                        {selectedApp.course?.name || "CPL"}
-                      </span>
-                    </div>
+          {(() => {
+            const remarksText = selectedApp.remarks || "";
+            const isExplicitNo =
+              (selectedApp as any).joinOpenHouse === false ||
+              remarksText.includes("ไม่ประสงค์เข้าร่วม") ||
+              remarksText.includes("ไม่เข้าร่วม") ||
+              (selectedApp.adminNotes || []).some((n) => n.content?.includes("ไม่ประสงค์เข้าร่วม"));
+
+            const isExplicitYes =
+              !isExplicitNo &&
+              ((selectedApp as any).joinOpenHouse === true ||
+                remarksText.includes("ลงทะเบียนเข้าร่วมงาน Open House") ||
+                remarksText.includes("มีความประสงค์เข้าร่วม") ||
+                (remarksText.includes("เข้าร่วมงาน Open House") && !remarksText.includes("ไม่ประสงค์")));
+
+            const hasOpenHouseNo = isExplicitNo;
+            const hasOpenHouseYes = isExplicitYes;
+
+            return (
+              <div className="space-y-5 text-slate-200">
+                {/* Header Profile Summary & Action Bar */}
+                <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+                    <div className="flex items-center space-x-4">
+                      <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-tif-gold/20 to-amber-500/10 border border-tif-gold/40 text-tif-gold flex items-center justify-center font-bold text-lg shrink-0 font-mono shadow-md">
+                        {selectedApp.student.firstNameEn ? selectedApp.student.firstNameEn.slice(0, 2).toUpperCase() : "ST"}
+                      </div>
+                      <div>
+                        <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                          <h3 className="text-lg font-bold text-white font-display tracking-tight">
+                            {selectedApp.student.firstNameTh} {selectedApp.student.lastNameTh}
+                          </h3>
+                          {selectedApp.student.nickname && (
+                            <span className="text-xs text-slate-400 font-normal bg-slate-800/80 px-2 py-0.5 rounded-md">({selectedApp.student.nickname})</span>
+                          )}
+                          <span className="text-xs font-semibold text-tif-gold bg-tif-gold/10 px-2.5 py-0.5 rounded-full border border-tif-gold/30">
+                            {selectedApp.course?.name || "CPL"}
+                          </span>
+                          {hasOpenHouseYes && (
+                            <span className="text-xs font-bold text-purple-300 bg-purple-950/80 px-2.5 py-0.5 rounded-full border border-purple-700/60 flex items-center gap-1 shadow-sm">
+                              <Calendar className="h-3 w-3 text-purple-400" /> เข้าร่วม Open House (12 ก.ย.)
+                            </span>
+                          )}
+                          {hasOpenHouseNo && (
+                            <span className="text-xs font-medium text-slate-400 bg-slate-950/90 px-2.5 py-0.5 rounded-full border border-slate-800">
+                              ไม่เข้าร่วม Open House
+                            </span>
+                          )}
+                        </div>
                     <p className="text-xs text-slate-400 font-mono mt-1 flex items-center gap-2">
                       <span>{selectedApp.student.firstNameEn} {selectedApp.student.lastNameEn}</span>
                       <span>•</span>
@@ -836,13 +870,13 @@ export default function StudentApplicationsPage() {
                   <div className="flex items-center space-x-2">
                     <Sparkles className="h-4 w-4 text-tif-gold animate-pulse" />
                     <h4 className="text-xs font-bold text-white uppercase tracking-wider font-display">
-                      ความคืบหน้าขั้นตอนการรับสมัคร (17 ขั้นตอนนักบิน)
+                      ความคืบหน้าขั้นตอนการรับสมัคร (13 ขั้นตอนนักบิน)
                     </h4>
                   </div>
                   <div className="flex items-center space-x-2">
                     <span className="text-[11px] text-slate-400 font-medium">ขั้นตอนปัจจุบัน:</span>
                     <span className="text-xs font-extrabold text-tif-gold bg-tif-gold/10 px-3 py-1 rounded-full border border-tif-gold/30 font-mono">
-                      {currentStepIndex >= 0 ? `${currentStepIndex + 1} / 17 (${Math.round(((currentStepIndex + 1) / 17) * 100)}%)` : selectedApp.status}
+                      {currentStepIndex >= 0 ? `${currentStepIndex + 1} / ${PILOT_WORKFLOW_STEPS.length} (${Math.round(((currentStepIndex + 1) / PILOT_WORKFLOW_STEPS.length) * 100)}%)` : selectedApp.status}
                     </span>
                   </div>
                 </div>
@@ -851,7 +885,7 @@ export default function StudentApplicationsPage() {
                 <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-800">
                   <div
                     className="bg-gradient-to-r from-tif-gold via-amber-400 to-emerald-400 h-full transition-all duration-500 rounded-full shadow-lg shadow-tif-gold/20"
-                    style={{ width: `${currentStepIndex >= 0 ? Math.max(((currentStepIndex + 1) / 17) * 100, 6) : 0}%` }}
+                    style={{ width: `${currentStepIndex >= 0 ? Math.max(((currentStepIndex + 1) / PILOT_WORKFLOW_STEPS.length) * 100, 6) : 0}%` }}
                   />
                 </div>
 
@@ -891,9 +925,9 @@ export default function StudentApplicationsPage() {
                     <Button
                       size="sm"
                       variant="gold"
-                      disabled={currentStepIndex < 0 || currentStepIndex >= 16}
+                      disabled={currentStepIndex < 0 || currentStepIndex >= PILOT_WORKFLOW_STEPS.length - 1}
                       onClick={() => {
-                        if (currentStepIndex >= 0 && currentStepIndex < 16) {
+                        if (currentStepIndex >= 0 && currentStepIndex < PILOT_WORKFLOW_STEPS.length - 1) {
                           handleUpdateStatus(PILOT_WORKFLOW_STEPS[currentStepIndex + 1].key);
                         }
                       }}
@@ -1029,6 +1063,87 @@ export default function StudentApplicationsPage() {
             {/* TAB 1: Personal & Contact Profile */}
             {activeDetailTab === "personal" && (
               <div className="space-y-4 animate-in fade-in duration-200">
+                {/* Open House RSVP Status Card */}
+                <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3">
+                  <h4 className="text-xs font-bold text-tif-gold uppercase tracking-wider flex items-center border-b border-slate-800 pb-2">
+                    <Calendar className="mr-2 h-4 w-4 text-tif-gold" /> การลงทะเบียนงาน Open House (12 กันยายน 2569)
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div className={`p-3 rounded-xl border flex flex-col justify-between space-y-2 ${
+                      hasOpenHouseYes
+                        ? "bg-purple-950/40 border-purple-800/80 text-purple-200"
+                        : hasOpenHouseNo
+                        ? "bg-slate-950/60 border-slate-800 text-slate-400"
+                        : "bg-slate-950/60 border-slate-800 text-amber-300"
+                    }`}>
+                      <div>
+                        <span className="text-slate-400 text-[11px] block mb-1">สถานะความประสงค์เข้าร่วมงาน</span>
+                        <div className="flex items-center space-x-2">
+                          {hasOpenHouseYes ? (
+                            <>
+                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                              <span className="font-bold text-emerald-300 text-sm">✓ ประสงค์เข้าร่วมงาน Open House</span>
+                            </>
+                          ) : hasOpenHouseNo ? (
+                            <>
+                              <span className="w-2.5 h-2.5 rounded-full bg-slate-500" />
+                              <span className="font-bold text-slate-400 text-sm">ไม่ประสงค์เข้าร่วมงาน Open House</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                              <span className="font-semibold text-amber-300 text-sm">ยังไม่ได้ระบุ (รอแนบสลิปชำระเงิน)</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-1.5">
+                        <span className="text-[10px] text-slate-400 font-medium">ปรับความประสงค์ (Admin):</span>
+                        <div className="flex items-center space-x-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              updateApplication(selectedApp.id, {
+                                joinOpenHouse: true,
+                              });
+                            }}
+                            className={`text-[10px] px-2 py-0.5 rounded font-bold transition ${
+                              hasOpenHouseYes
+                                ? "bg-purple-600 text-white shadow-sm"
+                                : "bg-slate-800 text-slate-400 hover:bg-purple-900/40 hover:text-purple-300 border border-slate-700"
+                            }`}
+                          >
+                            ✓ เข้าร่วม
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              updateApplication(selectedApp.id, {
+                                joinOpenHouse: false,
+                              });
+                            }}
+                            className={`text-[10px] px-2 py-0.5 rounded font-bold transition ${
+                              hasOpenHouseNo
+                                ? "bg-rose-900/80 text-rose-300 border border-rose-700 shadow-sm"
+                                : "bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200 border border-slate-700"
+                            }`}
+                          >
+                            ✕ ไม่เข้าร่วม
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80 space-y-1">
+                      <span className="text-slate-400 text-[11px] block">กำหนดการและสถานที่</span>
+                      <p className="font-medium text-slate-200 text-xs">
+                        12 ก.ย. 2026 (09:00 - 15:00 น.) ณ Best Western Plus Wanda Grand Hotel ( Ballroom A )
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-4">
                   <h4 className="text-xs font-bold text-tif-gold uppercase tracking-wider flex items-center border-b border-slate-800 pb-2">
                     <User className="mr-2 h-4 w-4 text-tif-gold" /> ข้อมูลส่วนบุคคล (Personal Details)
@@ -1346,109 +1461,117 @@ export default function StudentApplicationsPage() {
                       const label = docTypeLabels[doc.type] || doc.type;
 
                       return (
-                        <div
-                          key={doc.id}
-                          className={`group relative overflow-hidden rounded-xl border p-3.5 transition-all flex flex-col justify-between space-y-3 ${
-                            doc.isRejected
-                              ? "bg-rose-950/20 border-rose-800/80 hover:border-rose-600"
-                              : doc.isVerified
-                              ? "bg-slate-950/80 border-emerald-900/60 hover:border-emerald-500/50"
-                              : "bg-slate-950/80 border-slate-800 hover:border-tif-gold/50"
-                          }`}
-                        >
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded bg-slate-900 text-tif-gold border border-slate-800">
-                                {label}
-                              </span>
-                              {doc.isRejected ? (
-                                <span className="text-[10px] font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded flex items-center border border-rose-500/30">
-                                  <XCircle className="mr-1 h-3 w-3" /> ให้ส่งใหม่
-                                </span>
-                              ) : doc.isVerified ? (
-                                <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded flex items-center border border-emerald-500/20">
-                                  <CheckCircle2 className="mr-1 h-3 w-3" /> Approved
-                                </span>
-                              ) : (
-                                <span className="text-[10px] font-semibold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded flex items-center border border-amber-500/20">
-                                  <Clock className="mr-1 h-3 w-3" /> Pending
-                                </span>
-                              )}
-                            </div>
+                        (() => {
+                          const isDocPassedOverall =
+                            (selectedApp.status as string) !== "SUBMITTED" &&
+                            (selectedApp.status as string) !== "DOCS_UNDER_REVIEW" &&
+                            (selectedApp.status as string) !== "REJECTED";
+                          const isDocVerified = doc.isVerified || (isDocPassedOverall && !doc.isRejected);
 
+                          return (
                             <div
-                              onClick={() => handleOpenDocModal(doc)}
-                              className="relative h-36 w-full rounded-lg overflow-hidden bg-slate-900 border border-slate-800 cursor-pointer group-hover:opacity-95 transition-all flex items-center justify-center"
+                              key={doc.id}
+                              className={`group relative overflow-hidden rounded-xl border p-3.5 transition-all flex flex-col justify-between space-y-3 ${
+                                doc.isRejected
+                                  ? "bg-rose-950/20 border-rose-800/80 hover:border-rose-600"
+                                  : isDocVerified
+                                  ? "bg-slate-950/80 border-emerald-900/60 hover:border-emerald-500/50"
+                                  : "bg-slate-950/80 border-slate-800 hover:border-tif-gold/50"
+                              }`}
                             >
-                              {isPdfFile(doc.secureUrl, doc.originalName) ? (
-                                doc.secureUrl?.includes("cloudinary.com") ? (
-                                  <div className="relative w-full h-full">
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded bg-slate-900 text-tif-gold border border-slate-800">
+                                    {label}
+                                  </span>
+                                  {doc.isRejected ? (
+                                    <span className="text-[10px] font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded flex items-center border border-rose-500/30">
+                                      <XCircle className="mr-1 h-3 w-3" /> ให้ส่งใหม่
+                                    </span>
+                                  ) : isDocVerified ? (
+                                    <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded flex items-center border border-emerald-500/20">
+                                      <CheckCircle2 className="mr-1 h-3 w-3" /> Verified
+                                    </span>
+                                  ) : (
+                                    <span className="text-[10px] font-semibold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded flex items-center border border-amber-500/20">
+                                      <Clock className="mr-1 h-3 w-3" /> Pending
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div
+                                  onClick={() => handleOpenDocModal(doc)}
+                                  className="relative h-36 w-full rounded-lg overflow-hidden bg-slate-900 border border-slate-800 cursor-pointer group-hover:opacity-95 transition-all flex items-center justify-center"
+                                >
+                                  {isPdfFile(doc.secureUrl, doc.originalName) ? (
+                                    doc.secureUrl?.includes("cloudinary.com") ? (
+                                      <div className="relative w-full h-full">
+                                        <img
+                                          src={getCloudinaryPdfThumbnail(doc.secureUrl) || doc.secureUrl}
+                                          alt={doc.originalName}
+                                          className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                        />
+                                        <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-rose-950/90 border border-rose-500/40 text-[9px] font-bold text-rose-300 flex items-center shadow">
+                                          <FileText className="mr-1 h-3 w-3 text-rose-400" /> PDF
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="flex flex-col items-center justify-center p-3 text-center space-y-2 bg-slate-950/90 w-full h-full">
+                                        <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400">
+                                          <FileText className="h-8 w-8" />
+                                        </div>
+                                        <span className="text-[11px] font-bold text-rose-300 font-mono tracking-tight">
+                                          PDF Document
+                                        </span>
+                                      </div>
+                                    )
+                                  ) : (
                                     <img
-                                      src={getCloudinaryPdfThumbnail(doc.secureUrl) || doc.secureUrl}
+                                      src={doc.secureUrl}
                                       alt={doc.originalName}
                                       className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
                                     />
-                                    <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-rose-950/90 border border-rose-500/40 text-[9px] font-bold text-rose-300 flex items-center shadow">
-                                      <FileText className="mr-1 h-3 w-3 text-rose-400" /> PDF
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <div className="flex flex-col items-center justify-center p-3 text-center space-y-2 bg-slate-950/90 w-full h-full">
-                                    <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400">
-                                      <FileText className="h-8 w-8" />
-                                    </div>
-                                    <span className="text-[11px] font-bold text-rose-300 font-mono tracking-tight">
-                                      PDF Document
+                                  )}
+                                  <div className="absolute inset-0 bg-slate-950/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <span className="bg-slate-900/90 text-tif-gold text-xs font-semibold px-3 py-1.5 rounded-lg border border-tif-gold/40 flex items-center shadow-lg">
+                                      <Eye className="mr-1.5 h-3.5 w-3.5" /> {isPdfFile(doc.secureUrl, doc.originalName) ? "เปิดดูไฟล์ PDF" : "คลิกดูรูปใหญ่"}
                                     </span>
                                   </div>
-                                )
-                              ) : (
-                                <img
-                                  src={doc.secureUrl}
-                                  alt={doc.originalName}
-                                  className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                />
-                              )}
-                              <div className="absolute inset-0 bg-slate-950/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <span className="bg-slate-900/90 text-tif-gold text-xs font-semibold px-3 py-1.5 rounded-lg border border-tif-gold/40 flex items-center shadow-lg">
-                                  <Eye className="mr-1.5 h-3.5 w-3.5" /> {isPdfFile(doc.secureUrl, doc.originalName) ? "เปิดดูไฟล์ PDF" : "คลิกดูรูปใหญ่"}
-                                </span>
+                                </div>
+
+                                <p className="text-[11px] text-slate-400 truncate font-mono">{doc.originalName}</p>
+
+                                {/* Rejection Warning Remark */}
+                                {doc.isRejected && doc.rejectReason && (
+                                  <div className="p-2 rounded-lg bg-rose-500/10 border border-rose-500/30 text-[10px] text-rose-300 leading-tight">
+                                    <strong>ระบุสาเหตุ:</strong> {doc.rejectReason}
+                                  </div>
+                                )}
                               </div>
-                            </div>
 
-                            <p className="text-[11px] text-slate-400 truncate font-mono">{doc.originalName}</p>
+                              {/* Document Action Controls */}
+                              <div className="pt-2.5 border-t border-slate-800/80 flex flex-col space-y-2">
+                                <div className="flex items-center justify-between gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenDocModal(doc)}
+                                    className="text-[11px] text-tif-gold font-semibold hover:underline flex items-center"
+                                  >
+                                    <ZoomIn className="mr-1 h-3.5 w-3.5" /> {isPdfFile(doc.secureUrl, doc.originalName) ? "เปิดดู PDF" : "ขยายดูรูป"}
+                                  </button>
 
-                            {/* Rejection Warning Remark */}
-                            {doc.isRejected && doc.rejectReason && (
-                              <div className="p-2 rounded-lg bg-rose-500/10 border border-rose-500/30 text-[10px] text-rose-300 leading-tight">
-                                <strong>ระบุสาเหตุ:</strong> {doc.rejectReason}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Document Action Controls */}
-                          <div className="pt-2.5 border-t border-slate-800/80 flex flex-col space-y-2">
-                            <div className="flex items-center justify-between gap-1">
-                              <button
-                                type="button"
-                                onClick={() => handleOpenDocModal(doc)}
-                                className="text-[11px] text-tif-gold font-semibold hover:underline flex items-center"
-                              >
-                                <ZoomIn className="mr-1 h-3.5 w-3.5" /> {isPdfFile(doc.secureUrl, doc.originalName) ? "เปิดดู PDF" : "ขยายดูรูป"}
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => handleToggleDocVerification(doc.id, !doc.isVerified)}
-                                className={`text-[10px] px-2.5 py-1 rounded-lg font-bold transition ${
-                                  doc.isVerified
-                                    ? "bg-slate-800 text-slate-400 hover:bg-slate-700"
-                                    : "bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/40"
-                                }`}
-                              >
-                                {doc.isVerified ? "ยกเลิกอนุมัติ" : "อนุมัติรูปนี้"}
-                              </button>
-                            </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleDocVerification(doc.id, !isDocVerified)}
+                                    className={`text-[10px] px-2.5 py-1 rounded-lg font-bold transition ${
+                                      isDocVerified
+                                        ? "bg-emerald-950/80 text-emerald-300 border border-emerald-700/60 hover:bg-slate-800 hover:text-slate-300"
+                                        : "bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/40"
+                                    }`}
+                                  >
+                                    {isDocVerified ? "✓ อนุมัติแล้ว" : "อนุมัติรูปนี้"}
+                                  </button>
+                                </div>
 
                             <div className="flex items-center justify-between gap-1 pt-1">
                               <button
@@ -1478,7 +1601,9 @@ export default function StudentApplicationsPage() {
                           </div>
                         </div>
                       );
-                    })}
+                    })()
+                  );
+                })}
                   </div>
                 ) : (
                   <div className="p-8 text-center rounded-xl bg-slate-950/40 border border-dashed border-slate-800">
@@ -1520,7 +1645,9 @@ export default function StudentApplicationsPage() {
                 </div>
               </div>
             )}
-          </div>
+            </div>
+          );
+        })()}
         </Drawer>
       )}
 
@@ -1875,7 +2002,7 @@ export default function StudentApplicationsPage() {
               </div>
 
               <div>
-                <label className="font-semibold text-slate-300">สถานะใบสมัคร (Application Status - 17 ขั้นตอน)</label>
+                <label className="font-semibold text-slate-300">สถานะใบสมัคร (Application Status - 13 ขั้นตอน)</label>
                 <select
                   value={formStatus}
                   onChange={(e) => setFormStatus(e.target.value)}
@@ -2376,11 +2503,11 @@ export default function StudentApplicationsPage() {
               onChange={(e) => setExtraDocType(e.target.value)}
               className="w-full rounded-xl border border-slate-800 bg-slate-950 p-2.5 text-sm text-white focus:border-tif-gold focus:outline-none font-medium"
             >
-              <option value="NATIONAL_ID">สำเนาบัตรประชาชน (National ID Card)</option>
-              <option value="TRANSCRIPT">สำเนาวุฒิการศึกษา (Transcript)</option>
-              <option value="HOUSE_REGISTRATION">สำเนาทะเบียนบ้าน (House Registration)</option>
-              <option value="MEDICAL_CERT">ใบรับรองแพทย์เวชศาสตร์การบิน (Medical Cert)</option>
-              <option value="PASSPORT_PHOTO">รูปถ่าย 1.5 นิ้ว (Photo)</option>
+              <option value="NATIONAL_ID_CERTIFIED">สำเนาบัตรประชาชน (Certified National ID)</option>
+              <option value="TRANSCRIPT_CERTIFIED">สำเนาวุฒิการศึกษา (Certified Transcript)</option>
+              <option value="HOUSE_REGISTRATION_CERTIFIED">สำเนาทะเบียนบ้าน (Certified House Registration)</option>
+              <option value="MEDICAL_CERTIFICATE_CLASS_1">ใบสำคัญแพทย์ CLASS 1 / ใบรับรองแพทย์เวชศาสตร์การบิน</option>
+              <option value="PHOTO_1_INCH">รูปถ่าย 1.5 นิ้ว (1.5-Inch Photo)</option>
               <option value="CRIMINAL_RECORD_CHECK">ผลตรวจประวัติอาชญากรรม (Criminal Record Check)</option>
             </select>
           </div>

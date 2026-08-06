@@ -2,19 +2,39 @@ import { z } from "zod";
 
 export const step1Schema = z.object({
   title: z.string().min(1, "Title is required"),
-  firstNameTh: z.string().min(1, "First Name (TH) is required"),
-  lastNameTh: z.string().min(1, "Last Name (TH) is required"),
-  firstNameEn: z.string().min(1, "First Name (EN) is required"),
-  lastNameEn: z.string().min(1, "Last Name (EN) is required"),
+  firstNameTh: z
+    .string()
+    .min(1, "กรุณากรอกชื่อภาษาไทย")
+    .regex(/^[ก-๙\s-]+$/, "กรุณากรอกชื่อเป็นภาษาไทยเท่านั้น (Thai characters only)"),
+  lastNameTh: z
+    .string()
+    .min(1, "กรุณากรอกนามสกุลภาษาไทย")
+    .regex(/^[ก-๙\s-]+$/, "กรุณากรอกนามสกุลเป็นภาษาไทยเท่านั้น (Thai characters only)"),
+  firstNameEn: z
+    .string()
+    .min(1, "First Name (EN) is required")
+    .regex(/^[a-zA-Z\s-]+$/, "กรุณากรอกชื่อเป็นภาษาอังกฤษเท่านั้น (English characters only)"),
+  lastNameEn: z
+    .string()
+    .min(1, "Last Name (EN) is required")
+    .regex(/^[a-zA-Z\s-]+$/, "กรุณากรอกนามสกุลเป็นภาษาอังกฤษเท่านั้น (English characters only)"),
   nickname: z.string().optional(),
   gender: z.string().min(1, "Gender is required"),
   birthday: z.string().min(1, "Birthday is required"),
   age: z.coerce.number().min(1, "Age is required"),
   nationality: z.string().min(1, "Nationality is required"),
   religion: z.string().optional(),
-  nationalId: z.string().optional(),
+  nationalId: z
+    .string()
+    .optional()
+    .refine((val) => !val || /^\d{13}$/.test(val), {
+      message: "เลขบัตรประชาชนต้องเป็นตัวเลข 13 หลักเท่านั้น (13 Digits Only)",
+    }),
   passport: z.string().optional(),
-  phone: z.string().min(8, "Phone number is required"),
+  phone: z
+    .string()
+    .min(1, "กรุณากรอกเบอร์โทรศัพท์")
+    .regex(/^\d{9,10}$/, "เบอร์โทรศัพท์ต้องเป็นตัวเลข 9-10 หลักเท่านั้น"),
   email: z.string().email("Invalid email address"),
   lineId: z.string().optional(),
   facebook: z.string().optional(),

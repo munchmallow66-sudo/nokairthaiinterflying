@@ -176,7 +176,7 @@ export const translations = {
     changeFileBtn: "เปลี่ยนไฟล์",
     noDocsFoundMsg: "ยังไม่มีรายการเอกสารแนบในระบบ ท่านสามารถกดปุ่ม + แนบเอกสารเพิ่มเติม เพื่อส่งเอกสารได้",
     payModalTitle: "แนบสลิปชำระเงิน 1,800 บาท",
-    payModalDesc: "สแกน QR Code PromptPay หรือ โอนเงินเข้าบัญชีธนาคารสถาบัน และแนบสลิปเพื่อยืนยัน",
+    payModalDesc: "โอนเงินเข้าบัญชีธนาคารสถาบัน และแนบสลิปเพื่อยืนยัน",
     slipUploadSuccessTitle: "อัปโหลดสลิปการชำระเงินสำเร็จ!",
     slipUploadSuccessDesc: "ระบบบันทึกสลิปโอนเงินสำหรับใบสมัครเรียบร้อยแล้ว เจ้าหน้าที่จะทำการอนุมัติภายใน 24 ชม.",
     closeModalBtn: "ปิดหน้าต่าง (Close)",
@@ -514,7 +514,7 @@ export const translations = {
     nameThLabel: "ชื่อ (ภาษาไทย)",
     nameEnLabel: "ชื่อ (ภาษาอังกฤษ)",
 
-    // Status Badges (17 Steps Pilot Workflow)
+    // Status Badges (13 Steps Pilot Workflow)
     statusOnlineRegistration: "1. เปิดรับสมัครออนไลน์",
     statusSubmitted: "2. กรอกใบสมัคร + แนบเอกสาร",
     statusDocsUnderReview: "3. ตรวจเอกสารเบื้องต้น",
@@ -527,7 +527,7 @@ export const translations = {
     statusInterviewScheduled: "10. สัมภาษณ์",
     statusInterviewPassed: "11. ประกาศผล (ผ่านสัมภาษณ์)",
     statusMedicalCheckClass1: "12. ตรวจสุขภาพ Class 1",
-    statusAcceptanceConfirmed: "13. ยืนยันสิทธิ์",
+    statusAcceptanceConfirmed: "13. ยืนยันสิทธิ์สำเร็จ",
     statusContractSigned: "14. ลงนามสัญญา",
     statusTuitionFirstInstallmentPaid: "15. ชำระค่าเรียนงวดแรก",
     statusOrientation: "16. ปฐมนิเทศ",
@@ -1357,7 +1357,7 @@ export const translations = {
     nameThLabel: "Thai Name",
     nameEnLabel: "English Name",
 
-    // Status Badges (17 Steps Pilot Workflow)
+    // Status Badges (13 Steps Pilot Workflow)
     statusOnlineRegistration: "1. Online Registration Open",
     statusSubmitted: "2. Form Submitted & Docs Attached",
     statusDocsUnderReview: "3. Initial Docs Verification",

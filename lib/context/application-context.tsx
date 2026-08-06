@@ -12,6 +12,7 @@ export const INITIAL_SAMPLE_APPLICATIONS: ApplicationWithDetails[] = [
     branch: "Bangkok Headquarters",
     preferredStartDate: new Date("2026-09-01"),
     status: "SUBMITTED",
+    joinOpenHouse: false,
     createdAt: new Date(),
     updatedAt: new Date(),
     student: {
@@ -112,6 +113,7 @@ export const INITIAL_SAMPLE_APPLICATIONS: ApplicationWithDetails[] = [
     branch: "Bangkok Headquarters",
     preferredStartDate: new Date("2026-09-01"),
     status: "SUBMITTED",
+    joinOpenHouse: true,
     createdAt: new Date("2026-07-24"),
     updatedAt: new Date("2026-07-24"),
     student: {
@@ -231,6 +233,7 @@ export const INITIAL_SAMPLE_APPLICATIONS: ApplicationWithDetails[] = [
     branch: "Don Mueang Flight Base",
     preferredStartDate: new Date("2026-09-15"),
     status: "DOCS_PASSED",
+    joinOpenHouse: false,
     createdAt: new Date("2026-07-23"),
     updatedAt: new Date("2026-07-23"),
     student: {
@@ -296,6 +299,7 @@ export const INITIAL_SAMPLE_APPLICATIONS: ApplicationWithDetails[] = [
     branch: "Bangkok Headquarters",
     preferredStartDate: new Date("2026-10-01"),
     status: "APPLICATION_FEE_PAID",
+    joinOpenHouse: true,
     createdAt: new Date("2026-07-22"),
     updatedAt: new Date("2026-07-22"),
     student: {
@@ -348,6 +352,7 @@ export const INITIAL_SAMPLE_APPLICATIONS: ApplicationWithDetails[] = [
     branch: "Don Mueang Flight Base",
     preferredStartDate: new Date("2026-09-01"),
     status: "MEDICAL_CHECK_CLASS_1",
+    joinOpenHouse: true,
     createdAt: new Date("2026-07-20"),
     updatedAt: new Date("2026-07-20"),
     student: {
@@ -452,7 +457,7 @@ export function ApplicationProvider({ children }: { children: React.ReactNode })
     }
     setIsInitialized(true);
 
-    // Fetch authoritative applications from Server DB and sync state
+    // Fetch authoritative applications from Server DB and merge with local state
     fetch("/api/applications")
       .then((res) => (res.ok ? res.json() : []))
       .then((dbApps) => {
@@ -460,7 +465,41 @@ export function ApplicationProvider({ children }: { children: React.ReactNode })
           const cleanDbApps = dbApps.filter(
             (a: any) => !currentDeleted.includes(a.id) && !currentDeleted.includes(a.applicationNumber)
           );
-          setApplications(cleanDbApps);
+
+          setApplications((prev) => {
+            const prevMap = new Map<string, any>();
+            prev.forEach((app) => {
+              if (app.id) prevMap.set(app.id, app);
+              if (app.applicationNumber) prevMap.set(app.applicationNumber, app);
+            });
+
+            const mergedList = cleanDbApps.map((dbApp: any) => {
+              const localApp = prevMap.get(dbApp.id) || prevMap.get(dbApp.applicationNumber);
+              if (!localApp) return dbApp;
+
+              return {
+                ...dbApp,
+                ...localApp,
+                joinOpenHouse:
+                  localApp.joinOpenHouse !== undefined ? localApp.joinOpenHouse : dbApp.joinOpenHouse,
+                remarks: localApp.remarks || dbApp.remarks,
+                status: localApp.status || dbApp.status,
+                documents: localApp.documents && localApp.documents.length > 0 ? localApp.documents : dbApp.documents,
+                payments: localApp.payments && localApp.payments.length > 0 ? localApp.payments : dbApp.payments,
+              };
+            });
+
+            const serverIds = new Set(cleanDbApps.map((d: any) => d.id));
+            const serverAppNums = new Set(cleanDbApps.map((d: any) => d.applicationNumber));
+
+            prev.forEach((localApp) => {
+              if (!serverIds.has(localApp.id) && !serverAppNums.has(localApp.applicationNumber)) {
+                mergedList.push(localApp);
+              }
+            });
+
+            return mergedList;
+          });
         }
       })
       .catch((err) => console.warn("Failed to fetch applications from DB:", err));
@@ -477,8 +516,17 @@ export function ApplicationProvider({ children }: { children: React.ReactNode })
   }, [applications, isInitialized]);
 
   const updateApplication = (appId: string, updatedFields: Partial<ApplicationWithDetails>) => {
+    if (!appId) return;
+    const cleanId = appId.trim().toLowerCase();
     setApplications((prev) =>
-      prev.map((app) => (app.id === appId ? { ...app, ...updatedFields, updatedAt: new Date() } : app))
+      prev.map((app) =>
+        app.id === appId ||
+        app.applicationNumber === appId ||
+        (app.id && app.id.toLowerCase() === cleanId) ||
+        (app.applicationNumber && app.applicationNumber.toLowerCase() === cleanId)
+          ? { ...app, ...updatedFields, updatedAt: new Date() }
+          : app
+      )
     );
     try {
       fetch("/api/applications", {

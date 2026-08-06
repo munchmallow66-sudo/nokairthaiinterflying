@@ -202,7 +202,7 @@ export async function POST(req: Request) {
             studentId: student.id,
             courseId: defaultCourse.id,
             branch: "Bangkok Headquarters",
-            status: "SUBMITTED",
+            status: "DOCS_UNDER_REVIEW",
             documents: {
               create: (validated.documents || []).map((doc) => ({
                 type: doc.type as any,
@@ -252,7 +252,7 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
   try {
     const body = await req.json();
-    const { id, status, student, documents, adminNotes } = body;
+    const { id, status, student, documents, adminNotes, joinOpenHouse, remarks } = body;
 
     if (!id) {
       return NextResponse.json({ error: "Application ID is required" }, { status: 400 });
@@ -264,8 +264,10 @@ export async function PATCH(req: Request) {
 
       const updateData: any = {};
       if (status !== undefined) updateData.status = status;
+      if (joinOpenHouse !== undefined) updateData.joinOpenHouse = joinOpenHouse;
+      if (remarks !== undefined) updateData.remarks = remarks;
 
-      // Update Application status
+      // Update Application status and details
       const updatedApp = await prisma.application.update({
         where: { id },
         data: updateData,
