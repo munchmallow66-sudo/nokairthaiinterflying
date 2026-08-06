@@ -1124,192 +1124,213 @@ export default function TrackStatusPage() {
               </div>
 
               {/* Status Detail & Remarks */}
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-7 space-y-6 shadow-luxury">
+                {/* Header Metadata Bar */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
+                  <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-tif-gold animate-pulse" />
                     {t("currentStatusLabel")}
                   </span>
-                  <span className="text-[10px] font-medium text-slate-400">
-                    {t("lastUpdatedLabel")}: {app.updatedAt}
+                  <span className="text-xs font-medium text-slate-400 font-mono flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5 text-slate-400" />
+                    {t("lastUpdatedLabel")}: <span className="text-slate-700 font-semibold">{app.updatedAt}</span>
                   </span>
                 </div>
 
-                <div className="text-base font-bold flex items-center gap-2.5 text-tif-navy">
-                  <Sparkles className="h-4 w-4 text-tif-gold shrink-0" />
-                  <span>{language === "th" ? app.statusLabelTh : app.statusLabelEn}</span>
+                {/* Main Status Title */}
+                <div className="flex items-start gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-tif-navy to-slate-900 text-tif-gold flex items-center justify-center shrink-0 shadow-sm border border-tif-gold/20 mt-0.5">
+                    <Sparkles className="h-5 w-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-lg sm:text-xl font-extrabold text-tif-navy font-display tracking-tight leading-snug">
+                      {language === "th" ? app.statusLabelTh : app.statusLabelEn}
+                    </h3>
+                    <span className="inline-block text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200">
+                      Step {app.stepIndex || 1} / 13
+                    </span>
+                  </div>
                 </div>
 
-                <div className="p-4 rounded-lg border border-slate-200 bg-white text-sm leading-relaxed text-slate-600 flex items-start gap-3">
-                  <MessageSquare className="h-4 w-4 shrink-0 mt-0.5 text-tif-gold" />
-                  <div className="w-full space-y-2">
-                    <strong className="text-xs font-bold text-tif-navy block">
-                      {t("staffRemarksLabel")}
-                    </strong>
-                    <span className="text-sm">{formatRemarks(app.remarks, app.stepIndex, language)}</span>
+                {/* Staff Remarks Box */}
+                <div className="relative rounded-2xl border border-amber-200/90 bg-gradient-to-r from-amber-50/80 via-amber-50/40 to-white p-5 space-y-2.5 shadow-2xs border-l-4 border-l-tif-gold">
+                  <div className="flex items-center gap-2 text-tif-navy font-bold text-xs uppercase tracking-wider">
+                    <MessageSquare className="h-4 w-4 text-tif-gold shrink-0" />
+                    <span>{t("staffRemarksLabel")}</span>
+                  </div>
+                  <div className="text-sm font-medium text-slate-800 leading-relaxed font-sans pl-0.5">
+                    {formatRemarks(app.remarks, app.stepIndex, language)}
+                  </div>
 
-                    {/* Document Re-upload Warning */}
-                    {(app.status === "WAITING_DOCUMENTS" || app.documents?.some((d) => d.isRejected)) && (
-                      <div className="mt-3 p-4 rounded-lg border border-rose-200 bg-rose-50 space-y-3">
-                        <div className="flex items-center gap-2 text-rose-700 font-bold text-xs border-b border-rose-200 pb-2.5">
-                          <AlertCircle className="h-4 w-4 text-rose-500 shrink-0" />
-                          <span>{t("docReuploadRequiredTitle")}</span>
-                        </div>
+                  {/* Document Re-upload Warning */}
+                  {(app.status === "WAITING_DOCUMENTS" || app.documents?.some((d) => d.isRejected)) && (
+                    <div className="mt-3 p-4 rounded-xl border border-rose-200 bg-rose-50 space-y-3">
+                      <div className="flex items-center gap-2 text-rose-700 font-bold text-xs border-b border-rose-200 pb-2.5">
+                        <AlertCircle className="h-4 w-4 text-rose-500 shrink-0" />
+                        <span>{t("docReuploadRequiredTitle")}</span>
+                      </div>
 
-                        <div className="space-y-2 text-xs">
-                          {app.documents?.filter((d) => d.isRejected)?.map((doc) => {
-                            const label = getDocTypeLabel(doc.type, t);
+                      <div className="space-y-2 text-xs">
+                        {app.documents?.filter((d) => d.isRejected)?.map((doc) => {
+                          const label = getDocTypeLabel(doc.type, t);
 
-                            return (
-                              <div
-                                key={doc.id}
-                                className="p-3 bg-white rounded-lg border border-rose-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                              >
-                                <div className="space-y-1">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-bold text-rose-700 text-xs flex items-center">
-                                      ❌ {label}
-                                    </span>
-                                    <span className="text-slate-400 font-mono text-[11px] truncate">({doc.originalName})</span>
-                                  </div>
-                                  {doc.rejectReason && (
-                                    <p className="text-rose-600 text-[11px] bg-rose-50 p-2 rounded border border-rose-200 leading-tight">
-                                      <strong>{t("reuploadReasonLabel")}</strong> {doc.rejectReason}
-                                    </p>
-                                  )}
+                          return (
+                            <div
+                              key={doc.id}
+                              className="p-3 bg-white rounded-lg border border-rose-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                            >
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-rose-700 text-xs flex items-center">
+                                    ❌ {label}
+                                  </span>
+                                  <span className="text-slate-400 font-mono text-[11px] truncate">({doc.originalName})</span>
                                 </div>
-
-                                <Button
-                                  size="sm"
-                                  variant="gold"
-                                  onClick={() => handleOpenReuploadModal(app.applicationNumber, doc)}
-                                  className="font-bold text-xs shrink-0"
-                                >
-                                  <Upload className="mr-1 h-3.5 w-3.5" /> {t("reuploadThisFileBtn")}
-                                </Button>
+                                {doc.rejectReason && (
+                                  <p className="text-rose-600 text-[11px] bg-rose-50 p-2 rounded border border-rose-200 leading-tight">
+                                    <strong>{t("reuploadReasonLabel")}</strong> {doc.rejectReason}
+                                  </p>
+                                )}
                               </div>
-                            );
-                          })}
 
-                          {(!app.documents || app.documents.filter((d) => d.isRejected).length === 0) && (
-                            <div className="p-3 bg-white rounded-lg border border-rose-200 flex items-center justify-between">
-                              <span className="text-slate-600">{t("attachNewFilePrompt")}</span>
                               <Button
                                 size="sm"
                                 variant="gold"
-                                onClick={() => handleOpenReuploadModal(app.applicationNumber)}
+                                onClick={() => handleOpenReuploadModal(app.applicationNumber, doc)}
                                 className="font-bold text-xs shrink-0"
                               >
-                                <Upload className="mr-1 h-3.5 w-3.5" /> {t("attachNewFileBtn")}
+                                <Upload className="mr-1 h-3.5 w-3.5" /> {t("reuploadThisFileBtn")}
                               </Button>
                             </div>
-                          )}
+                          );
+                        })}
+
+                        {(!app.documents || app.documents.filter((d) => d.isRejected).length === 0) && (
+                          <div className="p-3 bg-white rounded-lg border border-rose-200 flex items-center justify-between">
+                            <span className="text-slate-600">{t("attachNewFilePrompt")}</span>
+                            <Button
+                              size="sm"
+                              variant="gold"
+                              onClick={() => handleOpenReuploadModal(app.applicationNumber)}
+                              className="font-bold text-xs shrink-0"
+                            >
+                              <Upload className="mr-1 h-3.5 w-3.5" /> {t("attachNewFileBtn")}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Dynamic Step Guidance & Condition Met Card */}
+                {(() => {
+                  const guidance = getStepGuidance(app, language);
+                  const IconComp = guidance.icon;
+
+                  return (
+                    <div className="rounded-2xl border border-slate-200/90 bg-slate-50/80 p-5 sm:p-6 space-y-4 shadow-2xs">
+                      {/* Condition Badge & Progress Bar */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/70 pb-3.5">
+                        <span className={`text-xs font-bold px-3.5 py-1.5 rounded-full border ${guidance.badgeBg} flex items-center gap-2 w-fit shadow-2xs`}>
+                          <IconComp className="h-4 w-4 shrink-0" />
+                          {guidance.condition}
+                        </span>
+                        <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+                          <span>{t("currentStepLabel")}:</span>
+                          <span className="font-mono font-extrabold text-tif-navy bg-white px-2.5 py-0.5 rounded-md border border-slate-200 shadow-2xs">
+                            {app.stepIndex || 1} / 13
+                          </span>
                         </div>
                       </div>
-                    )}
 
-                    {/* Dynamic Step Guidance & Condition Met Card */}
-                    {(() => {
-                      const guidance = getStepGuidance(app, language);
-                      const IconComp = guidance.icon;
+                      {/* Guidance Title & Description */}
+                      <div className="space-y-1.5 pt-0.5">
+                        <h5 className="text-sm font-bold text-tif-navy font-display flex items-center gap-2">
+                          {guidance.title}
+                        </h5>
+                        <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
+                          {guidance.description}
+                        </p>
+                      </div>
 
-                      return (
-                        <div className="mt-4 p-4 rounded-xl border border-slate-200 bg-slate-50/90 space-y-3 shadow-sm">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/80 pb-2.5">
-                            <span className={`text-[11px] font-bold px-3 py-1 rounded-full border ${guidance.badgeBg} flex items-center gap-1.5 w-fit shadow-xs`}>
-                              <IconComp className="h-3.5 w-3.5 shrink-0" />
-                              {guidance.condition}
-                            </span>
-                            <span className="text-[11px] font-medium text-slate-500">
-                              {t("currentStepLabel")}: <strong className="text-tif-navy font-bold">{app.stepIndex || 1} / 13</strong>
-                            </span>
-                          </div>
+                      {/* Pinned Action Box */}
+                      <div className="rounded-xl bg-white border border-amber-200/90 p-4 sm:p-5 space-y-2.5 shadow-2xs relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-amber-400/5 rounded-full blur-xl pointer-events-none" />
+                        <span className="text-xs font-extrabold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                          <span className="text-base">📌</span> {guidance.nextActionTitle}
+                        </span>
+                        <p className="text-xs sm:text-sm text-slate-900 font-bold leading-relaxed">
+                          {guidance.nextAction}
+                        </p>
 
-                          <div className="space-y-1">
-                            <h5 className="text-xs font-bold text-tif-navy font-display flex items-center gap-1.5">
-                              {guidance.title}
-                            </h5>
-                            <p className="text-xs text-slate-600 leading-relaxed">
-                              {guidance.description}
-                            </p>
-                          </div>
+                        {(guidance.actionType === "PAY" || guidance.actionType === "SLIP_SUBMITTED" || (app.stepIndex === 5 && app.status !== "PAYMENT_PENDING")) && (() => {
+                          const isSubmitted = guidance.actionType === "SLIP_SUBMITTED" || app.status === "PAYMENT_PENDING" || app.remarks?.includes("สลิป") || app.remarks?.includes("Slip") || app.remarks?.includes("โอนเงิน");
 
-                          <div className="p-3.5 rounded-xl bg-white border border-slate-200 space-y-2">
-                            <span className="text-[11px] font-bold text-tif-goldDark uppercase tracking-wider block">
-                              📌 {guidance.nextActionTitle}
-                            </span>
-                            <p className="text-xs text-slate-800 font-semibold leading-relaxed">
-                              {guidance.nextAction}
-                            </p>
-
-                            {(guidance.actionType === "PAY" || guidance.actionType === "SLIP_SUBMITTED" || (app.stepIndex === 5 && app.status !== "PAYMENT_PENDING")) && (() => {
-                              const isSubmitted = guidance.actionType === "SLIP_SUBMITTED" || app.status === "PAYMENT_PENDING" || app.remarks?.includes("สลิป") || app.remarks?.includes("Slip") || app.remarks?.includes("โอนเงิน");
-
-                              return (
-                                <div className={`pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t mt-3 p-3.5 rounded-xl border ${
+                          return (
+                            <div className={`pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t mt-3 p-3.5 rounded-xl border ${
+                              isSubmitted
+                                ? "bg-emerald-50/90 border-emerald-300 text-emerald-950"
+                                : "bg-amber-50/70 border-amber-300 text-amber-950"
+                            }`}>
+                              <span className="text-xs font-bold flex items-center gap-1.5">
+                                {isSubmitted
+                                  ? t("paymentSlipSubmittedPrompt")
+                                  : t("paymentSlipInstructionPrompt")}
+                              </span>
+                              <Button
+                                size="sm"
+                                variant={isSubmitted ? "outline" : "gold"}
+                                onClick={() => handleOpenPayModal(app.applicationNumber)}
+                                className={`font-bold text-xs shrink-0 py-2.5 px-4 ${
                                   isSubmitted
-                                    ? "bg-emerald-50/90 border-emerald-300 text-emerald-950"
-                                    : "bg-amber-50/70 border-amber-300 text-amber-950"
-                                }`}>
-                                  <span className="text-xs font-bold flex items-center gap-1.5">
-                                    {isSubmitted
-                                      ? t("paymentSlipSubmittedPrompt")
-                                      : t("paymentSlipInstructionPrompt")}
-                                  </span>
-                                  <Button
-                                    size="sm"
-                                    variant={isSubmitted ? "outline" : "gold"}
-                                    onClick={() => handleOpenPayModal(app.applicationNumber)}
-                                    className={`font-bold text-xs shrink-0 py-2.5 px-4 ${
-                                      isSubmitted
-                                        ? "border-emerald-400 text-emerald-950 hover:bg-emerald-100 bg-white shadow-xs"
-                                        : "shadow-gold"
-                                    }`}
-                                  >
-                                    {isSubmitted ? (
-                                      <>
-                                        <CheckCircle2 className="mr-1.5 h-4 w-4 text-emerald-600" />
-                                        {t("slipSubmittedBtn")}
-                                      </>
-                                    ) : (
-                                      <>
-                                        <CreditCard className="mr-1.5 h-4 w-4" />
-                                        {t("attachPaymentSlipBtn")}
-                                      </>
-                                    )}
-                                  </Button>
-                                </div>
-                              );
-                            })()}
+                                    ? "border-emerald-400 text-emerald-950 hover:bg-emerald-100 bg-white shadow-xs"
+                                    : "shadow-gold"
+                                }`}
+                              >
+                                {isSubmitted ? (
+                                  <>
+                                    <CheckCircle2 className="mr-1.5 h-4 w-4 text-emerald-600" />
+                                    {t("slipSubmittedBtn")}
+                                  </>
+                                ) : (
+                                  <>
+                                    <CreditCard className="mr-1.5 h-4 w-4" />
+                                    {t("attachPaymentSlipBtn")}
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          );
+                        })()}
 
-                            {guidance.actionType === "EXAM" && (
-                              <div className="mt-3 p-3.5 rounded-xl bg-purple-950/5 border border-purple-200 space-y-2">
-                                <div className="flex items-center gap-1.5 font-bold text-purple-950 text-xs border-b border-purple-200/60 pb-2">
-                                  <Calendar className="h-4 w-4 text-purple-600 shrink-0" />
-                                  <span>{t("writtenExamDetailsTitle")}</span>
-                                </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 font-medium">
-                                  <div className="bg-white p-2.5 rounded-lg border border-purple-100 shadow-xs space-y-0.5">
-                                    <span className="text-[10px] text-slate-400 font-bold block">{t("writtenExamDateLabel")}</span>
-                                    <span className="font-bold text-slate-900 text-xs">{t("writtenExamDateValue")}</span>
-                                  </div>
-                                  <div className="bg-white p-2.5 rounded-lg border border-purple-100 shadow-xs space-y-0.5">
-                                    <span className="text-[10px] text-slate-400 font-bold block">{t("writtenExamTimeLabel")}</span>
-                                    <span className="font-bold text-slate-900 text-xs">{t("writtenExamTimeValue")}</span>
-                                    <span className="text-[9px] font-medium text-purple-700 block">{t("writtenExamTimeNotice")}</span>
-                                  </div>
-                                  <div className="bg-white p-2.5 rounded-lg border border-purple-100 shadow-xs space-y-0.5">
-                                    <span className="text-[10px] text-slate-400 font-bold block">{t("writtenExamLocationLabel")}</span>
-                                    <span className="font-bold text-purple-950 text-xs">{t("writtenExamLocationValue")}</span>
-                                  </div>
-                                </div>
+                        {guidance.actionType === "EXAM" && (
+                          <div className="mt-3 p-3.5 rounded-xl bg-purple-950/5 border border-purple-200 space-y-2">
+                            <div className="flex items-center gap-1.5 font-bold text-purple-950 text-xs border-b border-purple-200/60 pb-2">
+                              <Calendar className="h-4 w-4 text-purple-600 shrink-0" />
+                              <span>{t("writtenExamDetailsTitle")}</span>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 font-medium">
+                              <div className="bg-white p-2.5 rounded-lg border border-purple-100 shadow-xs space-y-0.5">
+                                <span className="text-[10px] text-slate-400 font-bold block">{t("writtenExamDateLabel")}</span>
+                                <span className="font-bold text-slate-900 text-xs">{t("writtenExamDateValue")}</span>
                               </div>
-                            )}
+                              <div className="bg-white p-2.5 rounded-lg border border-purple-100 shadow-xs space-y-0.5">
+                                <span className="text-[10px] text-slate-400 font-bold block">{t("writtenExamTimeLabel")}</span>
+                                <span className="font-bold text-slate-900 text-xs">{t("writtenExamTimeValue")}</span>
+                                <span className="text-[9px] font-medium text-purple-700 block">{t("writtenExamTimeNotice")}</span>
+                              </div>
+                              <div className="bg-white p-2.5 rounded-lg border border-purple-100 shadow-xs space-y-0.5">
+                                <span className="text-[10px] text-slate-400 font-bold block">{t("writtenExamLocationLabel")}</span>
+                                <span className="font-bold text-purple-950 text-xs">{t("writtenExamLocationValue")}</span>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Submitted Documents Section — Completely hidden once Step 4 (Document Review) is passed */}
