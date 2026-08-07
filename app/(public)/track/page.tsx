@@ -18,6 +18,7 @@ import {
   CreditCard,
   Upload,
   Eye,
+  EyeOff,
   MapPin,
   ExternalLink,
   Globe,
@@ -486,6 +487,7 @@ export default function TrackStatusPage() {
   const { applications: ctxApps, updateApplication } = useApplicationContext();
   const [nationalId, setNationalId] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<TrackingResponse | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
@@ -1006,79 +1008,102 @@ export default function TrackStatusPage() {
       </section>
 
       {/* ================================================================ */}
-      {/* SEARCH CARD — Minimal white card                                  */}
       {/* ================================================================ */}
-      <section className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8 w-full -mt-6 relative z-20">
-        <div className="rounded-2xl border border-slate-200 bg-white p-7 sm:p-8 shadow-luxury space-y-5">
-          <form onSubmit={handleSearch} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
+      {/* SEARCH CARD — Modern Luxury Card                                 */}
+      {/* ================================================================ */}
+      <section className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 w-full -mt-6 relative z-20">
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-2xl space-y-6">
+          <form onSubmit={handleSearch} className="space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+              
+              {/* Left Column: Application Ref / National ID / Phone */}
+              <div className="space-y-1.5">
                 <label
                   htmlFor="nationalId"
-                  className="text-xs font-bold uppercase tracking-wider text-tif-navy flex items-center"
+                  className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-tif-navy flex items-center h-5"
                 >
-                  <Search className="h-3 w-3 mr-1.5 text-tif-gold" />
-                  {t("inputSearchLabel")}
+                  <Search className="h-3.5 w-3.5 mr-1.5 text-tif-gold shrink-0" />
+                  <span className="truncate">
+                    {language === "en" ? "App No. / National ID / Phone *" : "เลขใบสมัคร / เลขบัตรฯ / เบอร์โทร *"}
+                  </span>
                 </label>
-                <input
-                  id="nationalId"
-                  type="text"
-                  required
-                  value={nationalId}
-                  onChange={(e) => setNationalId(e.target.value)}
-                  placeholder={t("inputSearchPlaceholder")}
-                  className="w-full rounded-xl bg-slate-50 border border-slate-200 px-4 py-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-tif-gold focus:ring-2 focus:ring-tif-gold/20 transition-all font-medium"
-                />
+
+                <div className="relative flex items-center">
+                  <Search className="absolute left-3.5 h-4 w-4 text-slate-400 pointer-events-none" />
+                  <input
+                    id="nationalId"
+                    type="text"
+                    required
+                    value={nationalId}
+                    onChange={(e) => setNationalId(e.target.value)}
+                    placeholder={language === "en" ? "e.g. TIF-2026-8912 or National ID" : "เช่น TIF-2026-8912, เลขบัตร หรือเบอร์โทร"}
+                    className="w-full h-12 rounded-xl bg-slate-50 border border-slate-200 pl-10 pr-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-tif-gold focus:ring-2 focus:ring-tif-gold/20 focus:bg-white transition-all font-medium"
+                  />
+                </div>
               </div>
 
-              <div className="space-y-2">
+              {/* Right Column: Tracking Password */}
+              <div className="space-y-1.5">
                 <label
                   htmlFor="password"
-                  className="text-xs font-bold uppercase tracking-wider text-tif-navy flex items-center"
+                  className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-tif-navy flex items-center h-5"
                 >
-                  <Lock className="h-3 w-3 mr-1.5 text-tif-gold" />
-                  {language === "en" ? "Password *" : "รหัสผ่าน (Password) *"}
+                  <Key className="h-3.5 w-3.5 mr-1.5 text-amber-500 shrink-0" />
+                  <span className="truncate">
+                    {language === "en" ? "Tracking Password *" : "รหัสผ่านติดตามสถานะ (Password) *"}
+                  </span>
                 </label>
-                <input
-                  id="password"
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder={language === "en" ? "Enter your tracking password" : "ระบุรหัสผ่านติดตามสถานะ"}
-                  className="w-full rounded-xl bg-slate-50 border border-slate-200 px-4 py-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-tif-gold focus:ring-2 focus:ring-tif-gold/20 transition-all font-medium font-mono"
-                />
+
+                <div className="relative flex items-center">
+                  <Lock className="absolute left-3.5 h-4 w-4 text-amber-500/80 pointer-events-none" />
+                  <input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder={language === "en" ? "Enter 6-char password (e.g. A!o165)" : "ระบุรหัสผ่าน 6 หลัก (เช่น A!o165)"}
+                    className="w-full h-12 rounded-xl bg-amber-50/20 border border-amber-200/70 pl-10 pr-10 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 focus:bg-white transition-all font-mono font-bold tracking-wider"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 text-slate-400 hover:text-slate-600 transition-colors p-1"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
+
             </div>
 
             {errorMsg && (
-              <div className="flex items-start space-x-2.5 p-4 rounded-xl text-xs font-medium border border-rose-200 bg-rose-50 text-rose-700">
+              <div className="flex items-start space-x-2.5 p-4 rounded-xl text-xs font-semibold border border-rose-200 bg-rose-50 text-rose-700 animate-in fade-in duration-200 shadow-sm">
                 <AlertCircle className="h-4 w-4 shrink-0 text-rose-500 mt-0.5" />
                 <span>{errorMsg}</span>
               </div>
             )}
 
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button
-                type="submit"
-                disabled={loading}
-                variant="gold"
-                size="lg"
-                className="w-full font-bold shadow-gold"
-              >
-                {loading ? (
-                  <span className="flex items-center space-x-2 justify-center">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>{t("searchingBtn")}</span>
-                  </span>
-                ) : (
-                  <span className="flex items-center justify-center space-x-2">
-                    <Search className="h-4 w-4" />
-                    <span>{t("searchStatusBtn")}</span>
-                  </span>
-                )}
-              </Button>
-            </div>
+            <Button
+              type="submit"
+              disabled={loading}
+              variant="gold"
+              size="lg"
+              className="w-full h-12 text-sm font-extrabold shadow-gold tracking-wide rounded-xl flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin text-slate-950" />
+                  <span>{t("searchingBtn")}</span>
+                </>
+              ) : (
+                <>
+                  <Search className="h-4 w-4 text-slate-950" />
+                  <span>{t("searchStatusBtn")}</span>
+                </>
+              )}
+            </Button>
           </form>
         </div>
       </section>
