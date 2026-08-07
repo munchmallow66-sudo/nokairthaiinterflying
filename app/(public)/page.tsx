@@ -81,13 +81,6 @@ export default function HomePage() {
                 </span>
               </h1>
 
-              {/* Description with Left Gold Accent Bar */}
-              <div className="border-l-2 border-tif-gold/60 pl-4 sm:pl-5 py-0.5 animate-hero-desc">
-                <p className="text-base sm:text-lg text-slate-300 leading-relaxed font-light">
-                  {t("heroDesc")}
-                </p>
-              </div>
-
               {/* CTAs */}
               <div className="flex flex-col sm:flex-row gap-3.5 pt-2 animate-hero-cta">
                 <Link href="/apply">

@@ -6,10 +6,20 @@ on:
   pull_request:
     branches: [main, master]
 
+env:
+  DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/dummy_db?schema=public' }}
+  CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME || 'dummy_cloud' }}
+  CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY || '123456789012345' }}
+  CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET || 'dummy_secret_key' }}
+  NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET || 'fallback-secret-for-ci-build-only-32chars' }}
+  NEXT_TELEMETRY_DISABLED: 1
+  CI: "true"
+
 jobs:
   lint-and-typecheck:
     name: Lint & Typecheck
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout Code
@@ -37,13 +47,7 @@ jobs:
     name: Build & Validate Bundle
     needs: lint-and-typecheck
     runs-on: ubuntu-latest
-
-    env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
-      CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
-      CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
-      NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+    timeout-minutes: 15
 
     steps:
       - name: Checkout Code
@@ -63,3 +67,4 @@ jobs:
 
       - name: Build Next.js Web App
         run: npm run build
+

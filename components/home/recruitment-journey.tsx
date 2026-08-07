@@ -120,7 +120,6 @@ export function RecruitmentJourney() {
         {
           date: t("p2Item3Date"),
           title: t("p2Item3Title"),
-          desc: t("p2Item3Desc"),
           icon: UserCheck,
           highlight: true,
         },
@@ -232,12 +231,9 @@ export function RecruitmentJourney() {
                       <Icon className="w-4.5 h-4.5" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h4 className="text-sm font-bold text-white truncate font-display">
+                      <h4 className="text-xs sm:text-sm font-bold text-white leading-tight font-display">
                         {phase.title.replace(/Phase \d+:\s*/, "")}
                       </h4>
-                      <p className="text-[11px] text-slate-300 truncate">
-                        {phase.subtitle}
-                      </p>
                     </div>
                   </div>
 

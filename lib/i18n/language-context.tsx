@@ -67,7 +67,8 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   // Memoized translation lookup function
   const t = React.useCallback(
     (key: TranslationKey): string => {
-      return translations[language]?.[key] || translations.th[key] || key;
+      const val = translations[language]?.[key] ?? translations.th[key];
+      return val !== undefined ? val : key;
     },
     [language]
   );
