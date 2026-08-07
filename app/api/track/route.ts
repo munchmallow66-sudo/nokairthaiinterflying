@@ -98,11 +98,22 @@ export async function POST(req: Request) {
       );
     }
 
-    const appList = student?.applications && student.applications.length > 0
-      ? student.applications
-      : dbApplication
+    const rawAppList = dbApplication
       ? [dbApplication]
+      : student?.applications && student.applications.length > 0
+      ? student.applications
       : [];
+
+    // Deduplicate appList by applicationNumber or id
+    const uniqueAppMap = new Map<string, any>();
+    rawAppList.forEach((app: any) => {
+      const key = app.applicationNumber || app.id;
+      if (key && !uniqueAppMap.has(key)) {
+        uniqueAppMap.set(key, app);
+      }
+    });
+
+    const appList = Array.from(uniqueAppMap.values());
 
     const targetApp = appList[0];
     if (targetApp && targetApp.password) {

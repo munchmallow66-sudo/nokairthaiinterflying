@@ -737,15 +737,30 @@ export default function TrackStatusPage() {
     const queryUpper = queryValue.toUpperCase();
     const queryDigits = queryValue.replace(/\D/g, "");
 
-    const localMatches = ctxApps.filter((app) => {
-      // Match by application number
-      if (app.applicationNumber?.toUpperCase() === queryUpper) return true;
-      // Match by national ID
-      if (queryDigits.length > 0 && app.student?.nationalId === queryDigits) return true;
-      // Match by phone
-      if (queryDigits.length > 0 && app.student?.phone === queryDigits) return true;
-      return false;
+    // Check for exact application number match first
+    const exactAppMatch = ctxApps.filter(
+      (app) => app.applicationNumber && app.applicationNumber.toUpperCase() === queryUpper
+    );
+
+    let matchedApps = exactAppMatch;
+    if (matchedApps.length === 0) {
+      matchedApps = ctxApps.filter((app) => {
+        if (queryDigits.length > 0 && app.student?.nationalId === queryDigits) return true;
+        if (queryDigits.length > 0 && app.student?.phone === queryDigits) return true;
+        return false;
+      });
+    }
+
+    // Deduplicate by application number or ID to avoid showing duplicate cards
+    const uniqueAppMap = new Map<string, typeof ctxApps[0]>();
+    matchedApps.forEach((app) => {
+      const key = app.applicationNumber || app.id;
+      if (key && !uniqueAppMap.has(key)) {
+        uniqueAppMap.set(key, app);
+      }
     });
+
+    const localMatches = Array.from(uniqueAppMap.values());
 
     if (localMatches.length > 0) {
       const firstMatch = localMatches[0];
