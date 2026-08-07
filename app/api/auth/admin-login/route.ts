@@ -28,9 +28,11 @@ export async function POST(request: Request) {
     const trimmedEmail = email.toLowerCase().trim();
     const prisma = getPrisma();
 
-    // Check user in database
-    const user = await prisma.user.findUnique({
-      where: { email: trimmedEmail },
+    // Check user in database — scoped to non-student roles only, since email is
+    // no longer globally unique and a public applicant could otherwise create a
+    // STUDENT row sharing an admin's email address.
+    let user = await prisma.user.findFirst({
+      where: { email: trimmedEmail, role: { notIn: ["STUDENT", "GUEST"] } },
     });
 
     // Default admin fallback credentials check
@@ -40,6 +42,18 @@ export async function POST(request: Request) {
     let isValidUser = false;
     if (isDefaultAdmin) {
       isValidUser = true;
+      // Ensure the bypass account has a real User row so downstream writes
+      // that reference authorId (e.g. admin notes) have a valid FK target
+      // instead of the synthetic "admin-default" id.
+      if (!user) {
+        user = await prisma.user.create({
+          data: {
+            email: "admin@tif.ac.th",
+            name: "Academy Administrator",
+            role: "SUPER_ADMIN",
+          },
+        });
+      }
     } else if (user && user.role !== "STUDENT" && user.password) {
       isValidUser = await verifyPassword(password, user.password);
     }

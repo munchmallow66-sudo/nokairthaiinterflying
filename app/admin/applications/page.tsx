@@ -165,6 +165,8 @@ export default function StudentApplicationsPage() {
     rejectDocument,
     replaceDocument,
     addExtraDocument,
+    deleteDocument,
+    verifyAllDocuments,
     deleteApplication,
     addApplication,
     resetToSampleData,
@@ -278,7 +280,9 @@ export default function StudentApplicationsPage() {
   const handleDeleteDoc = (docId: string, docName: string) => {
     if (!selectedApp) return;
     if (!confirm(`คุณต้องการลบเอกสาร "${docName}" ใช่หรือไม่?`)) return;
-    updateApplication(selectedApp.id, {
+    deleteDocument(selectedApp.id, docId);
+    setSelectedApp({
+      ...selectedApp,
       documents: selectedApp.documents.filter((d) => d.id !== docId),
     });
   };
@@ -801,7 +805,13 @@ export default function StudentApplicationsPage() {
         adminNotes: [newNote, ...(selectedApp.adminNotes || [])],
       };
 
-      updateApplication(selectedApp.id, updatedAppData);
+      // Document verification and the status/note change are two distinct
+      // server-side actions (see applications/route.ts PATCH) — fire both.
+      verifyAllDocuments(selectedApp.id);
+      updateApplication(selectedApp.id, {
+        status: "APPLICATION_FEE_PAID",
+        adminNotes: [newNote, ...(selectedApp.adminNotes || [])],
+      });
       setSelectedApp(updatedAppData);
 
       alert("อนุมัติผ่านการตรวจเอกสารเรียบร้อยแล้ว — ระบบได้เปิดหน้าชำระค่าสมัคร 1,800 บาทใน Step 5 ให้ผู้สมัครเรียบร้อยแล้ว");

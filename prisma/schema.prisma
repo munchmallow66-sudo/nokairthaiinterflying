@@ -79,7 +79,7 @@ enum PaymentStatus {
 model User {
   id            String          @id @default(cuid())
   name          String?
-  email         String          @unique
+  email         String          // not @unique: shared across student/admin. Admin-role uniqueness is enforced by a partial unique index (role NOT IN ('STUDENT','GUEST')) — see migration notes.
   emailVerified DateTime?
   image         String?
   password      String?
@@ -115,7 +115,7 @@ model Student {
   religion       String?
   nationalId     String?       @unique
   passport       String?
-  phone          String        @unique
+  phone          String        // not @unique: siblings/family may share one contact number. nationalId is the sole duplicate-application guard.
   lineId         String?
   facebook       String?
 
@@ -238,6 +238,8 @@ model Application {
   branch             String             @default("Bangkok Headquarters")
   preferredStartDate DateTime?
   status             ApplicationStatus  @default(SUBMITTED)
+  remarks            String?
+  joinOpenHouse      Boolean?
 
   documents          Document[]
   payments           Payment[]
@@ -264,6 +266,8 @@ model Document {
   originalName  String
   fileSize      Int?
   isVerified    Boolean      @default(false)
+  isRejected    Boolean      @default(false)
+  rejectReason  String?
   uploadedAt    DateTime     @default(now())
 
   @@map("documents")

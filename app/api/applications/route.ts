@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { fullApplicationSchema } from "@/schemas/application-schema";
 import { generateApplicationNumber, formatDocumentFileName } from "@/lib/utils";
+import { verifyAdminSessionToken } from "@/lib/auth";
 
 
 export const dynamic = "force-dynamic";
@@ -72,21 +74,29 @@ export async function POST(req: Request) {
     const prisma = getPrisma();
     const validated = fullApplicationSchema.parse(body);
 
-    let userEmail = validated.email;
-    let userPhone = validated.phone;
+    // Duplicate check: national ID is the only field that blocks a resubmission.
+    // Email and phone are allowed to repeat (e.g. siblings sharing a parent's
+    // contact details) and are now stored exactly as entered — no more mangling.
+    if (validated.nationalId) {
+      const existingStudent = await prisma.student.findUnique({
+        where: { nationalId: validated.nationalId },
+        include: {
+          applications: { orderBy: { createdAt: "desc" }, take: 1 },
+        },
+      });
 
-    const existingUser = await prisma.user.findUnique({
-      where: { email: userEmail },
-    });
-    if (existingUser) {
-      userEmail = `${validated.email.split("@")[0]}_${Date.now()}@${validated.email.split("@")[1] || "example.com"}`;
-    }
-
-    const existingPhone = await prisma.student.findUnique({
-      where: { phone: userPhone },
-    });
-    if (existingPhone) {
-      userPhone = `${validated.phone.slice(0, 7)}${Math.floor(100 + Math.random() * 900)}`;
+      const existingApplication = existingStudent?.applications?.[0];
+      if (existingApplication) {
+        return NextResponse.json(
+          {
+            success: false,
+            duplicate: true,
+            applicationNumber: existingApplication.applicationNumber,
+            error: "An application with this national ID has already been submitted.",
+          },
+          { status: 409 }
+        );
+      }
     }
 
     let defaultCourse = await prisma.course.findFirst();
@@ -108,7 +118,7 @@ export async function POST(req: Request) {
         const user = await tx.user.create({
           data: {
             name: `${validated.firstNameEn} ${validated.lastNameEn}`,
-            email: userEmail,
+            email: validated.email,
             role: "STUDENT",
           },
         });
@@ -129,7 +139,7 @@ export async function POST(req: Request) {
             religion: validated.religion,
             nationalId: validated.nationalId || null,
             passport: validated.passport || null,
-            phone: userPhone,
+            phone: validated.phone,
             lineId: validated.lineId,
             facebook: validated.facebook,
 
@@ -240,19 +250,37 @@ export async function POST(req: Request) {
       id: result.application.id,
     });
   } catch (err: any) {
-    console.error("API error creating application:", err);
-    return NextResponse.json({
-      success: true,
-      applicationNumber: appNumber,
-      note: "Application recorded successfully.",
-    });
+    console.error("API error creating application:", err instanceof Error ? err.stack : err);
+    return NextResponse.json(
+      {
+        success: false,
+        error: err instanceof Error ? err.message : "Unknown server error while creating application.",
+      },
+      { status: 500 }
+    );
   }
 }
 
 export async function PATCH(req: Request) {
   try {
     const body = await req.json();
-    const { id, status, student, documents, adminNotes, joinOpenHouse, remarks } = body;
+    const {
+      id,
+      status,
+      student,
+      adminNotes,
+      joinOpenHouse,
+      remarks,
+      action,
+      docId,
+      verifiedStatus,
+      newUrl,
+      newName,
+      type,
+      url,
+      name,
+      reason,
+    } = body;
 
     if (!id) {
       return NextResponse.json({ error: "Application ID is required" }, { status: 400 });
@@ -261,6 +289,74 @@ export async function PATCH(req: Request) {
     try {
       const { getPrisma } = await import("@/lib/prisma");
       const prisma = getPrisma();
+
+      // Single-document actions — isolated in their own try/catch so a docId
+      // that doesn't resolve to a real DB row (e.g. a client-only document
+      // that never made it into Postgres) can't block the rest of this PATCH.
+      if (action === "TOGGLE_DOC_VERIFY" && docId) {
+        try {
+          await prisma.document.update({
+            where: { id: docId },
+            data: { isVerified: !!verifiedStatus, isRejected: false, rejectReason: null },
+          });
+        } catch (docErr) {
+          console.warn(`Could not toggle verification for document ${docId}:`, docErr);
+        }
+      } else if (action === "REPLACE_DOC" && docId) {
+        try {
+          await prisma.document.update({
+            where: { id: docId },
+            data: {
+              secureUrl: newUrl,
+              ...(newName ? { originalName: newName } : {}),
+              isVerified: false,
+              isRejected: false,
+              rejectReason: null,
+            },
+          });
+        } catch (docErr) {
+          console.warn(`Could not replace document ${docId}:`, docErr);
+        }
+      } else if (action === "REJECT_DOC" && docId) {
+        try {
+          await prisma.document.update({
+            where: { id: docId },
+            data: { isVerified: false, isRejected: true, rejectReason: reason || null },
+          });
+        } catch (docErr) {
+          console.warn(`Could not reject document ${docId}:`, docErr);
+        }
+      } else if (action === "DELETE_DOC" && docId) {
+        try {
+          await prisma.document.delete({ where: { id: docId } });
+        } catch (docErr) {
+          console.warn(`Could not delete document ${docId}:`, docErr);
+        }
+      } else if (action === "ADD_EXTRA_DOC") {
+        try {
+          await prisma.document.create({
+            data: {
+              applicationId: id,
+              type: type as any,
+              secureUrl: url,
+              publicId: `tif_extra_${Date.now()}`,
+              originalName: name,
+              isVerified: false,
+            },
+          });
+        } catch (docErr) {
+          console.warn("Could not add extra document:", docErr);
+        }
+      } else if (action === "VERIFY_ALL_DOCS") {
+        try {
+          await prisma.document.updateMany({
+            where: { applicationId: id },
+            data: { isVerified: true, isRejected: false, rejectReason: null },
+          });
+        } catch (docErr) {
+          console.warn(`Could not verify all documents for application ${id}:`, docErr);
+        }
+      }
 
       const updateData: any = {};
       if (status !== undefined) updateData.status = status;
@@ -287,6 +383,31 @@ export async function PATCH(req: Request) {
             ...(student.passport && { passport: student.passport }),
           },
         });
+      }
+
+      // Persist the newest admin note — callers always prepend the new note
+      // at index 0 of the array. Requires a resolvable admin session, since
+      // AdminNote.authorId is a required FK to a real User row.
+      if (Array.isArray(adminNotes) && adminNotes.length > 0) {
+        const cookieStore = await cookies();
+        const sessionToken = cookieStore.get("admin_session")?.value;
+        const session = sessionToken ? await verifyAdminSessionToken(sessionToken) : null;
+
+        if (session?.id) {
+          try {
+            await prisma.adminNote.create({
+              data: {
+                applicationId: id,
+                authorId: session.id,
+                content: adminNotes[0].content,
+              },
+            });
+          } catch (noteErr) {
+            console.warn("Could not persist admin note:", noteErr);
+          }
+        } else {
+          console.warn("Skipped persisting admin note: no valid admin session on request");
+        }
       }
 
       return NextResponse.json({ success: true, application: updatedApp });

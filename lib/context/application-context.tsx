@@ -408,6 +408,8 @@ interface ApplicationContextType {
   rejectDocument: (appId: string, docId: string, reason: string) => void;
   replaceDocument: (appId: string, docId: string, newUrl: string, newName?: string) => void;
   addExtraDocument: (appId: string, type: string, url: string, name: string) => void;
+  deleteDocument: (appId: string, docId: string) => void;
+  verifyAllDocuments: (appId: string) => void;
   deleteApplication: (appId: string) => void;
   addApplication: (newApp: ApplicationWithDetails) => void;
   resetToSampleData: () => void;
@@ -557,23 +559,24 @@ export function ApplicationProvider({ children }: { children: React.ReactNode })
   };
 
   const rejectDocument = (appId: string, docId: string, reason: string) => {
+    const targetApp = applications.find((a) => a.id === appId);
+    const targetDoc = targetApp?.documents?.find((d) => d.id === docId);
+    const newNote = {
+      id: `note_${Date.now()}`,
+      content: `[แจ้งเอกสารผิด]: ปฏิเสธเอกสาร "${targetDoc?.originalName || docId}" - เหตุผล: ${reason}`,
+      createdAt: new Date(),
+      author: {
+        name: "Admin Officer",
+        email: "admin@tif.ac.th",
+      },
+    };
+
     setApplications((prev) =>
       prev.map((app) => {
         if (app.id !== appId) return app;
-        const targetDoc = app.documents?.find((d) => d.id === docId);
         const updatedDocs = app.documents?.map((d) =>
           d.id === docId ? { ...d, isVerified: false, isRejected: true, rejectReason: reason } : d
         );
-
-        const newNote = {
-          id: `note_${Date.now()}`,
-          content: `[แจ้งเอกสารผิด]: ปฏิเสธเอกสาร "${targetDoc?.originalName || docId}" - เหตุผล: ${reason}`,
-          createdAt: new Date(),
-          author: {
-            name: "Admin Officer",
-            email: "admin@tif.ac.th",
-          },
-        };
 
         return {
           ...app,
@@ -588,7 +591,59 @@ export function ApplicationProvider({ children }: { children: React.ReactNode })
       fetch("/api/applications", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: appId, status: "WAITING_DOCUMENTS" }),
+        body: JSON.stringify({
+          id: appId,
+          status: "WAITING_DOCUMENTS",
+          action: "REJECT_DOC",
+          docId,
+          reason,
+          adminNotes: [newNote],
+        }),
+      }).catch((e) => console.warn("API sync error:", e));
+    } catch (e) {}
+  };
+
+  const deleteDocument = (appId: string, docId: string) => {
+    setApplications((prev) =>
+      prev.map((app) => {
+        if (app.id !== appId) return app;
+        return {
+          ...app,
+          documents: (app.documents || []).filter((d) => d.id !== docId),
+          updatedAt: new Date(),
+        };
+      })
+    );
+    try {
+      fetch("/api/applications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: appId, action: "DELETE_DOC", docId }),
+      }).catch((e) => console.warn("API sync error:", e));
+    } catch (e) {}
+  };
+
+  const verifyAllDocuments = (appId: string) => {
+    setApplications((prev) =>
+      prev.map((app) => {
+        if (app.id !== appId) return app;
+        return {
+          ...app,
+          documents: (app.documents || []).map((d) => ({
+            ...d,
+            isVerified: true,
+            isRejected: false,
+            rejectReason: undefined,
+          })),
+          updatedAt: new Date(),
+        };
+      })
+    );
+    try {
+      fetch("/api/applications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: appId, action: "VERIFY_ALL_DOCS" }),
       }).catch((e) => console.warn("API sync error:", e));
     } catch (e) {}
   };
@@ -693,6 +748,8 @@ export function ApplicationProvider({ children }: { children: React.ReactNode })
         rejectDocument,
         replaceDocument,
         addExtraDocument,
+        deleteDocument,
+        verifyAllDocuments,
         deleteApplication,
         addApplication,
         resetToSampleData,

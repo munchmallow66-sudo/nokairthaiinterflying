@@ -245,6 +245,8 @@ export const translations = {
     payModalDesc: "โอนเงินเข้าบัญชีธนาคารสถาบัน และแนบสลิปเพื่อยืนยัน",
     slipUploadSuccessTitle: "อัปโหลดสลิปการชำระเงินสำเร็จ!",
     slipUploadSuccessDesc: "ระบบบันทึกสลิปโอนเงินสำหรับใบสมัครเรียบร้อยแล้ว เจ้าหน้าที่จะทำการอนุมัติภายใน 24 ชม.",
+    slipUploadErrorTitle: "อัปโหลดสลิปไม่สำเร็จ",
+    slipUploadErrorDesc: "ระบบไม่สามารถส่งสลิปการโอนเงินของท่านได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วลองใหม่อีกครั้ง",
     closeModalBtn: "ปิดหน้าต่าง (Close)",
     scanQrPromptPay: "Scan QR PromptPay",
     amountToPay: "ยอดชำระ:",
@@ -504,6 +506,16 @@ export const translations = {
     submitSuccessNextStepDesc: "ใบสมัครและเอกสารของคุณถูกส่งเข้าสู่ระบบเรียบร้อยแล้ว เจ้าหน้าที่สถาบันกำลังดำเนินการตรวจสอบความถูกต้องของเอกสารเบื้องต้น เมื่อเอกสารได้รับการอนุมัติเรียบร้อยแล้ว ระบบจะเปิดให้ท่านชำระค่าสมัครเรียน 1,800 บาทในขั้นตอนถัดไป",
     submitSuccessTrackBtn: "ติดตามสถานะใบสมัคร",
     submitSuccessHomeBtn: "กลับหน้าหลัก",
+
+    submitErrorTitle: "ส่งใบสมัครไม่สำเร็จ",
+    submitErrorDesc: "ระบบไม่สามารถส่งข้อมูลใบสมัครของท่านไปยังเซิร์ฟเวอร์ได้ ข้อมูลที่กรอกไว้ยังถูกบันทึกเป็นฉบับร่างในเครื่องของท่านอยู่ ไม่สูญหาย กรุณาลองส่งใหม่อีกครั้ง",
+    submitErrorRetryBtn: "ลองส่งใบสมัครอีกครั้ง",
+    submitErrorContactPrompt: "หากยังพบปัญหา กรุณาติดต่อเจ้าหน้าที่รับสมัคร",
+    submitErrorContactBtn: "ติดต่อเจ้าหน้าที่",
+
+    duplicateApplicationTitle: "ใบสมัครนี้ถูกบันทึกแล้ว",
+    duplicateApplicationDesc: "ระบบพบว่าอีเมลหรือเบอร์โทรศัพท์นี้มีใบสมัครอยู่ในระบบแล้ว กรุณาตรวจสอบสถานะใบสมัครของท่านที่หน้าติดตามสถานะ",
+    duplicateApplicationTrackBtn: "ตรวจสอบสถานะใบสมัคร",
 
     // Admin Dashboard & Navigation
     adminDashboardTitle: "ระบบบริหารจัดการการรับสมัครศิษย์บิน",
@@ -1221,6 +1233,8 @@ export const translations = {
     payModalDesc: "Scan PromptPay QR Code or transfer to institute bank account and attach slip to confirm",
     slipUploadSuccessTitle: "Payment Slip Uploaded Successfully!",
     slipUploadSuccessDesc: "Payment slip recorded for application. Staff will verify within 24 hours.",
+    slipUploadErrorTitle: "Slip Upload Failed",
+    slipUploadErrorDesc: "We couldn't send your payment slip. Please check your internet connection and try again.",
     closeModalBtn: "Close",
     scanQrPromptPay: "Scan QR PromptPay",
     amountToPay: "Amount Due:",
@@ -1480,6 +1494,16 @@ export const translations = {
     submitSuccessNextStepDesc: "Your application and documents have been successfully submitted. Admissions officers are currently conducting the initial document screening. Once approved, the system will enable application fee payment (THB 1,800) in the next step.",
     submitSuccessTrackBtn: "Track Application Status",
     submitSuccessHomeBtn: "Back to Home",
+
+    submitErrorTitle: "Application Submission Failed",
+    submitErrorDesc: "We couldn't send your application to the server. Your entered information is still safely saved as a draft on this device — please try submitting again.",
+    submitErrorRetryBtn: "Try Submitting Again",
+    submitErrorContactPrompt: "If the problem continues, please contact our admissions staff",
+    submitErrorContactBtn: "Contact Staff",
+
+    duplicateApplicationTitle: "This Application Already Exists",
+    duplicateApplicationDesc: "We found an existing application registered with this email or phone number. Please check your application status on the tracking page.",
+    duplicateApplicationTrackBtn: "Check Application Status",
 
     // Admin Dashboard & Navigation
     adminDashboardTitle: "Cadet Admission & Operations Management",

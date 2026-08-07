@@ -6,15 +6,19 @@ async function main() {
   console.log("Seeding Thai Inter Flying Admission System database...");
 
   // Seed Admin Account
-  const adminUser = await prisma.user.upsert({
+  let adminUser = await prisma.user.findFirst({
     where: { email: "admin@tif.ac.th" },
-    update: {},
-    create: {
-      name: "Academy Administrator",
-      email: "admin@tif.ac.th",
-      role: "ADMIN",
-    },
   });
+
+  if (!adminUser) {
+    adminUser = await prisma.user.create({
+      data: {
+        name: "Academy Administrator",
+        email: "admin@tif.ac.th",
+        role: "ADMIN",
+      },
+    });
+  }
 
   console.log("Created Admin:", adminUser.email);
 

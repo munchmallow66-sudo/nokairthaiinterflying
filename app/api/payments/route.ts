@@ -63,6 +63,7 @@ export async function POST(req: Request) {
     const { appNum, student, studentName, feeType, amount, status, slipUrl, invoiceNo, receiptNo } = body;
 
     let finalSlipUrl = slipUrl || "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=500";
+    let cloudinaryOk = true;
 
     // If slipUrl is a base64 Data URL, attempt uploading to Cloudinary
     if (typeof slipUrl === "string" && slipUrl.startsWith("data:")) {
@@ -74,10 +75,15 @@ export async function POST(req: Request) {
           const uploaded = await uploadToCloudinary(buffer, "tif_slips", "image");
           if (uploaded?.url) {
             finalSlipUrl = uploaded.url;
+          } else {
+            cloudinaryOk = false;
           }
+        } else {
+          cloudinaryOk = false;
         }
       } catch (cErr) {
         console.warn("Cloudinary slip upload fallback:", cErr);
+        cloudinaryOk = false;
       }
     }
 
@@ -96,7 +102,9 @@ export async function POST(req: Request) {
 
     paymentsStore.unshift(newPayment);
 
-    // Save to DB if Prisma model exists
+    // Save to DB if Prisma model exists — track real write outcome instead of assuming success
+    let dbWriteOk = false;
+    let dbError: string | null = null;
     try {
       const { getPrisma } = await import("@/lib/prisma");
       const prisma = getPrisma();
@@ -115,14 +123,34 @@ export async function POST(req: Request) {
             status: newPayment.status === "VERIFIED" ? "VERIFIED" : "PENDING",
           } as any,
         });
+        dbWriteOk = true;
+      } else {
+        dbError = `No application found for applicationNumber ${newPayment.appNum}`;
       }
     } catch (e) {
-      console.warn("DB payment insert warning:", e);
+      console.error("DB payment insert error:", e instanceof Error ? e.stack : e);
+      dbError = e instanceof Error ? e.message : "Unknown database error while saving payment.";
     }
 
-    return NextResponse.json({ success: true, payment: newPayment });
+    const overallOk = dbWriteOk && cloudinaryOk;
+
+    return NextResponse.json(
+      {
+        success: overallOk,
+        payment: newPayment,
+        ...(overallOk ? {} : { error: dbError || "Payment slip was not fully processed (upload fallback used)." }),
+      },
+      { status: overallOk ? 200 : 500 }
+    );
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Failed to create payment record" }, { status: 500 });
+    console.error("API error creating payment:", err instanceof Error ? err.stack : err);
+    return NextResponse.json(
+      {
+        success: false,
+        error: err instanceof Error ? err.message : "Unknown server error while creating payment.",
+      },
+      { status: 500 }
+    );
   }
 }
 

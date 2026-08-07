@@ -75,9 +75,10 @@ export async function POST(request: Request) {
     const trimmedEmail = email.toLowerCase().trim();
     const prisma = getPrisma();
 
-    // Check if user with email already exists
-    const existing = await prisma.user.findUnique({
-      where: { email: trimmedEmail },
+    // Check if a staff/admin account with this email already exists — scoped to
+    // non-student roles only, since email is no longer globally unique.
+    const existing = await prisma.user.findFirst({
+      where: { email: trimmedEmail, role: { notIn: ["STUDENT", "GUEST"] } },
     });
 
     if (existing || trimmedEmail === "admin@tif.ac.th") {
