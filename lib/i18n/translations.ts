@@ -59,7 +59,7 @@ export const translations = {
     p1Item1Title: "Online Application Launch",
     p1Item1Sub1: "1.1 Initial Document Review (ตรวจสอบเอกสารเบื้องต้น)",
     p1Item1Sub2: "1.2 Notice of Acceptance (แจ้งผลการรับพิจารณาเอกสาร)",
-    p1Item1Sub3: "1.3 Application Fee Payment: ค่าธรรมเนียมการสมัคร THB 1,800 (ไม่สามารถขอคืนเงินได้ทุกกรณี และต้องชำระภายใน 3 วันหลังจากเอกสารได้รับการตรวจสอบเรียบร้อย)",
+    p1Item1Sub3: "1.3 Application Fee Payment: ค่าธรรมเนียมการสมัคร THB 1,800 (ไม่สามารถขอคืนเงินได้ และต้องชำระภายใน 3 วันหลังจากเอกสารได้รับการตรวจสอบเรียบร้อย)",
     p1Item1Note: "*การลงทะเบียนเข้าร่วม Open House ต้องยืนยันระหว่างการยื่นเอกสาร (จำกัดสูงสุด 2 ท่านต่อผู้สมัคร)",
     p1Item2Date: "12 Sep",
     p1Item2Title: "TIF x Nok Air Open House",
@@ -98,7 +98,7 @@ export const translations = {
     phase4Dates: "26 Oct - 9 Nov",
     p4Item1Date: "26 Oct – 31 Oct",
     p4Item1Title: "Contract Signing & 1st Tuition Installment Payment",
-    p4Item1Desc: "เซ็นสัญญาและชำระเงินค่าธรรมเนียมการศึกษางวดที่ 1",
+    p4Item1Desc: "สำนักงานใหญ่ TIF (กรุงเทพฯ)",
     p4Item2Date: "9 Nov",
     p4Item2Title: "Student Pilot Orientation",
     p4Item2Desc: "ปฐมนิเทศศิษย์บิน @ ศูนย์ฝึกอบรมการบิน พิษณุโลก (Phitsanulok Training Center)",
@@ -111,7 +111,7 @@ export const translations = {
     appStep2Title: "2. แนบเอกสารประกอบการสมัคร",
     appStep2Desc: "แนบเอกสารระบุตัวตนและเอกสารการศึกษาฉบับเต็มตามรายการที่กำหนด",
     appStep3Title: "3. ชำระค่าธรรมเนียมการสมัคร",
-    appStep3Desc: "ชำระค่าธรรมเนียม 1,800 บาท (ไม่สามารถขอคืนเงินได้ทุกกรณี) ผ่านบัญชีที่กำหนด พร้อมแนบหลักฐานการโอนเงิน",
+    appStep3Desc: "ชำระค่าธรรมเนียม 1,800 บาท (ไม่สามารถขอคืนเงินได้) ผ่านบัญชีที่กำหนด พร้อมแนบหลักฐานการโอนเงิน",
 
     // Career Pathway Section
     careerPathwayTag: "CAREER PATHWAY",
@@ -128,10 +128,10 @@ export const translations = {
 
     qualSection1Title: "1. ข้อมูลส่วนตัวและสัญชาติ",
     qualSec1Item1: "สัญชาติไทย (ชาย หรือ หญิง)",
-    qualSec1Item2: "อายุไม่เกิน 32 ปี นับถึงวันปิดรับสมัคร",
+    qualSec1Item2: "เกิดตั้งแต่วันที่ 1 ธันวาคม 2536 เป็นต้นไป",
     qualSec1Item3: "ผู้สมัครชายต้องผ่านการเกณฑ์ทหาร หรือได้รับการยกเว้นตามกฎหมาย",
     qualSec1Item4: "ไม่อยู่ระหว่างผูกพันสัญญาฝึกอบรม หรือข้อผูกพันกับสายการบิน หรือองค์กรการบินอื่น",
-    qualSec1Item5: "ไม่มีประวัติอาชญากรรม หรือประวัติความผิดร้ายแรง",
+    qualSec1Item5: "ไม่มีประวัติอาชญากรรม หรือประวัติความผิดประพฤติเสื่อมเสีย",
 
     qualSection2Title: "2. การศึกษาและทักษะภาษาอังกฤษ",
     qualSec2Item1: "สำเร็จการศึกษาระดับปริญญาตรีขึ้นไป ไม่จำกัดสาขาวิชา จากสถาบันที่ได้รับการรับรอง",
@@ -140,7 +140,7 @@ export const translations = {
     qualSec2Item2b: "IELTS Academic คะแนน 5.5 ขึ้นไป",
 
     qualSection3Title: "3. สุขภาพและเวชศาสตร์การบิน",
-    qualSec3Item1: "ส่วนสูงขั้นต่ำ: ชาย 165 ซม. / หญิง 160 ซม.",
+    qualSec3Item1: "ส่วนสูงขั้นต่ำ 160 ซม. ขึ้นไป",
     qualSec3Item2: "มีสมรรถภาพทางร่างกายและจิตใจพร้อมสำหรับการฝึกอบรมการบินพาณิชย์",
     qualSec3Item3: "มีคุณสมบัติผ่านการตรวจร่างกายเพื่อขอใบสำคัญแพทย์ Class 1 ของ CAAT",
     qualSec3Item4: "ผู้สมัครมีหน้าที่รับผิดชอบตรวจสอบมาตรฐานสุขภาพตามที่ CAAT กำหนด (รายละเอียดที่: CAAT Class 1 Medical)",
@@ -152,15 +152,14 @@ export const translations = {
     reqDocsSub: "กรุณาเตรียมเอกสารทุกรายการในรูปแบบไฟล์ PDF พร้อมเซ็นรับรองสำเนาถูกต้อง",
     reqDoc1: "1. ใบสมัครที่กรอกข้อมูลครบถ้วนสมบูรณ์ (Completed Application Form)",
     reqDoc2: "2. ประวัติส่วนตัว / ประวัติการทำงาน (Personal Resume / CV)",
-    reqDoc3: "3. บัตรประจำตัวประชาชน, บัตรข้าราชการ หรือ หนังสือเดินทาง (Passport) ที่ยังไม่หมดอายุ",
+    reqDoc3: "3. บัตรประจำตัวประชาชน",
     reqDoc4: "4. ใบเปลี่ยนชื่อ-นามสกุล (ถ้ามี)",
     reqDoc5: "5. ใบปริญญาบัตร (หรือใบรับรองคุณวุฒิ) และ ใบรายงานผลการศึกษา (Academic Transcript) ฉบับสมบูรณ์",
     reqDoc6: "6. หลักฐานแสดงสถานะทางทหาร (เฉพาะผู้สมัครชาย):",
     reqDoc6a: "• ใบสำคัญแสดงการทะเบียนทหาร (ส.ด.9)",
     reqDoc6b: "• ใบรับรองผลการตรวจเลือกทหาร (ส.ด.8 หรือ ส.ด.43) หรือ",
     reqDoc6c: "• กรณีอยู่ระหว่างรับราชการทหาร ให้ใช้บัตรประจำตัวหรือหนังสือรับรองสถานะข้าราชการทหาร",
-    reqDoc7: "7. ผลการทดสอบความรู้ภาษาอังกฤษ (อายุไม่เกิน 2 ปีนับถึงวันสมัคร)",
-    reqDoc8: "8. หลักฐานการชำระค่าธรรมเนียมการสมัคร 1,800 บาท",
+    reqDoc7: "7. ผลการทดสอบภาษาอังกฤษ (English Proficiency Test)",
     reqDocNote: "* กรุณาแนบใบสมัครที่กรอกข้อมูลครบถ้วนและสลิปหลักฐานการโอนเงินชำระค่าธรรมเนียมพร้อมการสมัคร",
 
     // Document Verification Process Section
@@ -202,7 +201,7 @@ export const translations = {
     demoIdHint: "💡 ตัวอย่างทดสอบระบบป้อนเลขบัตร: 1234567890123",
     trackingResultTitle: "ผลการตรวจสอบสถานะการสมัคร",
     applicantNameLabel: "ชื่อผู้สมัคร:",
-    nationalIdLabel: "เลขบัตรประชาชน / ID",
+    nationalIdLabel: "เลขบัตรประชาชน / ID *",
     appNoLabel: "รหัสอ้างอิงใบสมัคร:",
     submittedDateLabel: "วันที่ยื่นใบสมัคร:",
     currentStatusLabel: "สถานะปัจจุบัน:",
@@ -495,9 +494,16 @@ export const translations = {
     clearDraftBtn: "ล้างข้อมูลเพื่อเริ่มใหม่",
 
     // Success Screen
-    submittedSuccessTitle: "ส่งใบสมัครเรียนเรียบร้อยแล้ว!",
-    appNumberIs: "หมายเลขใบสมัครของคุณคือ:",
+    submittedSuccessTitle: "ยื่นใบสมัครเรียนสำเร็จ!",
+    appNumberIs: "หมายเลขใบสมัครเรียนของคุณคือ",
     successMsg: "ทางสถาบันการบิน Thai Inter Flying ได้รับใบสมัครของคุณแล้ว เจ้าหน้าที่จะทำการตรวจสอบเอกสารและติดต่อกลับ",
+    submitSuccessCopied: "คัดลอกสำเร็จ!",
+    submitSuccessCopyBtn: "คัดลอกเลขใบสมัคร",
+    submitSuccessCurrentStatus: "สถานะปัจจุบัน: อยู่ระหว่างการตรวจสอบเอกสารเบื้องต้น",
+    submitSuccessNextStepTitle: "ขั้นตอนถัดไป: เจ้าหน้าที่สถาบันกำลังตรวจสอบเอกสารการสมัครเรียน",
+    submitSuccessNextStepDesc: "ใบสมัครและเอกสารของคุณถูกส่งเข้าสู่ระบบเรียบร้อยแล้ว เจ้าหน้าที่สถาบันกำลังดำเนินการตรวจสอบความถูกต้องของเอกสารเบื้องต้น เมื่อเอกสารได้รับการอนุมัติเรียบร้อยแล้ว ระบบจะเปิดให้ท่านชำระค่าสมัครเรียน 1,800 บาทในขั้นตอนถัดไป",
+    submitSuccessTrackBtn: "ติดตามสถานะใบสมัคร",
+    submitSuccessHomeBtn: "กลับหน้าหลัก",
 
     // Admin Dashboard & Navigation
     adminDashboardTitle: "ระบบบริหารจัดการการรับสมัครศิษย์บิน",
@@ -1068,7 +1074,7 @@ export const translations = {
     phase4Dates: "26 Oct - 9 Nov",
     p4Item1Date: "26 Oct – 31 Oct",
     p4Item1Title: "Contract Signing & 1st Tuition Installment Payment",
-    p4Item1Desc: "Contract signing and payment of 1st tuition installment",
+    p4Item1Desc: "TIF Head Office, Bangkok",
     p4Item2Date: "9 Nov",
     p4Item2Title: "Student Pilot Orientation",
     p4Item2Desc: "Student Pilot Orientation @ Phitsanulok Training Center",
@@ -1081,7 +1087,7 @@ export const translations = {
     appStep2Title: "2. Document Attachments",
     appStep2Desc: "Attach all specified documents in full as listed in the requirements.",
     appStep3Title: "3. Application Fee Payment",
-    appStep3Desc: "Pay the application fee of THB 1,800 (non-refundable under any circumstances) to the bank account specified in the application form, and attach the proof of payment.",
+    appStep3Desc: "Pay the application fee of THB 1,800 (non-refundable) to the bank account specified in the application form, and attach the proof of payment.",
 
     // Career Pathway Section
     careerPathwayTag: "CAREER PATHWAY",
@@ -1098,19 +1104,19 @@ export const translations = {
 
     qualSection1Title: "1. Personal Information",
     qualSec1Item1: "Thai nationality (male or female)",
-    qualSec1Item2: "Not more than 32 years of age as of the application closing date",
+    qualSec1Item2: "Age: Date of Birth from 1st December 1993",
     qualSec1Item3: "Male applicants must have completed military service or have been officially exempted",
     qualSec1Item4: "Not currently bound by any training contract or commitment with another airline or aviation organization",
-    qualSec1Item5: "No criminal record or history of serious misconduct",
+    qualSec1Item5: "No criminal record or history of misconduct",
 
-    qualSection2Title: "2. Education & Language Proficiency",
+    qualSection2Title: "2. Education & English Proficiency",
     qualSec2Item1: "Bachelor's degree or higher in any field from an accredited institution",
     qualSec2Item2: "Valid English language proficiency test result (issued within 2 years prior to the application date), meeting one of the following requirements:",
     qualSec2Item2a: "TOEIC score of 650 or above (Public Test only)",
     qualSec2Item2b: "IELTS Academic score of 5.5 or above",
 
     qualSection3Title: "3. Physical & Medical Requirements",
-    qualSec3Item1: "Minimum height: Male: 165 cm / Female: 160 cm",
+    qualSec3Item1: "Height is greater than or equal to 160 cm",
     qualSec3Item2: "Physically and mentally fit to undertake professional pilot training.",
     qualSec3Item3: "Eligible to obtain a CAAT Class 1 Medical Certificate.",
     qualSec3Item4: "Applicants are responsible for ensuring that they meet the medical standards prescribed by CAAT. Details are available at: CAAT Class 1 Medical",
@@ -1122,15 +1128,14 @@ export const translations = {
     reqDocsSub: "Please prepare scanned copies of all required documents in PDF format",
     reqDoc1: "1. Completed Application Form",
     reqDoc2: "2. Personal Resume/Curriculum Vitae (CV)",
-    reqDoc3: "3. Thai National ID Card, Government Official ID Card, or a valid passport (must not be expired)",
+    reqDoc3: "3. Thai National ID Card",
     reqDoc4: "4. Name/Surname Change Certificate (if applicable)",
     reqDoc5: "5. Bachelor's Degree Certificate (or Graduation Certificate) and complete Academic Transcript",
     reqDoc6: "6. Proof of military service status (male applicants only):",
     reqDoc6a: "• Military Service Registration Certificate",
     reqDoc6b: "• Military Service Exemption Certificate (Sor Dor 8 or Sor Dor 43), or",
     reqDoc6c: "• For applicants currently serving, an official identification card or document confirming current military status",
-    reqDoc7: "7. English language proficiency test result (issued within 2 years prior to the application date)",
-    reqDoc8: "8. Proof of payment of the application fee (THB 1,800)",
+    reqDoc7: "7. English Proficiency Test",
     reqDocNote: "* Please attach the completed application form and proof of payment transfer slip to your application.",
 
     // Document Verification Process Section
@@ -1172,7 +1177,7 @@ export const translations = {
     demoIdHint: "💡 Demo test National ID: 1234567890123",
     trackingResultTitle: "Application Tracking Results",
     applicantNameLabel: "Applicant Name:",
-    nationalIdLabel: "National ID / ID",
+    nationalIdLabel: "National ID / ID *",
     appNoLabel: "Application Ref No:",
     submittedDateLabel: "Submission Date:",
     currentStatusLabel: "Current Status:",
@@ -1466,8 +1471,15 @@ export const translations = {
 
     // Success Screen
     submittedSuccessTitle: "Application Submitted Successfully!",
-    appNumberIs: "Your Application Number is:",
+    appNumberIs: "Your Application Reference Number is",
     successMsg: "Thank you for applying to Thai Inter Flying Aviation Academy. Our admissions team will review your documents and contact you soon.",
+    submitSuccessCopied: "Copied!",
+    submitSuccessCopyBtn: "Copy Application No.",
+    submitSuccessCurrentStatus: "Current Status: Initial Document Screening in Progress",
+    submitSuccessNextStepTitle: "Next Step: Staff is currently verifying your application documents",
+    submitSuccessNextStepDesc: "Your application and documents have been successfully submitted. Admissions officers are currently conducting the initial document screening. Once approved, the system will enable application fee payment (THB 1,800) in the next step.",
+    submitSuccessTrackBtn: "Track Application Status",
+    submitSuccessHomeBtn: "Back to Home",
 
     // Admin Dashboard & Navigation
     adminDashboardTitle: "Cadet Admission & Operations Management",

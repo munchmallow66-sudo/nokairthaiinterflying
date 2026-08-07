@@ -38,6 +38,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Check,
+  Send,
 } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { useApplicationContext } from "@/lib/context/application-context";
@@ -301,6 +302,9 @@ export default function StudentApplicationsPage() {
   };
 
   const [writtenExamModalOpen, setWrittenExamModalOpen] = React.useState(false);
+  const [failModalOpen, setFailModalOpen] = React.useState(false);
+  const [failActionType, setFailActionType] = React.useState<"WRITTEN_EXAM" | "INTERVIEW">("WRITTEN_EXAM");
+  const [failMessage, setFailMessage] = React.useState("");
 
   const handlePassWrittenExam = () => {
     if (!selectedApp) return;
@@ -322,24 +326,12 @@ export default function StudentApplicationsPage() {
     alert("บันทึกผลการสอบ: ผ่านการสอบข้อเขียน เรียบร้อยแล้ว!");
   };
 
-  const handleFailWrittenExam = () => {
-    if (!selectedApp) return;
-    const thankYouRemark = "สถาบันไทย อินเตอร์ ไฟลอิ้ง ขอขอบพระคุณอย่างยิ่งที่ท่านให้ความสนใจและตั้งใจเข้าร่วมการสอบคัดเลือกนักบินในครั้งนี้ แม้ว่าผลการสอบในครั้งนี้จะยังไม่ผ่านเกณฑ์การคัดเลือก แต่สถาบันขอขอบคุณและเป็นกำลังใจให้ท่านในการเดินทางตามฝันสายการบินต่อไป และหวังเป็นอย่างยิ่งว่าจะได้มีโอกาสต้อนรับท่านอีกครั้งในโอกาสถัดไป";
-    updateApplication(selectedApp.id, {
-      status: "REJECTED",
-      remarks: thankYouRemark,
-      adminNotes: [
-        {
-          id: `note_${Date.now()}`,
-          content: "ผลสอบข้อเขียน: ไม่ผ่านเกณฑ์ (บันทึกข้อความขอบคุณและให้กำลังใจ)",
-          createdAt: new Date(),
-          author: { name: "Exam Committee", email: "exam@tif.ac.th" },
-        },
-        ...(selectedApp.adminNotes || []),
-      ],
-    });
-    setWrittenExamModalOpen(false);
-    alert("บันทึกผลการสอบ: ไม่ผ่านการสอบข้อเขียน (ส่งข้อความขอบคุณเรียบร้อยแล้ว)");
+  const handleOpenFailWrittenExam = () => {
+    setFailActionType("WRITTEN_EXAM");
+    setFailMessage(
+      "สถาบันไทย อินเตอร์ ไฟลอิ้ง ขอขอบพระคุณอย่างยิ่งที่ท่านให้ความสนใจและตั้งใจเข้าร่วมการสอบข้อเขียนคัดเลือกนักบินในครั้งนี้ แม้ว่าผลการสอบในครั้งนี้จะยังไม่ผ่านเกณฑ์การคัดเลือก แต่สถาบันขอขอบคุณและเป็นกำลังใจให้ท่านในการเดินทางตามฝันสายการบินต่อไป และหวังเป็นอย่างยิ่งว่าจะได้มีโอกาสต้อนรับท่านอีกครั้งในโอกาสถัดไป"
+    );
+    setFailModalOpen(true);
   };
 
   const [interviewResultModalOpen, setInterviewResultModalOpen] = React.useState(false);
@@ -364,24 +356,44 @@ export default function StudentApplicationsPage() {
     alert("บันทึกผลการสอบสัมภาษณ์: ผ่านการสัมภาษณ์ เรียบร้อยแล้ว!");
   };
 
-  const handleFailInterview = () => {
-    if (!selectedApp) return;
-    const thankYouRemark = "สถาบันไทย อินเตอร์ ไฟลอิ้ง ขอขอบพระคุณอย่างยิ่งที่ท่านให้ความสนใจและตั้งใจเข้าร่วมการสอบสัมภาษณ์คัดเลือกนักบินในครั้งนี้ แม้ว่าผลการสัมภาษณ์ในครั้งนี้จะยังไม่ผ่านเกณฑ์การคัดเลือก แต่คณะกรรมการขอขอบคุณและเป็นกำลังใจให้ท่านในการเดินทางตามฝันสายการบินต่อไป และหวังเป็นอย่างยิ่งว่าจะได้มีโอกาสต้อนรับท่านอีกครั้งในโอกาสถัดไป";
+  const handleOpenFailInterview = () => {
+    setFailActionType("INTERVIEW");
+    setFailMessage(
+      "สถาบันไทย อินเตอร์ ไฟลอิ้ง ขอขอบพระคุณอย่างยิ่งที่ท่านให้ความสนใจและตั้งใจเข้าร่วมการสอบสัมภาษณ์คัดเลือกนักบินในครั้งนี้ แม้ว่าผลการสัมภาษณ์ในครั้งนี้จะยังไม่ผ่านเกณฑ์การคัดเลือก แต่คณะกรรมการขอขอบคุณและเป็นกำลังใจให้ท่านในการเดินทางตามฝันสายการบินต่อไป และหวังเป็นอย่างยิ่งว่าจะได้มีโอกาสต้อนรับท่านอีกครั้งในโอกาสถัดไป"
+    );
+    setFailModalOpen(true);
+  };
+
+  const handleConfirmFail = () => {
+    if (!selectedApp || !failMessage.trim()) {
+      alert("กรุณาระบุข้อความก่อนยืนยัน");
+      return;
+    }
+
+    const isExam = failActionType === "WRITTEN_EXAM";
+    const msg = failMessage.trim();
+
     updateApplication(selectedApp.id, {
       status: "REJECTED",
-      remarks: thankYouRemark,
+      remarks: msg,
       adminNotes: [
         {
           id: `note_${Date.now()}`,
-          content: "ผลสอบสัมภาษณ์: ไม่ผ่านเกณฑ์ (บันทึกข้อความขอบคุณและให้กำลังใจ)",
+          content: `${isExam ? "ผลสอบข้อเขียน" : "ผลสอบสัมภาษณ์"}: ไม่ผ่านเกณฑ์ (ข้อความแจ้งผู้สมัคร: "${msg}")`,
           createdAt: new Date(),
-          author: { name: "Interview Committee", email: "interview@tif.ac.th" },
+          author: {
+            name: isExam ? "Exam Committee" : "Interview Committee",
+            email: isExam ? "exam@tif.ac.th" : "interview@tif.ac.th",
+          },
         },
         ...(selectedApp.adminNotes || []),
       ],
     });
+
+    setFailModalOpen(false);
+    setWrittenExamModalOpen(false);
     setInterviewResultModalOpen(false);
-    alert("บันทึกผลการสอบสัมภาษณ์: ไม่ผ่านการสัมภาษณ์ (ส่งข้อความขอบคุณเรียบร้อยแล้ว)");
+    alert(`บันทึกผลการสอบ${isExam ? "ข้อเขียน" : "สัมภาษณ์"}: ไม่ผ่าน (ส่งข้อความถึงผู้สมัครเรียบร้อยแล้ว)`);
   };
 
   const handleUpdateStatus = (newStatus: any) => {
@@ -1119,10 +1131,10 @@ export default function StudentApplicationsPage() {
                       </Button>
                       <Button
                         size="sm"
-                        onClick={handleFailWrittenExam}
-                        className="bg-blue-900/80 hover:bg-blue-800 text-blue-200 border border-blue-700 font-bold text-xs py-1.5 px-3"
+                        onClick={handleOpenFailWrittenExam}
+                        className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs py-1.5 px-3 border border-rose-500 shadow-sm"
                       >
-                        💙 ไม่ผ่าน (ส่งคำขอบคุณ)
+                        ❌ ไม่ผ่าน (ส่งคำขอบคุณ/ระบุข้อความ)
                       </Button>
                     </div>
                   </div>
@@ -1154,10 +1166,10 @@ export default function StudentApplicationsPage() {
                       </Button>
                       <Button
                         size="sm"
-                        onClick={handleFailInterview}
-                        className="bg-blue-900/80 hover:bg-blue-800 text-blue-200 border border-blue-700 font-bold text-xs py-1.5 px-3"
+                        onClick={handleOpenFailInterview}
+                        className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs py-1.5 px-3 border border-rose-500 shadow-sm"
                       >
-                        💙 ไม่ผ่าน (ส่งคำขอบคุณ)
+                        ❌ ไม่ผ่าน (ส่งคำขอบคุณ/ระบุข้อความ)
                       </Button>
                     </div>
                   </div>
@@ -1824,6 +1836,48 @@ export default function StudentApplicationsPage() {
         })()}
         </Drawer>
       )}
+
+      {/* Reject / Fail Custom Message Modal */}
+      <Modal
+        isOpen={failModalOpen}
+        onClose={() => setFailModalOpen(false)}
+        title={failActionType === "WRITTEN_EXAM" ? "ระบุข้อความผลสอบข้อเขียนไม่ผ่าน" : "ระบุข้อความผลสอบสัมภาษณ์ไม่ผ่าน"}
+        description="ข้อความด้านล่างจะถูกบันทึกและแสดงในหน้าติดตามสถานะของผู้สมัคร"
+      >
+        <div className="space-y-4 text-xs">
+          <div>
+            <label className="font-semibold text-slate-300 block mb-1.5">
+              ข้อความแจ้งผู้สมัคร (Message to Applicant):
+            </label>
+            <textarea
+              rows={5}
+              value={failMessage}
+              onChange={(e) => setFailMessage(e.target.value)}
+              placeholder="พิมพ์ข้อความที่ต้องการส่งถึงผู้สมัคร..."
+              className="w-full rounded-xl border border-slate-800 bg-slate-950 p-3 text-sm text-white focus:outline-none focus:border-rose-500 font-sans leading-relaxed"
+            />
+            <p className="text-[11px] text-slate-400 mt-1">
+              * ท่านสามารถปรับแต่งหรือแก้ไขข้อความตามต้องการก่อนกดส่งได้
+            </p>
+          </div>
+
+          <div className="flex justify-end space-x-2 pt-2 border-t border-slate-800">
+            <Button
+              variant="outline"
+              onClick={() => setFailModalOpen(false)}
+              className="border-slate-800 text-slate-300 hover:bg-slate-800"
+            >
+              ยกเลิก
+            </Button>
+            <Button
+              onClick={handleConfirmFail}
+              className="bg-rose-600 hover:bg-rose-700 text-white font-bold border-rose-500 shadow-sm"
+            >
+              <Send className="mr-1.5 h-3.5 w-3.5" /> ยืนยันส่งข้อความถึงผู้สมัคร
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Schedule Interview Modal */}
       <Modal
@@ -2822,22 +2876,22 @@ export default function StudentApplicationsPage() {
               </Button>
             </div>
 
-            {/* Option 2: FAIL / NOT PASSED (Gentle & Respectful Encouragement) */}
-            <div className="p-4 rounded-xl border border-blue-300 bg-blue-50/80 space-y-3 flex flex-col justify-between shadow-xs">
+            {/* Option 2: FAIL / NOT PASSED */}
+            <div className="p-4 rounded-xl border border-rose-300 bg-rose-50/80 space-y-3 flex flex-col justify-between shadow-xs">
               <div className="space-y-1.5">
-                <span className="font-bold text-blue-950 text-sm flex items-center gap-1.5">
-                  <Sparkles className="h-4 w-4 text-blue-600" /> ขอบคุณและเป็นกำลังใจ (ไม่ผ่าน)
+                <span className="font-bold text-rose-950 text-sm flex items-center gap-1.5">
+                  <XCircle className="h-4 w-4 text-rose-600" /> ไม่ผ่าน (ระบุข้อความส่งผู้สมัคร)
                 </span>
-                <p className="text-[11px] text-blue-900 leading-relaxed">
-                  ผู้สมัครไม่ผ่านเกณฑ์การสอบข้อเขียน ระบบจะแสดงข้อความขอบคุณอย่างสุภาพ ให้กำลังใจ และขอบคุณความตั้งใจเข้าร่วมโครงการ
+                <p className="text-[11px] text-rose-900 leading-relaxed">
+                  ผู้สมัครไม่ผ่านเกณฑ์การสอบข้อเขียน สามารถระบุหรือแก้ไขข้อความขอบคุณและคำแนะนำที่จะส่งถึงผู้สมัครได้
                 </p>
               </div>
               <Button
                 size="sm"
-                onClick={handleFailWrittenExam}
-                className="w-full font-bold text-xs bg-blue-600 hover:bg-blue-700 text-white shadow-xs py-2.5"
+                onClick={handleOpenFailWrittenExam}
+                className="w-full font-bold text-xs bg-rose-600 hover:bg-rose-700 text-white shadow-xs py-2.5"
               >
-                ยืนยัน: ส่งข้อความขอบคุณ & เป็นกำลังใจ
+                ❌ ไม่ผ่าน (ระบุข้อความส่งผู้สมัคร)
               </Button>
             </div>
           </div>
@@ -2878,22 +2932,22 @@ export default function StudentApplicationsPage() {
               </Button>
             </div>
 
-            {/* Option 2: FAIL / NOT PASSED (Gentle & Respectful Encouragement) */}
-            <div className="p-4 rounded-xl border border-blue-300 bg-blue-50/80 space-y-3 flex flex-col justify-between shadow-xs">
+            {/* Option 2: FAIL / NOT PASSED */}
+            <div className="p-4 rounded-xl border border-rose-300 bg-rose-50/80 space-y-3 flex flex-col justify-between shadow-xs">
               <div className="space-y-1.5">
-                <span className="font-bold text-blue-950 text-sm flex items-center gap-1.5">
-                  <Sparkles className="h-4 w-4 text-blue-600" /> ขอบคุณและเป็นกำลังใจ (ไม่ผ่าน)
+                <span className="font-bold text-rose-950 text-sm flex items-center gap-1.5">
+                  <XCircle className="h-4 w-4 text-rose-600" /> ไม่ผ่าน (ระบุข้อความส่งผู้สมัคร)
                 </span>
-                <p className="text-[11px] text-blue-900 leading-relaxed">
-                  ผู้สมัครไม่ผ่านเกณฑ์การสอบสัมภาษณ์ ระบบจะแสดงข้อความขอบคุณอย่างสุภาพ ให้กำลังใจ และขอบคุณความตั้งใจเข้าร่วมโครงการ
+                <p className="text-[11px] text-rose-900 leading-relaxed">
+                  ผู้สมัครไม่ผ่านเกณฑ์การสอบสัมภาษณ์ สามารถระบุหรือแก้ไขข้อความขอบคุณและคำแนะนำที่จะส่งถึงผู้สมัครได้
                 </p>
               </div>
               <Button
                 size="sm"
-                onClick={handleFailInterview}
-                className="w-full font-bold text-xs bg-blue-600 hover:bg-blue-700 text-white shadow-xs py-2.5"
+                onClick={handleOpenFailInterview}
+                className="w-full font-bold text-xs bg-rose-600 hover:bg-rose-700 text-white shadow-xs py-2.5"
               >
-                ยืนยัน: ส่งข้อความขอบคุณ & เป็นกำลังใจ
+                ❌ ไม่ผ่าน (ระบุข้อความส่งผู้สมัคร)
               </Button>
             </div>
           </div>

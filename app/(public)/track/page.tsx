@@ -112,8 +112,8 @@ const getStepGuidance = (app: ApplicationData, lang: "th" | "en" = "th") => {
   if (status === "REJECTED" || hasRejectedDocs) {
     return {
       condition: isEn
-        ? "Condition: Documents Incomplete / Action Required"
-        : "เงื่อนไข: เอกสารไม่สมบูรณ์ / ต้องแก้ไขไฟล์เอกสารแนบ",
+        ? "Condition: Incomplete Information and Documents"
+        : "เงื่อนไข: ข้อมูลและเอกสารไม่สมบูรณ์ (Incomplete Information and Documents)",
       badgeBg: "bg-rose-100 border-rose-300 text-rose-800",
       icon: AlertCircle,
       title: isEn
@@ -712,10 +712,10 @@ export default function TrackStatusPage() {
             if (remarks?.includes("สัมภาษณ์") || remarks?.includes("Interview")) {
               return { stepIndex: 11, labelTh: "11/13: ประกาศผลสัมภาษณ์ (ขอขอบพระคุณที่เข้าร่วมการคัดเลือก)", labelEn: "11/13: Panel Interview Results" };
             }
-            if (remarks?.includes("ขอบพระคุณ") || remarks?.includes("กำลังใจ") || remarks?.includes("เกณฑ์") || remarks?.includes("สอบ")) {
-              return { stepIndex: 9, labelTh: "9/13: ประกาศผลสอบ (ขอขอบพระคุณที่เข้าร่วมการคัดเลือก)", labelEn: "9/13: Written Exam Results" };
+            if (remarks?.includes("ข้อเขียน") || remarks?.includes("Written Exam") || remarks?.includes("ขอบพระคุณ") || remarks?.includes("กำลังใจ") || remarks?.includes("เกณฑ์") || remarks?.includes("สอบ")) {
+              return { stepIndex: 9, labelTh: "9/13: ประกาศผลสอบข้อเขียน (ขอขอบพระคุณที่เข้าร่วมการคัดเลือก)", labelEn: "9/13: Written Exam Results" };
             }
-            return { stepIndex: 0, labelTh: "ไม่ผ่านการคัดเลือก (Rejected)", labelEn: "Application Not Successful" };
+            return { stepIndex: 3, labelTh: "3/13: ตรวจเอกสารเบื้องต้น (ข้อมูลและเอกสารไม่สมบูรณ์)", labelEn: "3/13: Initial Document Review (Incomplete Information and Documents)" };
           default:
             return { stepIndex: 1, labelTh: "ยื่นใบสมัครแล้ว", labelEn: "Application Submitted" };
         }
@@ -814,10 +814,10 @@ export default function TrackStatusPage() {
           if (remarks?.includes("สัมภาษณ์") || remarks?.includes("Interview")) {
             return { stepIndex: 11, labelTh: "11/13: ประกาศผลสัมภาษณ์ (ขอขอบพระคุณที่เข้าร่วมการคัดเลือก)", labelEn: "11/13: Panel Interview Results" };
           }
-          if (remarks?.includes("ขอบพระคุณ") || remarks?.includes("กำลังใจ") || remarks?.includes("เกณฑ์") || remarks?.includes("สอบ")) {
-            return { stepIndex: 9, labelTh: "9/13: ประกาศผลสอบ (ขอขอบพระคุณที่เข้าร่วมการคัดเลือก)", labelEn: "9/13: Written Exam Results" };
+          if (remarks?.includes("ข้อเขียน") || remarks?.includes("Written Exam") || remarks?.includes("ขอบพระคุณ") || remarks?.includes("กำลังใจ") || remarks?.includes("เกณฑ์") || remarks?.includes("สอบ")) {
+            return { stepIndex: 9, labelTh: "9/13: ประกาศผลสอบข้อเขียน (ขอขอบพระคุณที่เข้าร่วมการคัดเลือก)", labelEn: "9/13: Written Exam Results" };
           }
-          return { stepIndex: 0, labelTh: "ไม่ผ่านการคัดเลือก (Rejected)", labelEn: "Application Not Successful" };
+          return { stepIndex: 3, labelTh: "3/13: ตรวจเอกสารเบื้องต้น (ข้อมูลและเอกสารไม่สมบูรณ์)", labelEn: "3/13: Initial Document Review (Incomplete Information and Documents)" };
         default: return { stepIndex: 1, labelTh: "ยื่นใบสมัครแล้ว", labelEn: "Application Submitted" };
       }
     };
@@ -916,6 +916,7 @@ export default function TrackStatusPage() {
               <input
                 id="nationalId"
                 type="text"
+                required
                 value={nationalId}
                 onChange={(e) => setNationalId(e.target.value)}
                 placeholder={t("inputSearchPlaceholder")}
@@ -1154,77 +1155,6 @@ export default function TrackStatusPage() {
                   </div>
                 </div>
 
-                {/* Staff Remarks Box */}
-                <div className="relative rounded-2xl border border-amber-200/90 bg-gradient-to-r from-amber-50/80 via-amber-50/40 to-white p-5 space-y-2.5 shadow-2xs border-l-4 border-l-tif-gold">
-                  <div className="flex items-center gap-2 text-tif-navy font-bold text-xs uppercase tracking-wider">
-                    <MessageSquare className="h-4 w-4 text-tif-gold shrink-0" />
-                    <span>{t("staffRemarksLabel")}</span>
-                  </div>
-                  <div className="text-sm font-medium text-slate-800 leading-relaxed font-sans pl-0.5">
-                    {formatRemarks(app.remarks, app.stepIndex, language)}
-                  </div>
-
-                  {/* Document Re-upload Warning */}
-                  {(app.status === "WAITING_DOCUMENTS" || app.documents?.some((d) => d.isRejected)) && (
-                    <div className="mt-3 p-4 rounded-xl border border-rose-200 bg-rose-50 space-y-3">
-                      <div className="flex items-center gap-2 text-rose-700 font-bold text-xs border-b border-rose-200 pb-2.5">
-                        <AlertCircle className="h-4 w-4 text-rose-500 shrink-0" />
-                        <span>{t("docReuploadRequiredTitle")}</span>
-                      </div>
-
-                      <div className="space-y-2 text-xs">
-                        {app.documents?.filter((d) => d.isRejected)?.map((doc) => {
-                          const label = getDocTypeLabel(doc.type, t);
-
-                          return (
-                            <div
-                              key={doc.id}
-                              className="p-3 bg-white rounded-lg border border-rose-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                            >
-                              <div className="space-y-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-bold text-rose-700 text-xs flex items-center">
-                                    ❌ {label}
-                                  </span>
-                                  <span className="text-slate-400 font-mono text-[11px] truncate">({doc.originalName})</span>
-                                </div>
-                                {doc.rejectReason && (
-                                  <p className="text-rose-600 text-[11px] bg-rose-50 p-2 rounded border border-rose-200 leading-tight">
-                                    <strong>{t("reuploadReasonLabel")}</strong> {doc.rejectReason}
-                                  </p>
-                                )}
-                              </div>
-
-                              <Button
-                                size="sm"
-                                variant="gold"
-                                onClick={() => handleOpenReuploadModal(app.applicationNumber, doc)}
-                                className="font-bold text-xs shrink-0"
-                              >
-                                <Upload className="mr-1 h-3.5 w-3.5" /> {t("reuploadThisFileBtn")}
-                              </Button>
-                            </div>
-                          );
-                        })}
-
-                        {(!app.documents || app.documents.filter((d) => d.isRejected).length === 0) && (
-                          <div className="p-3 bg-white rounded-lg border border-rose-200 flex items-center justify-between">
-                            <span className="text-slate-600">{t("attachNewFilePrompt")}</span>
-                            <Button
-                              size="sm"
-                              variant="gold"
-                              onClick={() => handleOpenReuploadModal(app.applicationNumber)}
-                              className="font-bold text-xs shrink-0"
-                            >
-                              <Upload className="mr-1 h-3.5 w-3.5" /> {t("attachNewFileBtn")}
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
                 {/* Dynamic Step Guidance & Condition Met Card */}
                 {(() => {
                   const guidance = getStepGuidance(app, language);
@@ -1333,6 +1263,77 @@ export default function TrackStatusPage() {
                     </div>
                   );
                 })()}
+
+                {/* Staff Remarks Box */}
+                <div className="relative rounded-2xl border border-amber-200/90 bg-gradient-to-r from-amber-50/80 via-amber-50/40 to-white p-5 space-y-2.5 shadow-2xs border-l-4 border-l-tif-gold">
+                  <div className="flex items-center gap-2 text-tif-navy font-bold text-xs uppercase tracking-wider">
+                    <MessageSquare className="h-4 w-4 text-tif-gold shrink-0" />
+                    <span>{t("staffRemarksLabel")}</span>
+                  </div>
+                  <div className="text-sm font-medium text-slate-800 leading-relaxed font-sans pl-0.5">
+                    {formatRemarks(app.remarks, app.stepIndex, language)}
+                  </div>
+
+                  {/* Document Re-upload Warning */}
+                  {(app.status === "WAITING_DOCUMENTS" || app.documents?.some((d) => d.isRejected)) && (
+                    <div className="mt-3 p-4 rounded-xl border border-rose-200 bg-rose-50 space-y-3">
+                      <div className="flex items-center gap-2 text-rose-700 font-bold text-xs border-b border-rose-200 pb-2.5">
+                        <AlertCircle className="h-4 w-4 text-rose-500 shrink-0" />
+                        <span>{t("docReuploadRequiredTitle")}</span>
+                      </div>
+
+                      <div className="space-y-2 text-xs">
+                        {app.documents?.filter((d) => d.isRejected)?.map((doc) => {
+                          const label = getDocTypeLabel(doc.type, t);
+
+                          return (
+                            <div
+                              key={doc.id}
+                              className="p-3 bg-white rounded-lg border border-rose-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                            >
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-rose-700 text-xs flex items-center">
+                                    ❌ {label}
+                                  </span>
+                                  <span className="text-slate-400 font-mono text-[11px] truncate">({doc.originalName})</span>
+                                </div>
+                                {doc.rejectReason && (
+                                  <p className="text-rose-600 text-[11px] bg-rose-50 p-2 rounded border border-rose-200 leading-tight">
+                                    <strong>{t("reuploadReasonLabel")}</strong> {doc.rejectReason}
+                                  </p>
+                                )}
+                              </div>
+
+                              <Button
+                                size="sm"
+                                variant="gold"
+                                onClick={() => handleOpenReuploadModal(app.applicationNumber, doc)}
+                                className="font-bold text-xs shrink-0"
+                              >
+                                <Upload className="mr-1 h-3.5 w-3.5" /> {t("reuploadThisFileBtn")}
+                              </Button>
+                            </div>
+                          );
+                        })}
+
+                        {(!app.documents || app.documents.filter((d) => d.isRejected).length === 0) && (
+                          <div className="p-3 bg-white rounded-lg border border-rose-200 flex items-center justify-between">
+                            <span className="text-slate-600">{t("attachNewFilePrompt")}</span>
+                            <Button
+                              size="sm"
+                              variant="gold"
+                              onClick={() => handleOpenReuploadModal(app.applicationNumber)}
+                              className="font-bold text-xs shrink-0"
+                            >
+                              <Upload className="mr-1 h-3.5 w-3.5" /> {t("attachNewFileBtn")}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Submitted Documents Section — Completely hidden once Step 4 (Document Review) is passed */}

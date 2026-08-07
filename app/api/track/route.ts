@@ -183,14 +183,14 @@ export async function POST(req: Request) {
             stepIndex = 11;
             statusLabelTh = "11/13: ประกาศผลสัมภาษณ์ (ขอขอบพระคุณที่เข้าร่วมการคัดเลือก)";
             statusLabelEn = "11/13: Panel Interview Results";
-          } else if (app.remarks?.includes("ขอบพระคุณ") || app.remarks?.includes("กำลังใจ") || app.remarks?.includes("เกณฑ์") || app.remarks?.includes("สอบ")) {
+          } else if (app.remarks?.includes("ข้อเขียน") || app.remarks?.includes("Written Exam") || app.remarks?.includes("ขอบพระคุณ") || app.remarks?.includes("กำลังใจ") || app.remarks?.includes("เกณฑ์") || app.remarks?.includes("สอบ")) {
             stepIndex = 9;
-            statusLabelTh = "9/13: ประกาศผลสอบ (ขอขอบพระคุณที่เข้าร่วมการคัดเลือก)";
+            statusLabelTh = "9/13: ประกาศผลสอบข้อเขียน (ขอขอบพระคุณที่เข้าร่วมการคัดเลือก)";
             statusLabelEn = "9/13: Written Exam Results";
           } else {
-            stepIndex = 0;
-            statusLabelTh = "ไม่ผ่านการคัดเลือก (Rejected)";
-            statusLabelEn = "Application Not Successful";
+            stepIndex = 3;
+            statusLabelTh = "3/13: ตรวจเอกสารเบื้องต้น (ข้อมูลและเอกสารไม่สมบูรณ์)";
+            statusLabelEn = "3/13: Initial Document Review (Incomplete Information and Documents)";
           }
           break;
         default:

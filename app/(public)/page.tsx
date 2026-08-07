@@ -28,7 +28,6 @@ import { Card3D } from "@/components/ui/card-3d";
 import { Mascot3D } from "@/components/ui/mascot-3d";
 import { AnnouncementPopup } from "@/components/home/announcement-popup";
 import { RecruitmentJourney } from "@/components/home/recruitment-journey";
-import { CareerPathway } from "@/components/home/career-pathway";
 
 export default function HomePage() {
   const { t } = useLanguage();
@@ -221,10 +220,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ================================================================ */}
-      {/* CAREER PATHWAY SECTION                                           */}
-      {/* ================================================================ */}
-      <CareerPathway />
+
 
       {/* ================================================================ */}
       {/* 3. SECTION 02 — REQUIREMENTS (Interactive 3D Bento Grid)        */}
@@ -329,16 +325,14 @@ export default function HomePage() {
                     </h3>
                   </div>
 
-                  {/* Height Stats */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-xl bg-white border border-slate-200 p-3.5 text-center shadow-sm">
-                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Male</span>
-                      <span className="text-xl font-extrabold text-tif-navy font-display">≥ 165 cm</span>
-                    </div>
-                    <div className="rounded-xl bg-white border border-slate-200 p-3.5 text-center shadow-sm">
-                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Female</span>
-                      <span className="text-xl font-extrabold text-tif-navy font-display">≥ 160 cm</span>
-                    </div>
+                  {/* Height Stat */}
+                  <div className="rounded-xl bg-white border border-slate-200 p-3.5 text-center shadow-sm">
+                    <span className="text-[11px] text-slate-500 font-bold uppercase tracking-wider block">
+                      {t("language") === "th" ? "ส่วนสูงขั้นต่ำ" : "MINIMUM HEIGHT"}
+                    </span>
+                    <span className="text-xl font-extrabold text-tif-navy font-display mt-0.5 block">
+                      ≥ 160 cm
+                    </span>
                   </div>
 
                   <ul className="space-y-3.5">
@@ -409,7 +403,6 @@ export default function HomePage() {
                       subItems: [t("reqDoc6a"), t("reqDoc6b"), t("reqDoc6c")],
                     },
                     { num: 7, text: t("reqDoc7") },
-                    { num: 8, text: t("reqDoc8") },
                   ].map((docItem) => (
                     <li key={docItem.num} className="space-y-1.5">
                       <div className="flex items-start gap-3">

@@ -25,11 +25,9 @@ export const step1Schema = z.object({
   nationality: z.string().min(1, "Nationality is required"),
   religion: z.string().optional(),
   nationalId: z
-    .string()
-    .optional()
-    .refine((val) => !val || /^\d{13}$/.test(val), {
-      message: "เลขบัตรประชาชนต้องเป็นตัวเลข 13 หลักเท่านั้น (13 Digits Only)",
-    }),
+    .string({ required_error: "กรุณากรอกเลขบัตรประจำตัวประชาชน" })
+    .min(1, "กรุณากรอกเลขบัตรประจำตัวประชาชน")
+    .regex(/^\d{13}$/, "เลขบัตรประชาชนต้องเป็นตัวเลข 13 หลักเท่านั้น (13 Digits Only)"),
   passport: z.string().optional(),
   phone: z
     .string()

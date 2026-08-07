@@ -553,10 +553,10 @@ export function MultiStepForm() {
             <CheckCircle2 className="h-10 w-10" />
           </div>
           <CardTitle className="text-2xl sm:text-3xl font-extrabold text-tif-navy mb-2">
-            ยื่นใบสมัครเรียนสำเร็จ! (Application Submitted)
+            {t("submittedSuccessTitle")}
           </CardTitle>
           <CardDescription className="text-sm text-slate-600 mb-4">
-            หมายเลขใบสมัครเรียนของคุณคือ
+            {t("appNumberIs")}
           </CardDescription>
 
           <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
@@ -581,12 +581,12 @@ export function MultiStepForm() {
               {copied ? (
                 <>
                   <Check className="h-4 w-4 text-white" />
-                  <span>คัดลอกสำเร็จ!</span>
+                  <span>{t("submitSuccessCopied")}</span>
                 </>
               ) : (
                 <>
                   <Copy className="h-4 w-4 text-slate-950" />
-                  <span>คัดลอกเลขใบสมัคร</span>
+                  <span>{t("submitSuccessCopyBtn")}</span>
                 </>
               )}
             </button>
@@ -597,22 +597,22 @@ export function MultiStepForm() {
         <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-6 mb-6 space-y-3 text-center shadow-sm">
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-100/90 text-amber-900 text-xs font-bold border border-amber-300/60">
             <Clock className="h-3.5 w-3.5 text-amber-600 animate-spin" />
-            <span>สถานะปัจจุบัน: อยู่ระหว่างการตรวจสอบเอกสารเบื้องต้น</span>
+            <span>{t("submitSuccessCurrentStatus")}</span>
           </div>
           <h4 className="text-base font-bold text-tif-navy font-display">
-            ขั้นตอนถัดไป: เจ้าหน้าที่สถาบันกำลังตรวจสอบเอกสารการสมัครเรียน
+            {t("submitSuccessNextStepTitle")}
           </h4>
           <p className="text-xs text-slate-600 leading-relaxed max-w-lg mx-auto">
-            ใบสมัครและเอกสารของคุณถูกส่งเข้าสู่ระบบเรียบร้อยแล้ว เจ้าหน้าที่สถาบันกำลังดำเนินการตรวจสอบความถูกต้องของเอกสารเบื้องต้น เมื่อเอกสารได้รับการอนุมัติเรียบร้อยแล้ว ระบบจะเปิดให้ท่านชำระค่าสมัครเรียน 1,800 บาทในขั้นตอนถัดไป
+            {t("submitSuccessNextStepDesc")}
           </p>
         </div>
 
         <div className="flex flex-col sm:flex-row justify-center gap-3">
           <Button variant="gold" size="lg" onClick={() => router.push("/track")} className="font-bold shadow-md">
-            ติดตามสถานะใบสมัคร (Track Application Status)
+            {t("submitSuccessTrackBtn")}
           </Button>
           <Button variant="outline" size="lg" onClick={() => router.push("/")} className="border-slate-300 text-slate-700 hover:bg-slate-100">
-            กลับหน้าหลัก (Home)
+            {t("submitSuccessHomeBtn")}
           </Button>
         </div>
       </Card>
@@ -758,9 +758,11 @@ export function MultiStepForm() {
                     onInput={(e: React.FormEvent<HTMLInputElement>) => {
                       e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "").slice(0, 13);
                     }}
-                    className="mt-1 w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:border-tif-gold focus:outline-none focus:ring-1 focus:ring-tif-gold font-mono"
+                    className={`mt-1 w-full rounded-lg border p-2.5 text-sm text-slate-900 bg-white placeholder:text-slate-400 focus:outline-none focus:ring-1 font-mono ${
+                      errors.nationalId ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500" : "border-slate-300 focus:border-tif-gold focus:ring-tif-gold"
+                    }`}
                   />
-                  {errors.nationalId && <p className="text-xs text-rose-600 mt-1">{errors.nationalId.message}</p>}
+                  {errors.nationalId && <p className="text-xs text-rose-600 mt-1 font-medium">{errors.nationalId.message}</p>}
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-700 uppercase">{t("passportLabel")}</label>
