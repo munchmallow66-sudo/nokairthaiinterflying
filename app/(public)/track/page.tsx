@@ -23,6 +23,8 @@ import {
   Globe,
   Pin,
   XCircle,
+  Lock,
+  Key,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -391,7 +393,7 @@ const getStepGuidance = (app: ApplicationData, lang: "th" | "en" = "th") => {
         nextAction: isEn
           ? "Once Class 1 Medical Certificate is issued, submit proof to confirm your enrollment."
           : "เมื่อได้รับใบรับรองแพทย์ Class 1 แล้ว กรุณายื่นหลักฐานแก่เจ้าหน้าที่เพื่อยืนยันสิทธิ์สำเร็จ",
-        actionType: "WAIT",
+        actionType: "MEDICAL",
       };
 
     case "ACCEPTANCE_CONFIRMED":
@@ -448,8 +450,9 @@ const getDocTypeLabel = (type: string, t: (key: any) => string): string => {
     HOUSE_REGISTRATION: t("docHouseRegistration"),
     MEDICAL_CERTIFICATE_CLASS_1: t("docMedicalCert"),
     MEDICAL_CERT: t("docMedicalCert"),
-    CRIMINAL_RECORD_CHECK: t("docOther"),
+    CRIMINAL_RECORD_CHECK: t("docCriminal"),
     MILITARY_SERVICE_EXEMPTION: t("docMilitary"),
+    OTHER: t("docOther"),
   };
   return map[type] || type;
 };
@@ -482,6 +485,7 @@ export default function TrackStatusPage() {
   const { t, language } = useLanguage();
   const { applications: ctxApps, updateApplication } = useApplicationContext();
   const [nationalId, setNationalId] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<TrackingResponse | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
@@ -522,52 +526,107 @@ export default function TrackStatusPage() {
     setReuploadModalOpen(true);
   };
 
-  const handleConfirmReupload = () => {
+  const handleConfirmReupload = async () => {
     if (!reuploadFile) {
       alert(t("selectDocAlert"));
       return;
     }
     setUploadingReupload(true);
 
-    setTimeout(() => {
-      setUploadingReupload(false);
-      setReuploadModalOpen(false);
+    let secureUrl = "";
+    try {
+      const formData = new FormData();
+      formData.append("file", reuploadFile);
+      formData.append("type", reuploadType);
 
-      if (result && result.applications) {
-        setResult({
-          ...result,
-          applications: result.applications.map((a) =>
-            a.applicationNumber === activePayAppNum
-              ? {
-                  ...a,
-                  status: "SUBMITTED",
-                  statusLabelTh: "อัปโหลดเอกสารฉบับใหม่เรียบร้อยแล้ว (รอเจ้าหน้าที่ตรวจสอบ)",
-                  statusLabelEn: "New document uploaded successfully (Pending Staff Verification)",
-                  remarks: `ส่งเอกสารใหม่ "${reuploadFile.name}" เข้าสู่ระบบเรียบร้อยแล้ว เจ้าหน้าที่จะดำเนินการตรวจสอบอีกครั้ง`,
-                  documents: [
-                    ...(a.documents?.filter((d) => d.id !== activeReuploadDoc?.id) || []),
-                    {
-                      id: activeReuploadDoc?.id || `doc_${Date.now()}`,
-                      type: reuploadType,
-                      secureUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=400&q=80",
-                      originalName: formatDocumentFileName(
-                        activePayAppNum,
-                        "",
-                        result?.studentName?.split(" ")[0] || "",
-                        reuploadType,
-                        reuploadFile.name
-                      ),
-                      isVerified: false,
-                      isRejected: false,
-                    },
-                  ],
-                }
-              : a
-          ),
-        });
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        secureUrl = data.secureUrl;
       }
-      alert(t("reuploadSuccessAlert"));
-    }, 1200);
+    } catch (err) {
+      console.error("Failed to upload reupload file:", err);
+    }
+
+    if (!secureUrl) {
+      secureUrl = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => resolve(URL.createObjectURL(reuploadFile));
+        reader.readAsDataURL(reuploadFile);
+      });
+    }
+
+    setUploadingReupload(false);
+    setReuploadModalOpen(false);
+
+    if (result && result.applications) {
+      const updatedApplications = result.applications.map((a) => {
+        if (a.applicationNumber !== activePayAppNum) return a;
+
+        // Cleanly filter out old doc matching activeReuploadDoc id, reuploadType, or matching photo/id type
+        const filteredDocs = (a.documents || []).filter(
+          (d) =>
+            d.id !== activeReuploadDoc?.id &&
+            d.type !== reuploadType &&
+            !(reuploadType.includes("PHOTO") && d.type.includes("PHOTO")) &&
+            !(reuploadType.includes("NATIONAL_ID") && d.type.includes("NATIONAL_ID")) &&
+            !(reuploadType.includes("TRANSCRIPT") && d.type.includes("TRANSCRIPT")) &&
+            !(reuploadType.includes("HOUSE") && d.type.includes("HOUSE"))
+        );
+
+        const newDoc = {
+          id: activeReuploadDoc?.id || `doc_${Date.now()}`,
+          type: reuploadType,
+          secureUrl: secureUrl,
+          originalName: formatDocumentFileName(
+            activePayAppNum,
+            "",
+            result?.studentName?.split(" ")[0] || "",
+            reuploadType,
+            reuploadFile.name
+          ),
+          isVerified: false,
+          isRejected: false,
+          rejectReason: undefined,
+        };
+
+        const updatedDocs = [...filteredDocs, newDoc];
+        const remainingRejected = updatedDocs.filter((d) => d.isRejected);
+
+        // Sync with ApplicationContext if available
+        if (updateApplication) {
+          updateApplication(a.id, {
+            documents: updatedDocs as any,
+            status: (a.status === "REJECTED" || a.status === "WAITING_DOCUMENTS" ? "SUBMITTED" : a.status) as any,
+            remarks: `ส่งเอกสารใหม่ "${reuploadFile.name}" เข้าสู่ระบบเรียบร้อยแล้ว เจ้าหน้าที่จะดำเนินการตรวจสอบอีกครั้ง`,
+          });
+        }
+
+        return {
+          ...a,
+          status: a.status === "REJECTED" || a.status === "WAITING_DOCUMENTS" ? "SUBMITTED" : a.status,
+          statusLabelTh: remainingRejected.length > 0
+            ? `ส่งเอกสารฉบับใหม่เรียบร้อยแล้ว (ยังเหลือเอกสารต้องแก้ไขอีก ${remainingRejected.length} รายการ)`
+            : "อัปโหลดเอกสารฉบับใหม่เรียบร้อยแล้ว (รอเจ้าหน้าที่ตรวจสอบอีกครั้ง)",
+          statusLabelEn: remainingRejected.length > 0
+            ? `New document uploaded (${remainingRejected.length} item(s) requiring attention)`
+            : "New document uploaded successfully (Pending Staff Verification)",
+          remarks: `ส่งเอกสารใหม่ "${reuploadFile.name}" เข้าสู่ระบบเรียบร้อยแล้ว เจ้าหน้าที่จะดำเนินการตรวจสอบอีกครั้ง`,
+          documents: updatedDocs,
+        };
+      });
+
+      setResult({
+        ...result,
+        applications: updatedApplications,
+      });
+    }
+    alert(t("reuploadSuccessAlert"));
   };
 
   const handleConfirmSubmitSlip = async () => {
@@ -659,8 +718,15 @@ export default function TrackStatusPage() {
     setErrorMsg("");
 
     const queryValue = nationalId.trim();
+    const passValue = password.trim();
+
     if (!queryValue) {
       setErrorMsg(t("trackSearchInputErr"));
+      return;
+    }
+
+    if (!passValue) {
+      setErrorMsg(language === "en" ? "Please enter your tracking Password." : "กรุณาระบุ Password (รหัสผ่าน) สำหรับติดตามสถานะ");
       return;
     }
 
@@ -683,6 +749,12 @@ export default function TrackStatusPage() {
 
     if (localMatches.length > 0) {
       const firstMatch = localMatches[0];
+      if (firstMatch.password && firstMatch.password.trim() !== passValue) {
+        setErrorMsg(language === "en" ? "Invalid Password. Please check your password again." : "รหัสผ่าน (Password) ไม่ถูกต้อง กรุณาตรวจสอบรหัสผ่านอีกครั้ง");
+        setLoading(false);
+        return;
+      }
+
       const student = firstMatch.student;
       const studentName = student
         ? `${student.title || ""} ${student.firstNameTh || student.firstNameEn || ""} ${student.lastNameTh || student.lastNameEn || ""} (${student.firstNameEn || ""} ${student.lastNameEn || ""})`.trim()
@@ -781,7 +853,7 @@ export default function TrackStatusPage() {
       const res = await fetch("/api/track", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: queryValue, nationalId: queryValue }),
+        body: JSON.stringify({ query: queryValue, password: passValue }),
       });
 
       const data = await res.json();
@@ -924,23 +996,44 @@ export default function TrackStatusPage() {
       <section className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8 w-full -mt-6 relative z-20">
         <div className="rounded-2xl border border-slate-200 bg-white p-7 sm:p-8 shadow-luxury space-y-5">
           <form onSubmit={handleSearch} className="space-y-4">
-            <div className="space-y-2">
-              <label
-                htmlFor="nationalId"
-                className="text-xs font-bold uppercase tracking-wider text-tif-navy flex items-center"
-              >
-                <Search className="h-3 w-3 mr-1.5 text-tif-gold" />
-                {t("inputSearchLabel")}
-              </label>
-              <input
-                id="nationalId"
-                type="text"
-                required
-                value={nationalId}
-                onChange={(e) => setNationalId(e.target.value)}
-                placeholder={t("inputSearchPlaceholder")}
-                className="w-full rounded-xl bg-slate-50 border border-slate-200 px-4 py-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-tif-gold focus:ring-2 focus:ring-tif-gold/20 transition-all font-medium"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label
+                  htmlFor="nationalId"
+                  className="text-xs font-bold uppercase tracking-wider text-tif-navy flex items-center"
+                >
+                  <Search className="h-3 w-3 mr-1.5 text-tif-gold" />
+                  {t("inputSearchLabel")}
+                </label>
+                <input
+                  id="nationalId"
+                  type="text"
+                  required
+                  value={nationalId}
+                  onChange={(e) => setNationalId(e.target.value)}
+                  placeholder={t("inputSearchPlaceholder")}
+                  className="w-full rounded-xl bg-slate-50 border border-slate-200 px-4 py-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-tif-gold focus:ring-2 focus:ring-tif-gold/20 transition-all font-medium"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor="password"
+                  className="text-xs font-bold uppercase tracking-wider text-tif-navy flex items-center"
+                >
+                  <Lock className="h-3 w-3 mr-1.5 text-tif-gold" />
+                  {language === "en" ? "Password *" : "รหัสผ่าน (Password) *"}
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={language === "en" ? "Enter your tracking password" : "ระบุรหัสผ่านติดตามสถานะ"}
+                  className="w-full rounded-xl bg-slate-50 border border-slate-200 px-4 py-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-tif-gold focus:ring-2 focus:ring-tif-gold/20 transition-all font-medium font-mono"
+                />
+              </div>
             </div>
 
             {errorMsg && (
@@ -1278,6 +1371,55 @@ export default function TrackStatusPage() {
                             </div>
                           </div>
                         )}
+
+                        {(guidance.actionType === "MEDICAL" || app.status === "MEDICAL_CHECK_CLASS_1" || app.stepIndex === 12) && (() => {
+                          const medDoc = app.documents?.find((d) => d.type === "MEDICAL_CERTIFICATE_CLASS_1" || d.type === "MEDICAL_CERT");
+                          const isUploaded = !!medDoc;
+
+                          return (
+                            <div className={`pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t mt-3 p-3.5 rounded-xl border ${
+                              isUploaded
+                                ? "bg-emerald-50/90 border-emerald-300 text-emerald-950"
+                                : "bg-pink-50/90 border-pink-300 text-pink-950"
+                            }`}>
+                              <div className="space-y-0.5">
+                                <span className="text-xs font-bold flex items-center gap-1.5">
+                                  {isUploaded ? (
+                                    <>
+                                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                                      {language === "en" ? "Medical Certificate Class 1 Uploaded" : "อัปโหลดใบรับรองแพทย์ Class 1 เรียบร้อยแล้ว"}
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Upload className="h-4 w-4 text-pink-600 shrink-0" />
+                                      {language === "en" ? "Please upload your Class 1 Aviation Medical Certificate" : "กรุณาอัปโหลดใบรับรองแพทย์ Class 1 เวชศาสตร์การบิน"}
+                                    </>
+                                  )}
+                                </span>
+                                {medDoc && (
+                                  <p className="text-[11px] text-slate-500 font-mono pl-5 truncate">
+                                    {medDoc.originalName}
+                                  </p>
+                                )}
+                              </div>
+                              <Button
+                                size="sm"
+                                variant={isUploaded ? "outline" : "gold"}
+                                onClick={() => handleOpenReuploadModal(app.applicationNumber, medDoc || { type: "MEDICAL_CERTIFICATE_CLASS_1" })}
+                                className={`font-bold text-xs shrink-0 py-2.5 px-4 ${
+                                  isUploaded
+                                    ? "border-emerald-400 text-emerald-950 hover:bg-emerald-100 bg-white shadow-xs"
+                                    : "shadow-gold bg-pink-600 hover:bg-pink-700 text-white"
+                                }`}
+                              >
+                                <Upload className="mr-1.5 h-4 w-4" />
+                                {isUploaded
+                                  ? (language === "en" ? "Re-upload / Update File" : "อัปโหลดแก้ไข / ส่งไฟล์ใหม่")
+                                  : t("uploadMedicalCertClass1Btn")}
+                              </Button>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   );
@@ -1294,11 +1436,27 @@ export default function TrackStatusPage() {
                   </div>
 
                   {/* Document Re-upload Warning */}
-                  {(app.status === "WAITING_DOCUMENTS" || app.documents?.some((d) => d.isRejected)) && (
+                  {(app.status === "WAITING_DOCUMENTS" || app.status === "REJECTED" || app.status === "DOCS_PENDING" || app.documents?.some((d) => d.isRejected)) && (
                     <div className="mt-3 p-4 rounded-xl border border-rose-200 bg-rose-50 space-y-3">
-                      <div className="flex items-center gap-2 text-rose-700 font-bold text-xs border-b border-rose-200 pb-2.5">
-                        <AlertCircle className="h-4 w-4 text-rose-500 shrink-0" />
-                        <span>{t("docReuploadRequiredTitle")}</span>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-rose-200 pb-2.5">
+                        <div className="flex items-center gap-2 text-rose-700 font-bold text-xs">
+                          <AlertCircle className="h-4 w-4 text-rose-500 shrink-0" />
+                          <span>
+                            {app.status === "REJECTED" || app.documents?.some((d) => d.isRejected)
+                              ? (language === "en"
+                                  ? "Document Screening Not Passed — Please upload additional or corrected documents"
+                                  : "ไม่ผ่านการตรวจเอกสาร — กรุณากดปุ่มเพิ่มเอกสารหรืออัปโหลดเอกสารใหม่")
+                              : t("docReuploadRequiredTitle")}
+                          </span>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="gold"
+                          onClick={() => handleOpenReuploadModal(app.applicationNumber)}
+                          className="font-bold text-xs shrink-0 shadow-sm"
+                        >
+                          <Upload className="mr-1.5 h-3.5 w-3.5" /> {language === "en" ? "Add / Upload Document" : "กดเพิ่มเอกสาร"}
+                        </Button>
                       </div>
 
                       <div className="space-y-2 text-xs">
@@ -1338,7 +1496,7 @@ export default function TrackStatusPage() {
 
                         {(!app.documents || app.documents.filter((d) => d.isRejected).length === 0) && (
                           <div className="p-3 bg-white rounded-lg border border-rose-200 flex items-center justify-between">
-                            <span className="text-slate-600">{t("attachNewFilePrompt")}</span>
+                            <span className="text-slate-600 font-medium">{t("attachNewFilePrompt")}</span>
                             <Button
                               size="sm"
                               variant="gold"
@@ -1376,8 +1534,14 @@ export default function TrackStatusPage() {
                   app.status === "MEDICAL_CHECK_CLASS_1" ||
                   app.status === "ACCEPTANCE_CONFIRMED";
 
-                // Step 4 passed & subsequent steps: Hide attached documents section completely if no rejected docs
-                if (isStep4OrNext && rejectedDocs.length === 0) {
+                const isDocCheckFailedOrPending =
+                  app.status === "REJECTED" ||
+                  app.status === "WAITING_DOCUMENTS" ||
+                  app.status === "DOCS_PENDING" ||
+                  rejectedDocs.length > 0;
+
+                // Hide attached documents section only if step >= 4 AND document screening passed cleanly
+                if (isStep4OrNext && !isDocCheckFailedOrPending) {
                   return null;
                 }
                 const isAllUploadedAndClean = docs.length >= 6 && rejectedDocs.length === 0;
@@ -1386,7 +1550,9 @@ export default function TrackStatusPage() {
                   app.status !== "SUBMITTED" &&
                   app.status !== "REGISTERED" &&
                   app.status !== "DOCS_PENDING" &&
-                  app.status !== "REJECTED";
+                  app.status !== "WAITING_DOCUMENTS" &&
+                  app.status !== "REJECTED" &&
+                  !rejectedDocs.length;
 
                 // Always display all attached document cards directly
                 const displayedDocs = docs;
@@ -1466,6 +1632,29 @@ export default function TrackStatusPage() {
                                 </div>
 
                                 <p className="text-[11px] text-slate-400 font-mono truncate">{doc.originalName}</p>
+
+                                {/* Visual Image / File Thumbnail Preview */}
+                                {doc.secureUrl && (
+                                  <div className="relative rounded-lg overflow-hidden border border-slate-200 bg-white h-28 w-full flex items-center justify-center shadow-2xs transition-all">
+                                    {doc.secureUrl.startsWith("data:image/") ||
+                                    doc.secureUrl.match(/\.(jpg|jpeg|png|webp|gif)($|\?)/i) ||
+                                    doc.secureUrl.includes("cloudinary.com") ||
+                                    doc.secureUrl.includes("unsplash.com") ? (
+                                      <img
+                                        src={doc.secureUrl}
+                                        alt={label}
+                                        className="w-full h-full object-cover"
+                                      />
+                                    ) : (
+                                      <div className="flex flex-col items-center justify-center p-2 text-center space-y-1">
+                                        <FileText className="h-6 w-6 text-tif-gold" />
+                                        <span className="text-[10px] text-slate-500 font-mono font-medium truncate max-w-[140px]">
+                                          {doc.originalName}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
 
                                 {doc.isRejected && doc.rejectReason && (
                                   <div className="p-2 rounded bg-rose-100 border border-rose-200 text-[10px] text-rose-700 leading-tight">
@@ -1718,12 +1907,13 @@ export default function TrackStatusPage() {
               onChange={(e) => setReuploadType(e.target.value)}
               className="w-full rounded-lg border border-slate-200 bg-white p-2 text-xs text-slate-900 focus:border-tif-gold focus:outline-none font-medium shadow-xs"
             >
+              <option value="OTHER">{t("docOther")}</option>
               <option value="NATIONAL_ID_CERTIFIED">{t("docNationalId")}</option>
               <option value="TRANSCRIPT_CERTIFIED">{t("docTranscript")}</option>
               <option value="HOUSE_REGISTRATION_CERTIFIED">{t("docHouseRegistration")}</option>
               <option value="MEDICAL_CERTIFICATE_CLASS_1">{t("docMedicalCert")}</option>
               <option value="PHOTO_1_INCH">{t("docPassportPhoto")}</option>
-              <option value="CRIMINAL_RECORD_CHECK">{t("docOther")}</option>
+              <option value="CRIMINAL_RECORD_CHECK">{t("docCriminal")}</option>
               <option value="MILITARY_SERVICE_EXEMPTION">{t("docMilitary")}</option>
             </select>
           </div>

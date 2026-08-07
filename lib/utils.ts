@@ -40,6 +40,26 @@ export function generateApplicationNumber(): string {
   return `${prefix}-${year}-${randomNum}`;
 }
 
+export function generateSecurePassword(length = 6): string {
+  const uppercase = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const lowercase = "abcdefghijkmnopqrstuvwxyz";
+  const numbers = "23456789";
+  const symbols = "!@#$%&*";
+  const allChars = uppercase + lowercase + numbers + symbols;
+
+  let password = "";
+  password += uppercase.charAt(Math.floor(Math.random() * uppercase.length));
+  password += symbols.charAt(Math.floor(Math.random() * symbols.length));
+  password += lowercase.charAt(Math.floor(Math.random() * lowercase.length));
+  password += numbers.charAt(Math.floor(Math.random() * numbers.length));
+
+  for (let i = password.length; i < length; i++) {
+    password += allChars.charAt(Math.floor(Math.random() * allChars.length));
+  }
+
+  return password.split("").sort(() => 0.5 - Math.random()).join("");
+}
+
 const DOC_TYPE_MAP: Record<string, string> = {
   PHOTO_1_INCH: "Photo",
   PHOTO_2_INCH: "Photo2Inch",

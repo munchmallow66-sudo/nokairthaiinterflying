@@ -240,6 +240,7 @@ model Application {
   status             ApplicationStatus  @default(SUBMITTED)
   remarks            String?
   joinOpenHouse      Boolean?
+  password           String?
 
   documents          Document[]
   payments           Payment[]

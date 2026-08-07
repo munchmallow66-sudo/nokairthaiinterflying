@@ -38,6 +38,7 @@ export interface ApplicationWithDetails {
   branch: string;
   preferredStartDate?: Date | null;
   status: ApplicationStatus;
+  password?: string | null;
   remarks?: string;
   createdAt: Date;
   updatedAt: Date;

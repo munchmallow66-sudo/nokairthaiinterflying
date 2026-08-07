@@ -9,6 +9,7 @@ export const INITIAL_SAMPLE_APPLICATIONS: ApplicationWithDetails[] = [
   {
     id: "app-3939",
     applicationNumber: "TIF-2026-3939",
+    password: "A!o165",
     branch: "Bangkok Headquarters",
     preferredStartDate: new Date("2026-09-01"),
     status: "SUBMITTED",

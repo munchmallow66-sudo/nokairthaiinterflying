@@ -19,6 +19,8 @@ import {
   Calendar,
   DollarSign,
   User,
+  Key,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ApplicationWithDetails, PILOT_WORKFLOW_STEPS } from "@/types";
@@ -244,6 +246,12 @@ export function DataTable({ data, onSelectApplication, onEditApplication, onDele
                       <span className="font-mono text-xs font-bold text-tif-gold px-2 py-0.5 rounded-md bg-tif-gold/10 border border-tif-gold/20">
                         {app.applicationNumber}
                       </span>
+                      {app.password && (
+                        <span className="font-mono text-[11px] font-bold text-amber-300 px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/30 flex items-center gap-1" title="Tracking Password">
+                          <Key className="h-3 w-3 text-amber-400" />
+                          Pass: {app.password}
+                        </span>
+                      )}
                       <span className="text-[11px] text-slate-400 font-mono">
                         {formatDate(app.createdAt)}
                       </span>
@@ -351,7 +359,13 @@ export function DataTable({ data, onSelectApplication, onEditApplication, onDele
                       onClick={() => onSelectApplication(app)}
                     >
                       <td className="px-3 py-3 font-mono font-bold text-tif-gold truncate">
-                        {app.applicationNumber}
+                        <div>{app.applicationNumber}</div>
+                        {app.password && (
+                          <div className="text-[10px] text-amber-300 font-semibold font-mono flex items-center gap-1 mt-0.5" title="Tracking Password">
+                            <Key className="h-2.5 w-2.5 text-amber-400" />
+                            Pass: {app.password}
+                          </div>
+                        )}
                       </td>
                       <td className="px-3 py-3">
                         <div className="min-w-0 truncate">

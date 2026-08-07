@@ -25,10 +25,18 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     const queryInput = body.query || body.nationalId || body.appNumber || "";
+    const inputPassword = (body.password || "").toString().trim();
 
     if (!queryInput || typeof queryInput !== "string") {
       return NextResponse.json(
         { error: "กรุณาระบุหมายเลขใบสมัคร (TIF-2026-XXXX), เลขบัตรประชาชน หรือเบอร์โทรศัพท์" },
+        { status: 400 }
+      );
+    }
+
+    if (!inputPassword) {
+      return NextResponse.json(
+        { error: "กรุณาระบุรหัสผ่าน (Password) สำหรับติดตามสถานะการสมัคร" },
         { status: 400 }
       );
     }
@@ -95,6 +103,16 @@ export async function POST(req: Request) {
       : dbApplication
       ? [dbApplication]
       : [];
+
+    const targetApp = appList[0];
+    if (targetApp && targetApp.password) {
+      if (inputPassword !== targetApp.password.trim()) {
+        return NextResponse.json(
+          { found: false, error: "รหัสผ่าน (Password) ไม่ถูกต้อง กรุณาตรวจสอบรหัสผ่านอีกครั้ง" },
+          { status: 401 }
+        );
+      }
+    }
 
     const applications = appList.map((app: any) => {
       let stepIndex = 1;
@@ -200,6 +218,7 @@ export async function POST(req: Request) {
       return {
         id: app.id,
         applicationNumber: app.applicationNumber,
+        password: app.password,
         courseName: "แบบฟอร์มสมัครเรียนการบินออนไลน์",
         status: app.status,
         statusLabelTh,

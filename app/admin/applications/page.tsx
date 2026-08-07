@@ -39,6 +39,7 @@ import {
   ChevronRight,
   Check,
   Send,
+  Key,
 } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { useApplicationContext } from "@/lib/context/application-context";
@@ -377,22 +378,25 @@ export default function StudentApplicationsPage() {
     const isExam = failActionType === "WRITTEN_EXAM";
     const msg = failMessage.trim();
 
-    updateApplication(selectedApp.id, {
-      status: "REJECTED",
+    const newNote = {
+      id: `note_${Date.now()}`,
+      content: `${isExam ? "ผลสอบข้อเขียน" : "ผลสอบสัมภาษณ์"}: ไม่ผ่านเกณฑ์ (ข้อความแจ้งผู้สมัคร: "${msg}")`,
+      createdAt: new Date(),
+      author: {
+        name: isExam ? "Exam Committee" : "Interview Committee",
+        email: isExam ? "exam@tif.ac.th" : "interview@tif.ac.th",
+      },
+    };
+
+    const updatedApp = {
+      ...selectedApp,
+      status: "REJECTED" as any,
       remarks: msg,
-      adminNotes: [
-        {
-          id: `note_${Date.now()}`,
-          content: `${isExam ? "ผลสอบข้อเขียน" : "ผลสอบสัมภาษณ์"}: ไม่ผ่านเกณฑ์ (ข้อความแจ้งผู้สมัคร: "${msg}")`,
-          createdAt: new Date(),
-          author: {
-            name: isExam ? "Exam Committee" : "Interview Committee",
-            email: isExam ? "exam@tif.ac.th" : "interview@tif.ac.th",
-          },
-        },
-        ...(selectedApp.adminNotes || []),
-      ],
-    });
+      adminNotes: [newNote, ...(selectedApp.adminNotes || [])],
+    };
+
+    updateApplication(selectedApp.id, updatedApp);
+    setSelectedApp(updatedApp);
 
     setFailModalOpen(false);
     setWrittenExamModalOpen(false);
@@ -410,7 +414,20 @@ export default function StudentApplicationsPage() {
       setInterviewResultModalOpen(true);
       return;
     }
-    updateApplication(selectedApp.id, { status: newStatus });
+
+    const matchedStep = PILOT_WORKFLOW_STEPS.find((s) => s.key === newStatus);
+    const newStepIndex = matchedStep ? matchedStep.step : ((selectedApp as any).stepIndex || 1);
+
+    const updated = {
+      ...selectedApp,
+      status: newStatus,
+    };
+
+    updateApplication(selectedApp.id, {
+      status: newStatus,
+      stepIndex: newStepIndex,
+    } as any);
+    setSelectedApp(updated as any);
   };
 
   const handleAddNote = () => {
@@ -797,6 +814,8 @@ export default function StudentApplicationsPage() {
       const updatedAppData = {
         ...selectedApp,
         status: "APPLICATION_FEE_PAID" as any,
+        stepIndex: 5,
+        remarks: "อนุมัติผ่านการตรวจเอกสารเรียบร้อยแล้ว (เข้าสู่ขั้นตอนชำระค่าสมัคร 1,800 บาท)",
         documents: (selectedApp.documents || []).map((d) => ({
           ...d,
           isVerified: true,
@@ -810,8 +829,10 @@ export default function StudentApplicationsPage() {
       verifyAllDocuments(selectedApp.id);
       updateApplication(selectedApp.id, {
         status: "APPLICATION_FEE_PAID",
+        stepIndex: 5,
+        remarks: "อนุมัติผ่านการตรวจเอกสารเรียบร้อยแล้ว (เข้าสู่ขั้นตอนชำระค่าสมัคร 1,800 บาท)",
         adminNotes: [newNote, ...(selectedApp.adminNotes || [])],
-      });
+      } as any);
       setSelectedApp(updatedAppData);
 
       alert("อนุมัติผ่านการตรวจเอกสารเรียบร้อยแล้ว — ระบบได้เปิดหน้าชำระค่าสมัคร 1,800 บาทใน Step 5 ให้ผู้สมัครเรียบร้อยแล้ว");
@@ -842,10 +863,15 @@ export default function StudentApplicationsPage() {
     const updatedAppData = {
       ...selectedApp,
       status: "REJECTED" as any,
+      remarks: reviewComment,
       adminNotes: [newNote, ...(selectedApp.adminNotes || [])],
     };
 
-    updateApplication(selectedApp.id, updatedAppData);
+    updateApplication(selectedApp.id, {
+      status: "REJECTED",
+      remarks: reviewComment,
+      adminNotes: [newNote, ...(selectedApp.adminNotes || [])],
+    });
     setSelectedApp(updatedAppData);
 
     setReviewModalOpen(false);
@@ -1360,6 +1386,12 @@ export default function StudentApplicationsPage() {
                       <span className="text-slate-400 text-[11px] block">เลขบัตรประชาชน (National ID)</span>
                       <span className="font-semibold text-tif-gold font-mono text-sm">{selectedApp.student.nationalId || "-"}</span>
                     </div>
+                    <div className="bg-amber-500/10 p-3 rounded-xl border border-amber-500/30">
+                      <span className="text-amber-400 text-[11px] font-bold block flex items-center gap-1">
+                        <Key className="h-3 w-3 text-amber-400" /> รหัสผ่านติดตามสถานะ (Password)
+                      </span>
+                      <span className="font-extrabold text-amber-300 font-mono text-base">{selectedApp.password || "-"}</span>
+                    </div>
                     <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
                       <span className="text-slate-400 text-[11px] block">เลขหนังสือเดินทาง (Passport No.)</span>
                       <span className="font-semibold text-white font-mono">{selectedApp.student.passport || "-"}</span>
@@ -1634,7 +1666,7 @@ export default function StudentApplicationsPage() {
                       const docTypeLabels: Record<string, string> = {
                         // Candidate Application Form keys
                         APPLICATION_FEE_SLIP: "สลิปชำระเงินค่าสมัคร 1,800 บาท",
-                        PHOTO_1_INCH: "รูปถ่าย 1 นิ้ว (Passport Photo 1\")",
+                        PHOTO_1_INCH: "รูปถ่าย 1.5 นิ้ว (1.5-Inch Photo)",
                         PHOTO_2_INCH: "รูปถ่าย 2 นิ้ว (Passport Photo 2\")",
                         NATIONAL_ID_CERTIFIED: "สำเนาบัตรประชาชน (รับรองสำเนาถูกต้อง)",
                         TRANSCRIPT_CERTIFIED: "สำเนาวุฒิการศึกษา (รับรองสำเนาถูกต้อง)",
@@ -1652,7 +1684,7 @@ export default function StudentApplicationsPage() {
                         MEDICAL_CERT: "ใบรับรองแพทย์เวชศาสตร์การบิน",
                         HOUSE_REGISTRATION: "สำเนาทะเบียนบ้าน",
                         PASSPORT: "หนังสือเดินทาง (Passport)",
-                        OTHER: "ผลตรวจประวัติอาชญากรรม",
+                        OTHER: "เอกสารอื่นๆ (Other Documents)",
                       };
                       const label = docTypeLabels[doc.type] || doc.type;
 
@@ -2741,6 +2773,7 @@ export default function StudentApplicationsPage() {
               onChange={(e) => setExtraDocType(e.target.value)}
               className="w-full rounded-xl border border-slate-800 bg-slate-950 p-2.5 text-sm text-white focus:border-tif-gold focus:outline-none font-medium"
             >
+              <option value="OTHER">เอกสารอื่นๆ (Other Documents)</option>
               <option value="NATIONAL_ID_CERTIFIED">สำเนาบัตรประชาชน (Certified National ID)</option>
               <option value="TRANSCRIPT_CERTIFIED">สำเนาวุฒิการศึกษา (Certified Transcript)</option>
               <option value="HOUSE_REGISTRATION_CERTIFIED">สำเนาทะเบียนบ้าน (Certified House Registration)</option>

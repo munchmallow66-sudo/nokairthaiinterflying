@@ -33,7 +33,7 @@ import { StepIndicator } from "@/components/admission/step-indicator";
 import { fullApplicationSchema, FullApplicationInput } from "@/schemas/application-schema";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { useApplicationContext } from "@/lib/context/application-context";
-import { formatDocumentFileName } from "@/lib/utils";
+import { formatDocumentFileName, generateSecurePassword } from "@/lib/utils";
 
 
 const DRAFT_STORAGE_KEY = "tif_cadet_application_draft";
@@ -45,7 +45,7 @@ export function MultiStepForm() {
   const { addApplication } = useApplicationContext();
   const [currentStep, setCurrentStep] = React.useState(1);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [submitSuccess, setSubmitSuccess] = React.useState<{ appNum: string } | null>(null);
+  const [submitSuccess, setSubmitSuccess] = React.useState<{ appNum: string; password?: string } | null>(null);
   const [submitError, setSubmitError] = React.useState<{ message?: string } | null>(null);
   const [duplicateInfo, setDuplicateInfo] = React.useState<{ applicationNumber: string } | null>(null);
   // Generated once and reused on every retry so a failed-then-retried submission
@@ -165,14 +165,16 @@ export function MultiStepForm() {
     }
   };
 
+  const title = watch("title");
   const gender = watch("gender");
-  const isMale = gender?.toLowerCase() === "male" || gender === "ชาย";
+  const isMale = (gender?.toLowerCase() === "male" || gender === "ชาย" || title === "Mr." || title === "นาย") && gender?.toLowerCase() !== "female" && gender !== "หญิง";
 
   const REQUIRED_DOCS_CONFIG = [
     { type: "PHOTO_1_INCH", titleTh: "1. รูปถ่าย 1.5 นิ้ว", titleEn: "1. 1.5-inch Photo" },
     { type: "NATIONAL_ID_CERTIFIED", titleTh: "2. สำเนาบัตรประชาชน (รับรองสำเนาถูกต้อง)", titleEn: "2. Certified National ID" },
     { type: "TRANSCRIPT_CERTIFIED", titleTh: "3. สำเนาวุฒิการศึกษา (รับรองสำเนาถูกต้อง)", titleEn: "3. Certified Academic Transcript" },
     { type: "HOUSE_REGISTRATION_CERTIFIED", titleTh: "4. สำเนาทะเบียนบ้าน (รับรองสำเนาถูกต้อง)", titleEn: "4. Certified House Registration" },
+    { type: "MEDICAL_CERTIFICATE_CLASS_1", titleTh: "5. ใบสำคัญแพทย์ Class 1 (Medical Certificate Class 1)", titleEn: "5. Class 1 Aviation Medical Certificate" },
     { type: "CRIMINAL_RECORD_CHECK", titleTh: "6. ผลตรวจประวัติอาชญากรรม", titleEn: "6. Criminal Record Check" },
     ...(isMale
       ? [
@@ -311,6 +313,7 @@ export function MultiStepForm() {
         body: JSON.stringify({ ...data, applicationNumber: appNum }),
         signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
       // Parse defensively — a proxy/edge error can return an HTML body
       // instead of JSON, and res.json() would otherwise throw a confusing
@@ -332,12 +335,14 @@ export function MultiStepForm() {
       }
 
       const finalAppNum = responseData.applicationNumber || appNum;
+      const finalPassword = responseData?.password || generateSecurePassword(6);
 
       // Save to global ApplicationContext so Admin sees it instantly
       try {
         addApplication({
           id: responseData.id || `app_${Date.now()}`,
           applicationNumber: finalAppNum,
+          password: finalPassword,
           branch: "Bangkok Headquarters",
           preferredStartDate: new Date("2026-09-01"),
           status: "DOCS_UNDER_REVIEW",
@@ -433,7 +438,7 @@ export function MultiStepForm() {
         localStorage.removeItem(DRAFT_STORAGE_KEY);
       } catch (e) {}
 
-      setSubmitSuccess({ appNum: finalAppNum });
+      setSubmitSuccess({ appNum: finalAppNum, password: finalPassword });
     } catch (err: any) {
       console.warn("Application submit failed:", err);
 
@@ -588,37 +593,56 @@ export function MultiStepForm() {
             {t("appNumberIs")}
           </CardDescription>
 
-          <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
-            <div className="bg-tif-navy text-tif-gold text-2xl font-bold font-mono px-6 py-3 rounded-2xl shadow-lg tracking-wider border border-tif-gold/30">
-              {submitSuccess.appNum}
+          <div className="bg-slate-50 border border-slate-200/90 p-4 sm:p-5 rounded-2xl mb-6 space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
+              <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs space-y-1">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                  {language === "th" ? "หมายเลขใบสมัคร (Application No.)" : "Application Number"}
+                </span>
+                <span className="text-xl font-bold font-mono text-tif-navy block">
+                  {submitSuccess.appNum}
+                </span>
+              </div>
+              {submitSuccess.password && (
+                <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs space-y-1">
+                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                    {language === "th" ? "รหัสผ่านติดตามสถานะ (Password)" : "Tracking Password"}
+                  </span>
+                  <span className="text-xl font-bold font-mono text-amber-600 block">
+                    {submitSuccess.password}
+                  </span>
+                </div>
+              )}
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                if (submitSuccess?.appNum) {
-                  navigator.clipboard.writeText(submitSuccess.appNum);
+
+            <div className="flex justify-center pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  const textToCopy = `Application Number: ${submitSuccess.appNum}\nPassword: ${submitSuccess.password || ""}`;
+                  navigator.clipboard.writeText(textToCopy);
                   setCopied(true);
                   setTimeout(() => setCopied(false), 2500);
-                }
-              }}
-              className={`flex items-center gap-1.5 px-4 py-3.5 rounded-2xl font-bold text-xs transition shadow-md border ${
-                copied
-                  ? "bg-emerald-600 text-white border-emerald-500 scale-105"
-                  : "bg-tif-gold hover:bg-amber-400 text-slate-950 border-amber-300 active:scale-95"
-              }`}
-            >
-              {copied ? (
-                <>
-                  <Check className="h-4 w-4 text-white" />
-                  <span>{t("submitSuccessCopied")}</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="h-4 w-4 text-slate-950" />
-                  <span>{t("submitSuccessCopyBtn")}</span>
-                </>
-              )}
-            </button>
+                }}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs transition shadow-md border ${
+                  copied
+                    ? "bg-emerald-600 text-white border-emerald-500 scale-105"
+                    : "bg-tif-navy hover:bg-slate-800 text-white border-slate-700 active:scale-95"
+                }`}
+              >
+                {copied ? (
+                  <>
+                    <Check className="h-4 w-4 text-white" />
+                    <span>{language === "th" ? "คัดลอกเลขใบสมัครและ Password แล้ว!" : "Copied App Number & Password!"}</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4 text-tif-gold" />
+                    <span>{language === "th" ? "คัดลอกเลขใบสมัครและ Password" : "Copy App Number & Password"}</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1148,14 +1172,14 @@ export function MultiStepForm() {
                   {isAllDocsUploaded ? (
                     <>
                       <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                      <span>{language === "th" ? `อัปโหลดเอกสารครบถ้วน (${totalRequiredCount}/${totalRequiredCount})` : `All Documents Uploaded (${totalRequiredCount}/${totalRequiredCount})`}</span>
+                      <span>{language === "th" ? `อัปโหลดเอกสารครบถ้วนแล้ว (${totalRequiredCount}/${totalRequiredCount})` : `All Documents Uploaded (${totalRequiredCount}/${totalRequiredCount})`}</span>
                     </>
                   ) : (
                     <>
                       <AlertTriangle className="h-4 w-4 text-amber-600" />
                       <span>
                         {language === "th"
-                          ? `อัปโหลดแล้ว ${totalRequiredCount - missingRequiredDocs.length}/${totalRequiredCount} รายการ (ยังไม่ครบ)`
+                          ? `อัปโหลดเอกสารแล้ว ${totalRequiredCount - missingRequiredDocs.length}/${totalRequiredCount} รายการ (ยังไม่ครบ)`
                           : `Uploaded ${totalRequiredCount - missingRequiredDocs.length}/${totalRequiredCount} items (Incomplete)`}
                       </span>
                     </>
@@ -1215,6 +1239,13 @@ export function MultiStepForm() {
                     onRemove={() => handleDocumentRemove("MILITARY_SERVICE_EXEMPTION")}
                   />
                 )}
+                <Uploader
+                  label={t("docOtherLabel")}
+                  type="OTHER"
+                  existingFile={documents.find((d: any) => d?.type === "OTHER")}
+                  onUploadSuccess={handleDocumentUpload}
+                  onRemove={() => handleDocumentRemove("OTHER")}
+                />
               </div>
 
               {/* Incomplete / Complete Documents Status Banner */}

@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { fullApplicationSchema } from "@/schemas/application-schema";
-import { generateApplicationNumber, formatDocumentFileName } from "@/lib/utils";
+import { generateApplicationNumber, generateSecurePassword, formatDocumentFileName } from "@/lib/utils";
 import { verifyAdminSessionToken } from "@/lib/auth";
+import { sendApplicationConfirmationEmail } from "@/lib/email";
 
 
 export const dynamic = "force-dynamic";
@@ -206,6 +207,8 @@ export async function POST(req: Request) {
           },
         });
 
+        const appPassword = body.password || generateSecurePassword(6);
+
         const application = await tx.application.create({
           data: {
             applicationNumber: appNumber,
@@ -230,23 +233,36 @@ export async function POST(req: Request) {
           },
         });
 
-        return { application, user };
+        return { application, user, password: appPassword };
       },
       {
-        maxWait: 5000,
-        timeout: 10000,
+        maxWait: 10000,
+        timeout: 25000,
       }
     );
 
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("DB Connection Timeout")), 3500)
-    );
+    const result: any = await dbTransactionPromise;
 
-    const result: any = await Promise.race([dbTransactionPromise, timeoutPromise]);
+    // Send email notification to candidate via Nok Air SMTP
+    try {
+      const studentName = `${validated.title || ""} ${validated.firstNameTh || validated.firstNameEn} ${validated.lastNameTh || validated.lastNameEn}`.trim();
+      sendApplicationConfirmationEmail({
+        toEmail: validated.email,
+        studentName,
+        applicationNumber: result.application.applicationNumber,
+        password: result.password,
+        lang: "th",
+      }).catch((emailErr) => {
+        console.warn("Async email send warning:", emailErr);
+      });
+    } catch (e) {
+      console.warn("Email dispatch error:", e);
+    }
 
     return NextResponse.json({
       success: true,
       applicationNumber: result.application.applicationNumber,
+      password: result.password,
       id: result.application.id,
     });
   } catch (err: any) {
