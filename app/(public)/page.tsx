@@ -536,14 +536,18 @@ export default function HomePage() {
                 {t("impNote2Title")}
               </h3>
               <div className="space-y-2">
-                <p className="flex items-start gap-2 text-sm text-slate-600 leading-relaxed">
-                  <span className="text-tif-goldDark font-bold shrink-0">•</span>
-                  <span>{t("impNote2Desc1")}</span>
-                </p>
-                <p className="flex items-start gap-2 text-sm text-slate-600 leading-relaxed">
-                  <span className="text-tif-goldDark font-bold shrink-0">•</span>
-                  <span>{t("impNote2Desc2")}</span>
-                </p>
+                {t("impNote2Desc1") && (
+                  <p className="flex items-start gap-2 text-sm text-slate-600 leading-relaxed">
+                    <span className="text-tif-goldDark font-bold shrink-0">•</span>
+                    <span>{t("impNote2Desc1")}</span>
+                  </p>
+                )}
+                {t("impNote2Desc2") && (
+                  <p className="flex items-start gap-2 text-sm text-slate-600 leading-relaxed">
+                    <span className="text-tif-goldDark font-bold shrink-0">•</span>
+                    <span>{t("impNote2Desc2")}</span>
+                  </p>
+                )}
               </div>
             </Card3D>
 

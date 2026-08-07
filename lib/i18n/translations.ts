@@ -177,7 +177,7 @@ export const translations = {
     impNote1Desc: "บริษัทฯ จะแจ้งผลการคัดเลือกผู้สมัครในแต่ละขั้นตอนผ่านทางอีเมลที่ระบุไว้ในใบสมัคร โดยจะแจ้งผลให้ทราบทั้งผู้ที่ผ่านและไม่ผ่านการคัดเลือก เพื่อประโยชน์ในการวางแผนของผู้สมัคร",
 
     impNote2Title: "2. จำนวนผู้ผ่านการคัดเลือก (Selection Results)",
-    impNote2Desc1: "ผู้ผ่านการคัดเลือกจำนวนสูงสุดไม่เกิน 20 คน จะได้รับสิทธิ์เข้าร่วมโครงการ Nok Air Cadet Pilot Program",
+    impNote2Desc1: "",
     impNote2Desc2: "ทั้งนี้ สถาบัน Thai Inter Flying อาจพิจารณาผู้สมัครที่มีศักยภาพสูงเพิ่มเติมเพื่อรับโอกาสในอนาคตกับทางองค์กร",
 
     impNote3Title: "3. ค่าใช้จ่ายโครงการ (Program Costs)",
@@ -1153,7 +1153,7 @@ export const translations = {
     impNote1Desc: "The Company will notify applicants of the results at each stage of the selection process via the email address provided in the application. Notifications will be sent to both successful and unsuccessful applicants to facilitate their future planning.",
 
     impNote2Title: "2. Selection Results",
-    impNote2Desc1: "Up to 20 successful applicants will be selected to join the Nok Air Cadet Pilot Program.",
+    impNote2Desc1: "",
     impNote2Desc2: "Thai Inter Flying may also consider additional high-potential applicants for future opportunities within the organization.",
 
     impNote3Title: "3. Program Costs",
