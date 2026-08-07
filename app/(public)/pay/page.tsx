@@ -36,6 +36,7 @@ export default function PaymentPage() {
   const [slipFile, setSlipFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [slipUploadError, setSlipUploadError] = useState(false);
   const [joinOpenHouse, setJoinOpenHouse] = useState<boolean | null>(null);
   const [openHouseAttendees, setOpenHouseAttendees] = useState(1);
 
@@ -74,15 +75,17 @@ export default function PaymentPage() {
       return;
     }
     setUploading(true);
+    setSlipUploadError(false);
 
     try {
-      const slipDataUrl = await new Promise<string>((resolve) => {
+      const slipDataUrl = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(reader.error || new Error("Failed to read slip file"));
         reader.readAsDataURL(slipFile);
       });
 
-      await fetch("/api/payments", {
+      const res = await fetch("/api/payments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -92,25 +95,40 @@ export default function PaymentPage() {
           slipUrl: slipDataUrl,
         }),
       });
-    } catch (e) {}
 
-    const openHouseRemarks = joinOpenHouse
-      ? ` | ลงทะเบียนเข้าร่วมงาน Open House วันที่ 12 ก.ย. 2569 (จำนวน ${openHouseAttendees} ท่าน)`
-      : ` | ไม่ประสงค์เข้าร่วมงาน Open House`;
-
-    setTimeout(() => {
-      setUploading(false);
-      setUploadSuccess(true);
-
-      if (foundApp?.appNum) {
-        updateApplication(foundApp.appNum, {
-          remarks: `ได้รับสลิปโอนเงินเรียบร้อยแล้ว${openHouseRemarks} เจ้าหน้าที่จะทำการตรวจสอบและอนุมัติใบสมัครภายใน 24 ชม.`,
-          joinOpenHouse: joinOpenHouse,
-        });
+      let responseData: any = null;
+      try {
+        responseData = await res.json();
+      } catch {
+        responseData = null;
       }
 
-      alert(`อัปโหลดสลิปสำเร็จ! ระบบได้ผูกสลิปโอนเงินเข้ากับใบสมัคร ${foundApp?.appNum} และส่งไปยังหน้า Admin เรียบร้อยแล้ว`);
-    }, 1200);
+      if (!res.ok || responseData?.success === false) {
+        throw new Error(responseData?.error || `Upload failed with status ${res.status}`);
+      }
+
+      const openHouseRemarks = joinOpenHouse
+        ? ` | ลงทะเบียนเข้าร่วมงาน Open House วันที่ 12 ก.ย. 2569 (จำนวน ${openHouseAttendees} ท่าน)`
+        : ` | ไม่ประสงค์เข้าร่วมงาน Open House`;
+
+      setTimeout(() => {
+        setUploading(false);
+        setUploadSuccess(true);
+
+        if (foundApp?.appNum) {
+          updateApplication(foundApp.appNum, {
+            remarks: `ได้รับสลิปโอนเงินเรียบร้อยแล้ว${openHouseRemarks} เจ้าหน้าที่จะทำการตรวจสอบและอนุมัติใบสมัครภายใน 24 ชม.`,
+            joinOpenHouse: joinOpenHouse,
+          });
+        }
+
+        alert(`อัปโหลดสลิปสำเร็จ! ระบบได้ผูกสลิปโอนเงินเข้ากับใบสมัคร ${foundApp?.appNum} และส่งไปยังหน้า Admin เรียบร้อยแล้ว`);
+      }, 1200);
+    } catch (e) {
+      console.warn("Slip upload failed:", e);
+      setUploading(false);
+      setSlipUploadError(true);
+    }
   };
 
   return (
@@ -338,6 +356,12 @@ export default function PaymentPage() {
                     </p>
                   )}
                 </div>
+
+                {slipUploadError && (
+                  <p className="text-xs text-rose-400 font-semibold">
+                    {t("slipUploadErrorTitle")} — {t("slipUploadErrorDesc")}
+                  </p>
+                )}
 
                 <Button
                   variant="gold"

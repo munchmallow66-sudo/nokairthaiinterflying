@@ -493,6 +493,7 @@ export default function TrackStatusPage() {
   const [slipFile, setSlipFile] = useState<File | null>(null);
   const [uploadingSlip, setUploadingSlip] = useState(false);
   const [slipSuccess, setSlipSuccess] = useState(false);
+  const [slipUploadError, setSlipUploadError] = useState(false);
   const [joinOpenHouse, setJoinOpenHouse] = useState<boolean | null>(null);
   const [openHouseAttendees, setOpenHouseAttendees] = useState(1);
 
@@ -509,6 +510,7 @@ export default function TrackStatusPage() {
     const existingApp = result?.applications?.find((a) => a.applicationNumber === appNum);
     setJoinOpenHouse(existingApp?.joinOpenHouse ?? null);
     setSlipSuccess(false);
+    setSlipUploadError(false);
     setPayModalOpen(true);
   };
 
@@ -578,15 +580,17 @@ export default function TrackStatusPage() {
       return;
     }
     setUploadingSlip(true);
+    setSlipUploadError(false);
 
     try {
-      const slipDataUrl = await new Promise<string>((resolve) => {
+      const slipDataUrl = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(reader.error || new Error("Failed to read slip file"));
         reader.readAsDataURL(slipFile);
       });
 
-      await fetch("/api/payments", {
+      const res = await fetch("/api/payments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -598,41 +602,56 @@ export default function TrackStatusPage() {
           openHouseAttendees: joinOpenHouse ? openHouseAttendees : 0,
         }),
       });
-    } catch (e) {}
 
-    const openHouseRemarks = joinOpenHouse
-      ? `${t("openHouseRemarkYes")} (จำนวน ${openHouseAttendees} ท่าน)`
-      : t("openHouseRemarkNo");
-
-    setTimeout(() => {
-      setUploadingSlip(false);
-      setSlipSuccess(true);
-
-      const updatedRemarks = `${t("slipReceivedRemarks")}${openHouseRemarks}`;
-
-      updateApplication(activePayAppNum, {
-        remarks: updatedRemarks,
-        joinOpenHouse: joinOpenHouse,
-      });
-
-      if (result && result.applications) {
-        setResult({
-          ...result,
-          applications: result.applications.map((a) =>
-            a.applicationNumber === activePayAppNum
-              ? {
-                  ...a,
-                  statusLabelTh: "อัปโหลดสลิป 1,800 บาทเรียบร้อยแล้ว (เจ้าหน้ากำลังตรวจสอบ)",
-                  statusLabelEn: "Payment slip 1,800 THB uploaded (Staff reviewing)",
-                  remarks: updatedRemarks,
-                  joinOpenHouse: joinOpenHouse,
-                }
-              : a
-          ),
-        });
+      let responseData: any = null;
+      try {
+        responseData = await res.json();
+      } catch {
+        responseData = null;
       }
-      alert(`${t("slipSuccessAlert")} (${activePayAppNum})`);
-    }, 1200);
+
+      if (!res.ok || responseData?.success === false) {
+        throw new Error(responseData?.error || `Upload failed with status ${res.status}`);
+      }
+
+      const openHouseRemarks = joinOpenHouse
+        ? `${t("openHouseRemarkYes")} (จำนวน ${openHouseAttendees} ท่าน)`
+        : t("openHouseRemarkNo");
+
+      setTimeout(() => {
+        setUploadingSlip(false);
+        setSlipSuccess(true);
+
+        const updatedRemarks = `${t("slipReceivedRemarks")}${openHouseRemarks}`;
+
+        updateApplication(activePayAppNum, {
+          remarks: updatedRemarks,
+          joinOpenHouse: joinOpenHouse,
+        });
+
+        if (result && result.applications) {
+          setResult({
+            ...result,
+            applications: result.applications.map((a) =>
+              a.applicationNumber === activePayAppNum
+                ? {
+                    ...a,
+                    statusLabelTh: "อัปโหลดสลิป 1,800 บาทเรียบร้อยแล้ว (เจ้าหน้ากำลังตรวจสอบ)",
+                    statusLabelEn: "Payment slip 1,800 THB uploaded (Staff reviewing)",
+                    remarks: updatedRemarks,
+                    joinOpenHouse: joinOpenHouse,
+                  }
+                : a
+            ),
+          });
+        }
+        alert(`${t("slipSuccessAlert")} (${activePayAppNum})`);
+      }, 1200);
+    } catch (e) {
+      console.warn("Slip upload failed:", e);
+      setUploadingSlip(false);
+      setSlipUploadError(true);
+    }
   };
 
   const handleSearch = async (e?: React.FormEvent) => {
@@ -1650,6 +1669,13 @@ export default function TrackStatusPage() {
                 </div>
               )}
             </div>
+
+            {slipUploadError && (
+              <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-[11px] text-rose-700 font-medium flex items-start gap-1.5">
+                <AlertCircle className="h-3.5 w-3.5 text-rose-500 shrink-0 mt-0.5" />
+                <span>{t("slipUploadErrorTitle")} — {t("slipUploadErrorDesc")}</span>
+              </div>
+            )}
 
             <Button
               variant="gold"

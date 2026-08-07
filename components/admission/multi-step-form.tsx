@@ -46,6 +46,11 @@ export function MultiStepForm() {
   const [currentStep, setCurrentStep] = React.useState(1);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitSuccess, setSubmitSuccess] = React.useState<{ appNum: string } | null>(null);
+  const [submitError, setSubmitError] = React.useState<{ message?: string } | null>(null);
+  const [duplicateInfo, setDuplicateInfo] = React.useState<{ applicationNumber: string } | null>(null);
+  // Generated once and reused on every retry so a failed-then-retried submission
+  // never ends up as two different application numbers in the admin panel.
+  const appNumRef = React.useRef<string | null>(null);
   const [isRestored, setIsRestored] = React.useState(false);
   const [lastSavedTime, setLastSavedTime] = React.useState<string | null>(null);
 
@@ -284,24 +289,48 @@ export function MultiStepForm() {
 
   const onSubmit = async (data: FullApplicationInput) => {
     setIsSubmitting(true);
+    setSubmitError(null);
+    setDuplicateInfo(null);
 
-    // Generate the application number ONCE so it's consistent everywhere
-    const year = new Date().getFullYear();
-    const appNum = `TIF-${year}-${Math.floor(1000 + Math.random() * 9000)}`;
+    // Generate the application number ONCE and reuse it on every retry —
+    // re-randomizing here would let a retried submission land in the admin
+    // panel under a different number than the one the applicant was shown.
+    if (!appNumRef.current) {
+      const year = new Date().getFullYear();
+      appNumRef.current = `TIF-${year}-${Math.floor(1000 + Math.random() * 9000)}`;
+    }
+    const appNum = appNumRef.current;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
-
       const res = await fetch("/api/applications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...data, applicationNumber: appNum }),
         signal: controller.signal,
       });
-      clearTimeout(timeoutId);
 
-      const responseData = await res.json();
+      // Parse defensively — a proxy/edge error can return an HTML body
+      // instead of JSON, and res.json() would otherwise throw a confusing
+      // "Unexpected token <" instead of the real HTTP status.
+      let responseData: any = null;
+      try {
+        responseData = await res.json();
+      } catch {
+        responseData = null;
+      }
+
+      if (res.status === 409 && responseData?.duplicate) {
+        setDuplicateInfo({ applicationNumber: responseData.applicationNumber || appNum });
+        return;
+      }
+
+      if (!res.ok || responseData?.success === false) {
+        throw new Error(responseData?.error || `Request failed with status ${res.status}`);
+      }
+
       const finalAppNum = responseData.applicationNumber || appNum;
 
       // Save to global ApplicationContext so Admin sees it instantly
@@ -406,12 +435,11 @@ export function MultiStepForm() {
 
       setSubmitSuccess({ appNum: finalAppNum });
     } catch (err: any) {
-      console.warn("Application submit fallback:", err);
-      try {
-        localStorage.removeItem(DRAFT_STORAGE_KEY);
-      } catch (e) {}
+      console.warn("Application submit failed:", err);
 
-      // Use the SAME appNum generated at the top — never re-random
+      // Keep the local admin-visibility fallback (business logic unchanged),
+      // but do NOT clear the draft and do NOT report success — the server
+      // never confirmed this submission actually reached the database.
       try {
         addApplication({
           id: `app_${Date.now()}`,
@@ -501,8 +529,9 @@ export function MultiStepForm() {
         console.warn("Context save warning:", ctxErr);
       }
 
-      setSubmitSuccess({ appNum: appNum });
+      setSubmitError({ message: err?.message });
     } finally {
+      clearTimeout(timeoutId);
       setIsSubmitting(false);
     }
   };
@@ -613,6 +642,76 @@ export function MultiStepForm() {
           </Button>
           <Button variant="outline" size="lg" onClick={() => router.push("/")} className="border-slate-300 text-slate-700 hover:bg-slate-100">
             {t("submitSuccessHomeBtn")}
+          </Button>
+        </div>
+      </Card>
+    );
+  }
+
+  if (duplicateInfo) {
+    return (
+      <Card className="max-w-3xl mx-auto p-6 sm:p-8 border-2 border-tif-gold/40 shadow-2xl bg-white text-slate-900 animate-in fade-in duration-300">
+        <div className="text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 text-amber-600 mb-4 shadow-inner">
+            <FileCheck className="h-10 w-10" />
+          </div>
+          <CardTitle className="text-2xl sm:text-3xl font-extrabold text-tif-navy mb-2">
+            {t("duplicateApplicationTitle")}
+          </CardTitle>
+          <CardDescription className="text-sm text-slate-600 mb-4 max-w-lg mx-auto">
+            {t("duplicateApplicationDesc")}
+          </CardDescription>
+
+          <div className="bg-tif-navy text-tif-gold text-2xl font-bold font-mono px-6 py-3 rounded-2xl shadow-lg tracking-wider border border-tif-gold/30 inline-block mb-6">
+            {duplicateInfo.applicationNumber}
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row justify-center gap-3">
+          <Button variant="gold" size="lg" onClick={() => router.push("/track")} className="font-bold shadow-md">
+            {t("duplicateApplicationTrackBtn")}
+          </Button>
+          <Button variant="outline" size="lg" onClick={() => router.push("/")} className="border-slate-300 text-slate-700 hover:bg-slate-100">
+            {t("submitSuccessHomeBtn")}
+          </Button>
+        </div>
+      </Card>
+    );
+  }
+
+  if (submitError) {
+    return (
+      <Card className="max-w-3xl mx-auto p-6 sm:p-8 border-2 border-rose-300 shadow-2xl bg-white text-slate-900 animate-in fade-in duration-300">
+        <div className="text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-rose-100 text-rose-600 mb-4 shadow-inner">
+            <AlertTriangle className="h-10 w-10" />
+          </div>
+          <CardTitle className="text-2xl sm:text-3xl font-extrabold text-tif-navy mb-2">
+            {t("submitErrorTitle")}
+          </CardTitle>
+          <CardDescription className="text-sm text-slate-600 mb-6 max-w-lg mx-auto">
+            {t("submitErrorDesc")}
+          </CardDescription>
+        </div>
+
+        <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 mb-6 text-center space-y-1.5">
+          <p className="text-xs text-rose-700 font-medium">{t("submitErrorContactPrompt")}</p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-x-4 gap-y-1 text-xs font-semibold text-tif-navy">
+            <span className="flex items-center gap-1.5">
+              <PhoneCall className="h-3.5 w-3.5 text-tif-gold" />
+              {t("phoneContact")}
+            </span>
+            <span>{t("emailContact")}</span>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row justify-center gap-3">
+          <Button variant="gold" size="lg" onClick={() => setSubmitError(null)} className="font-bold shadow-md">
+            <RotateCcw className="h-4 w-4 mr-1.5" />
+            {t("submitErrorRetryBtn")}
+          </Button>
+          <Button variant="outline" size="lg" onClick={() => router.push("/contact")} className="border-slate-300 text-slate-700 hover:bg-slate-100">
+            {t("submitErrorContactBtn")}
           </Button>
         </div>
       </Card>
