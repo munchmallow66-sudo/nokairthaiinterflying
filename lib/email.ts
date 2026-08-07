@@ -24,12 +24,11 @@ export async function sendApplicationConfirmationEmail({
   const port = Number(process.env.SMTP_PORT || 587);
   const user = process.env.SMTP_USER || "Tifand.Nok@nokair.co.th";
   const pass = process.env.SMTP_PASS || "MaNE6iv438kz";
-  const from = process.env.SMTP_FROM || `Thai Inter Flying <${user}>`;
 
   const transporter = nodemailer.createTransport({
     host,
     port,
-    secure: port === 465, // true for 465, false for 587
+    secure: port === 465,
     auth: { user, pass },
     tls: {
       ciphers: "SSLv3",
@@ -39,9 +38,35 @@ export async function sendApplicationConfirmationEmail({
 
   const isEn = lang === "en";
 
+  // Clean, professional subject line without brackets to avoid trigger-happy spam filters
   const subject = isEn
-    ? `[Thai Inter Flying] Application Received - App No: ${applicationNumber}`
-    : `[Thai Inter Flying] ยืนยันการยื่นใบสมัคร - หมายเลข: ${applicationNumber}`;
+    ? `Thai Inter Flying Pilot Application Confirmation - ${applicationNumber}`
+    : `ยืนยันการรับใบสมัครนักบิน Thai Inter Flying - หมายเลขใบสมัคร ${applicationNumber}`;
+
+  // Plain text fallback (Essential for preventing Junk/Spam classification in Gmail & Outlook)
+  const textContent = isEn
+    ? `Dear ${studentName},
+
+Thank you for submitting your pilot cadet application with Thai Inter Flying.
+
+Application Number: ${applicationNumber}
+Tracking Password: ${password}
+
+You can track your application status at: https://studen-phi.vercel.app/track
+
+Thai Inter Flying Academy
+Tel: 02 114 3325 | Email: salemarketing@tif.ac.th`
+    : `เรียนคุณ ${studentName},
+
+สถาบันการบิน Thai Inter Flying ขอขอบพระคุณที่ท่านให้ความสนใจสมัครเรียนหลักสูตรนักบิน ระบบได้บันทึกข้อมูลใบสมัครของท่านเรียบร้อยแล้ว
+
+หมายเลขใบสมัคร: ${applicationNumber}
+รหัสผ่านสำหรับติดตามสถานะ: ${password}
+
+ท่านสามารถนำหมายเลขใบสมัครและ Password ไปเข้าตรวจสอบสถานะได้ที่: https://studen-phi.vercel.app/track
+
+สถาบันการบิน Thai Inter Flying
+โทรศัพท์: 02 114 3325 | อีเมล: salemarketing@tif.ac.th`;
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -160,10 +185,20 @@ export async function sendApplicationConfirmationEmail({
 
   try {
     const info = await transporter.sendMail({
-      from,
+      from: {
+        name: "Thai Inter Flying",
+        address: user,
+      },
+      replyTo: "salemarketing@tif.ac.th",
       to: toEmail,
       subject,
+      text: textContent,
       html: htmlContent,
+      headers: {
+        "X-Priority": "1",
+        "X-MSMail-Priority": "High",
+        "Importance": "high",
+      },
     });
 
     console.log(`[Email System] Notification sent to ${toEmail}. MessageId: ${info.messageId}`);
