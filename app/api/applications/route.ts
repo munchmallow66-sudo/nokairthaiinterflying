@@ -243,18 +243,22 @@ export async function POST(req: Request) {
 
     const result: any = await dbTransactionPromise;
 
-    // Send email notification to candidate via Nok Air SMTP
+    // Send email notification to candidate via Nok Air SMTP.
+    // Awaited: a fire-and-forget send here can get frozen mid-flight once
+    // the serverless function's execution context ends right after the
+    // response is returned, so the confirmation email never actually leaves.
     try {
       const studentName = `${validated.title || ""} ${validated.firstNameTh || validated.firstNameEn} ${validated.lastNameTh || validated.lastNameEn}`.trim();
-      sendApplicationConfirmationEmail({
+      const emailResult = await sendApplicationConfirmationEmail({
         toEmail: validated.email,
         studentName,
         applicationNumber: result.application.applicationNumber,
         password: result.password,
         lang: "th",
-      }).catch((emailErr) => {
-        console.warn("Async email send warning:", emailErr);
       });
+      if (!emailResult.success) {
+        console.warn("Email send failed:", emailResult.error);
+      }
     } catch (e) {
       console.warn("Email dispatch error:", e);
     }
