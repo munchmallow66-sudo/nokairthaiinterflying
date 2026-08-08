@@ -37,12 +37,12 @@ export const translations = {
 
     // Countdown Card
     countdownTitle: "นับถอยหลังปิดรับสมัครศิษย์บินพาณิชย์",
-    countdownSub: "ระยะเวลาเปิดรับสมัคร: 1 สิงหาคม - 31 สิงหาคม 2569",
+    countdownSub: "ระยะเวลาเปิดรับสมัคร: 1 สิงหาคม - 11 กันยายน 2569",
     daysUnit: "วัน",
     hoursUnit: "ชั่วโมง",
     minutesUnit: "นาที",
     secondsUnit: "วินาที",
-    intakePeriodText: "กำหนดการรับสมัคร 1 ส.ค. - 31 ส.ค. 2569",
+    intakePeriodText: "กำหนดการรับสมัคร 1 ส.ค. - 11 ก.ย. 2569",
 
     // Recruitment Journey Roadmap
     recruitmentJourneyBadge: "RECRUITMENT ROADMAP",
@@ -1028,12 +1028,12 @@ export const translations = {
 
     // Countdown Card
     countdownTitle: "Cadet Pilot Application Deadline Countdown",
-    countdownSub: "Application Period: 1 August - 31 August 2026",
+    countdownSub: "Application Period: 1 August - 11 September 2026",
     daysUnit: "Days",
     hoursUnit: "Hours",
     minutesUnit: "Mins",
     secondsUnit: "Secs",
-    intakePeriodText: "Intake Period: 1 Aug - 31 Aug 2026",
+    intakePeriodText: "Intake Period: 1 Aug - 11 Sep 2026",
 
     // Recruitment Journey Roadmap
     recruitmentJourneyBadge: "RECRUITMENT ROADMAP",
