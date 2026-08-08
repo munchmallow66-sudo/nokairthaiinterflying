@@ -186,7 +186,7 @@ Tel: 02 114 3325 | Email: salemarketing@tif.ac.th`
   try {
     const info = await transporter.sendMail({
       from: {
-        name: "Thai Inter Flying",
+        name: "Thai Inter Flying x Nok Air",
         address: user,
       },
       replyTo: "salemarketing@tif.ac.th",
