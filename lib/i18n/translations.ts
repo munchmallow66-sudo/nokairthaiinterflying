@@ -37,12 +37,12 @@ export const translations = {
 
     // Countdown Card
     countdownTitle: "นับถอยหลังปิดรับสมัครศิษย์บินพาณิชย์",
-    countdownSub: "ระยะเวลาเปิดรับสมัคร: 1 สิงหาคม - 11 กันยายน 2569",
+    countdownSub: "ระยะเวลาเปิดรับสมัคร: 15 สิงหาคม - 11 กันยายน 2569",
     daysUnit: "วัน",
     hoursUnit: "ชั่วโมง",
     minutesUnit: "นาที",
     secondsUnit: "วินาที",
-    intakePeriodText: "กำหนดการรับสมัคร 1 ส.ค. - 11 ก.ย. 2569",
+    intakePeriodText: "กำหนดการรับสมัคร 15 ส.ค. - 11 ก.ย. 2569",
 
     // Recruitment Journey Roadmap
     recruitmentJourneyBadge: "RECRUITMENT ROADMAP",
@@ -54,7 +54,7 @@ export const translations = {
     phase4Overview: "Phase 4: Orientation & Class Starts",
     phase1Title: "Phase 1: Application Submission",
     phase1Sub: "ยื่นใบสมัคร & ส่งเอกสาร",
-    phase1Dates: "15 Aug - 20 Sep",
+    phase1Dates: "15 Aug - 11 Sep",
     p1Item1Date: "15 Aug",
     p1Item1Title: "Online Application Launch",
     p1Item1Sub1: "1.1 Initial Document Review (ตรวจสอบเอกสารเบื้องต้น)",
@@ -64,10 +64,10 @@ export const translations = {
     p1Item2Date: "12 Sep",
     p1Item2Title: "TIF x Nok Air Open House",
     p1Item2Desc: "โรงแรมเบสท์ เวสเทิร์น พลัส แวนด้า แกรนด์",
-    p1Item3Date: "15 Sep",
+    p1Item3Date: "11 Sep",
     p1Item3Title: "Online Application Closing",
     p1Item3Desc: "ปิดรับสมัครทางออนไลน์",
-    p1Item4Date: "20 Sep",
+    p1Item4Date: "11 Sep",
     p1Item4Title: "Final Date for Original Document Submission",
     p1Item4Desc: "วันสุดท้ายในการยื่นเอกสารฉบับจริง ณ สำนักงานใหญ่ TIF (หลักสี่ กรุงเทพฯ)",
 
@@ -1028,12 +1028,12 @@ export const translations = {
 
     // Countdown Card
     countdownTitle: "Cadet Pilot Application Deadline Countdown",
-    countdownSub: "Application Period: 1 August - 11 September 2026",
+    countdownSub: "Application Period: 15 August - 11 September 2026",
     daysUnit: "Days",
     hoursUnit: "Hours",
     minutesUnit: "Mins",
     secondsUnit: "Secs",
-    intakePeriodText: "Intake Period: 1 Aug - 11 Sep 2026",
+    intakePeriodText: "Intake Period: 15 Aug - 11 Sep 2026",
 
     // Recruitment Journey Roadmap
     recruitmentJourneyBadge: "RECRUITMENT ROADMAP",
@@ -1045,7 +1045,7 @@ export const translations = {
     phase4Overview: "Phase 4: Orientation & Class Starts",
     phase1Title: "Phase 1: Application Submission",
     phase1Sub: "Application & Documents",
-    phase1Dates: "15 Aug - 20 Sep",
+    phase1Dates: "15 Aug - 11 Sep",
     p1Item1Date: "15 Aug",
     p1Item1Title: "Online Application Launch",
     p1Item1Sub1: "1.1 Initial Document Review",
@@ -1055,10 +1055,10 @@ export const translations = {
     p1Item2Date: "12 Sep",
     p1Item2Title: "TIF x Nok Air Open House",
     p1Item2Desc: "Best Western Plus Wanda Grand Hotel",
-    p1Item3Date: "15 Sep",
+    p1Item3Date: "11 Sep",
     p1Item3Title: "Online Application Closing",
     p1Item3Desc: "Online Application System Closes",
-    p1Item4Date: "20 Sep",
+    p1Item4Date: "11 Sep",
     p1Item4Title: "Final Date for Original Document Submission",
     p1Item4Desc: "TIF Head Office, Laksi, Bangkok",
 
