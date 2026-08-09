@@ -162,6 +162,7 @@ export default function StudentApplicationsPage() {
   const {
     applications,
     updateApplication,
+    announceRejection,
     toggleDocVerification,
     rejectDocument,
     replaceDocument,
@@ -334,7 +335,10 @@ export default function StudentApplicationsPage() {
   const handleOpenFailWrittenExam = () => {
     setFailActionType("WRITTEN_EXAM");
     setFailMessage(
-      "สถาบันไทย อินเตอร์ ไฟลอิ้ง ขอขอบพระคุณอย่างยิ่งที่ท่านให้ความสนใจและตั้งใจเข้าร่วมการสอบข้อเขียนคัดเลือกนักบินในครั้งนี้ แม้ว่าผลการสอบในครั้งนี้จะยังไม่ผ่านเกณฑ์การคัดเลือก แต่สถาบันขอขอบคุณและเป็นกำลังใจให้ท่านในการเดินทางตามฝันสายการบินต่อไป และหวังเป็นอย่างยิ่งว่าจะได้มีโอกาสต้อนรับท่านอีกครั้งในโอกาสถัดไป"
+      // Must keep "ข้อเขียน" in the text: the step 9 result box keys off it to
+      // tell an exam rejection apart from an interview one (see remarks checks
+      // further down this file and on the public track page).
+      "เราขอยืนยันว่าท่านมีคุณสมบัติที่ยอดเยี่ยม อย่างไรก็ตาม เนื่องจากบริษัทฯ จำเป็นต้องจำกัดจำนวนผู้ได้รับเลือกในรอบนี้ จึงทำให้การคัดเลือกในรอบสอบข้อเขียนมีความแข่งขันสูงเป็นพิเศษ และผลการสอบของท่านยังไม่ผ่านเกณฑ์ในครั้งนี้"
     );
     setFailModalOpen(true);
   };
@@ -364,7 +368,8 @@ export default function StudentApplicationsPage() {
   const handleOpenFailInterview = () => {
     setFailActionType("INTERVIEW");
     setFailMessage(
-      "สถาบันไทย อินเตอร์ ไฟลอิ้ง ขอขอบพระคุณอย่างยิ่งที่ท่านให้ความสนใจและตั้งใจเข้าร่วมการสอบสัมภาษณ์คัดเลือกนักบินในครั้งนี้ แม้ว่าผลการสัมภาษณ์ในครั้งนี้จะยังไม่ผ่านเกณฑ์การคัดเลือก แต่คณะกรรมการขอขอบคุณและเป็นกำลังใจให้ท่านในการเดินทางตามฝันสายการบินต่อไป และหวังเป็นอย่างยิ่งว่าจะได้มีโอกาสต้อนรับท่านอีกครั้งในโอกาสถัดไป"
+      // Must keep "สัมภาษณ์" in the text — same remarks-matching reason as above.
+      "เราขอยืนยันว่าท่านมีคุณสมบัติที่ยอดเยี่ยม อย่างไรก็ตาม เนื่องจากบริษัทฯ จำเป็นต้องจำกัดจำนวนผู้ได้รับเลือกในรอบนี้ จึงทำให้การคัดเลือกในรอบสัมภาษณ์มีความแข่งขันสูงเป็นพิเศษ และผลการสัมภาษณ์ของท่านยังไม่ผ่านเกณฑ์ในครั้งนี้"
     );
     setFailModalOpen(true);
   };
@@ -395,13 +400,17 @@ export default function StudentApplicationsPage() {
       adminNotes: [newNote, ...(selectedApp.adminNotes || [])],
     };
 
-    updateApplication(selectedApp.id, updatedApp);
+    // Announces at step 9 for a written-exam failure and step 11 for an
+    // interview one, and mails the applicant the consolation letter.
+    announceRejection(selectedApp.id, failActionType, msg, newNote);
     setSelectedApp(updatedApp);
 
     setFailModalOpen(false);
     setWrittenExamModalOpen(false);
     setInterviewResultModalOpen(false);
-    alert(`บันทึกผลการสอบ${isExam ? "ข้อเขียน" : "สัมภาษณ์"}: ไม่ผ่าน (ส่งข้อความถึงผู้สมัครเรียบร้อยแล้ว)`);
+    alert(
+      `บันทึกผลการสอบ${isExam ? "ข้อเขียน" : "สัมภาษณ์"}: ไม่ผ่าน\nระบบกำลังส่งอีเมลแจ้งผลถึงผู้สมัครแล้ว`
+    );
   };
 
   const handleUpdateStatus = (newStatus: any) => {

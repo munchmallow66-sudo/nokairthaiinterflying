@@ -25,7 +25,7 @@ import { useApplicationContext } from "@/lib/context/application-context";
 
 export default function InterviewsPage() {
   const { t } = useLanguage();
-  const { applications, updateApplication } = useApplicationContext();
+  const { applications, updateApplication, announceRejection } = useApplicationContext();
 
   const [searchQuery, setSearchQuery] = React.useState("");
   const [filterStatus, setFilterStatus] = React.useState<string>("ALL");
@@ -128,20 +128,26 @@ export default function InterviewsPage() {
     const thankYouRemark = "สถาบันไทย อินเตอร์ ไฟลอิ้ง ขอขอบพระคุณอย่างยิ่งที่ท่านให้ความสนใจและตั้งใจเข้าร่วมการสอบสัมภาษณ์คัดเลือกนักบินในครั้งนี้ แม้ว่าผลการสัมภาษณ์ในครั้งนี้จะยังไม่ผ่านเกณฑ์การคัดเลือก แต่คณะกรรมการขอขอบคุณและเป็นกำลังใจให้ท่านในการเดินทางตามฝันสายการบินต่อไป และหวังเป็นอย่างยิ่งว่าจะได้มีโอกาสต้อนรับท่านอีกครั้งในโอกาสถัดไป";
     const noteContent = result === "PASSED" ? congratRemark : thankYouRemark;
 
-    updateApplication(app.id, {
-      status: newStatus as any,
-      remarks: noteContent,
-      interviews: updatedInterviews,
-      adminNotes: [
-        {
-          id: `note_${Date.now()}`,
-          content: noteContent,
-          createdAt: new Date(),
-          author: { name: "Interview Committee", email: "interview@tif.ac.th" },
-        },
-        ...(app.adminNotes || []),
-      ],
-    });
+    const newNote = {
+      id: `note_${Date.now()}`,
+      content: noteContent,
+      createdAt: new Date(),
+      author: { name: "Interview Committee", email: "interview@tif.ac.th" },
+    };
+
+    if (result === "PASSED") {
+      updateApplication(app.id, {
+        status: newStatus as any,
+        remarks: noteContent,
+        interviews: updatedInterviews,
+        adminNotes: [newNote, ...(app.adminNotes || [])],
+      });
+    } else {
+      // Step 10 failure announced as step 11 — also mails the consolation letter.
+      announceRejection(app.id, "INTERVIEW", noteContent, newNote, {
+        interviews: updatedInterviews,
+      });
+    }
 
     alert(
       result === "PASSED"

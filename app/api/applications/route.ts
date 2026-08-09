@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { fullApplicationSchema } from "@/schemas/application-schema";
 import { generateApplicationNumber, generateSecurePassword, formatDocumentFileName } from "@/lib/utils";
 import { verifyAdminSessionToken } from "@/lib/auth";
-import { sendApplicationConfirmationEmail } from "@/lib/email";
+import { sendApplicationConfirmationEmail, sendSelectionRejectionEmail } from "@/lib/email";
 
 
 export const dynamic = "force-dynamic";
@@ -300,6 +300,7 @@ export async function PATCH(req: Request) {
       url,
       name,
       reason,
+      stage,
     } = body;
 
     if (!id) {
@@ -427,6 +428,55 @@ export async function PATCH(req: Request) {
           }
         } else {
           console.warn("Skipped persisting admin note: no valid admin session on request");
+        }
+      }
+
+      // Selection-result rejection notice. A step 8 (written exam) failure is
+      // announced as step 9 and a step 10 (interview) failure as step 11, so
+      // the caller sends the stage that was failed and we pick the letter.
+      // Awaited for the same reason as the submission email: a fire-and-forget
+      // send dies when the serverless context ends with the response.
+      if (action === "ANNOUNCE_REJECTION" && (stage === "WRITTEN_EXAM" || stage === "INTERVIEW")) {
+        try {
+          const appWithStudent = await prisma.application.findUnique({
+            where: { id },
+            select: {
+              applicationNumber: true,
+              student: {
+                select: {
+                  title: true,
+                  firstNameTh: true,
+                  lastNameTh: true,
+                  firstNameEn: true,
+                  lastNameEn: true,
+                  user: { select: { email: true } },
+                },
+              },
+            },
+          });
+
+          const s = appWithStudent?.student;
+          const toEmail = s?.user?.email;
+
+          if (s && toEmail) {
+            const studentName = `${s.title || ""} ${s.firstNameTh || s.firstNameEn} ${
+              s.lastNameTh || s.lastNameEn
+            }`.trim();
+            const mailResult = await sendSelectionRejectionEmail({
+              toEmail,
+              studentName,
+              applicationNumber: appWithStudent.applicationNumber,
+              stage,
+              customMessage: typeof remarks === "string" ? remarks : undefined,
+            });
+            if (!mailResult.success) {
+              console.warn("Rejection notice send failed:", mailResult.error);
+            }
+          } else {
+            console.warn(`Rejection notice skipped: no recipient email on application ${id}`);
+          }
+        } catch (mailErr) {
+          console.warn("Rejection notice dispatch error:", mailErr);
         }
       }
 

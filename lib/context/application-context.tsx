@@ -405,6 +405,13 @@ export const INITIAL_SAMPLE_APPLICATIONS: ApplicationWithDetails[] = [
 interface ApplicationContextType {
   applications: ApplicationWithDetails[];
   updateApplication: (appId: string, updatedFields: Partial<ApplicationWithDetails>) => void;
+  announceRejection: (
+    appId: string,
+    stage: "WRITTEN_EXAM" | "INTERVIEW",
+    message: string,
+    note: any,
+    extraFields?: Partial<ApplicationWithDetails>
+  ) => void;
   toggleDocVerification: (appId: string, docId: string, verifiedStatus: boolean) => void;
   rejectDocument: (appId: string, docId: string, reason: string) => void;
   replaceDocument: (appId: string, docId: string, newUrl: string, newName?: string) => void;
@@ -536,6 +543,49 @@ export function ApplicationProvider({ children }: { children: React.ReactNode })
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: appId, ...updatedFields }),
+      }).catch((e) => console.warn("API sync error:", e));
+    } catch (e) {}
+  };
+
+  // A step 8 (written exam) rejection is announced as step 9, and a step 10
+  // (interview) rejection as step 11. Kept separate from updateApplication so
+  // the ANNOUNCE_REJECTION action reaches the API without leaking into the
+  // local application object, and so the consolation email fires exactly once.
+  const announceRejection = (
+    appId: string,
+    stage: "WRITTEN_EXAM" | "INTERVIEW",
+    message: string,
+    note: any,
+    extraFields?: Partial<ApplicationWithDetails>
+  ) => {
+    if (!appId) return;
+    setApplications((prev) =>
+      prev.map((app) =>
+        app.id === appId || app.applicationNumber === appId
+          ? {
+              ...app,
+              ...extraFields,
+              status: "REJECTED" as any,
+              remarks: message,
+              adminNotes: [note, ...(app.adminNotes || [])],
+              updatedAt: new Date(),
+            }
+          : app
+      )
+    );
+    try {
+      fetch("/api/applications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: appId,
+          ...extraFields,
+          status: "REJECTED",
+          remarks: message,
+          adminNotes: [note],
+          action: "ANNOUNCE_REJECTION",
+          stage,
+        }),
       }).catch((e) => console.warn("API sync error:", e));
     } catch (e) {}
   };
@@ -745,6 +795,7 @@ export function ApplicationProvider({ children }: { children: React.ReactNode })
       value={{
         applications,
         updateApplication,
+        announceRejection,
         toggleDocVerification,
         rejectDocument,
         replaceDocument,
