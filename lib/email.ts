@@ -36,6 +36,9 @@ export async function sendApplicationConfirmationEmail({
     },
   });
 
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || "https://studen-phi.vercel.app";
+  const trackUrl = `${baseUrl}/track`;
+
   const isEn = lang === "en";
 
   // Clean, professional subject line without brackets to avoid trigger-happy spam filters
@@ -50,9 +53,9 @@ export async function sendApplicationConfirmationEmail({
 Thank you for submitting your pilot cadet application with Thai Inter Flying.
 
 Application Number: ${applicationNumber}
-Tracking Password: ${password}
+Tracking Passcode: ${password}
 
-You can track your application status at: https://studen-phi.vercel.app/track
+You can track your application status at: ${trackUrl}
 
 Thai Inter Flying Academy
 Tel: 02 114 3325 | Email: salemarketing@tif.ac.th`
@@ -61,9 +64,9 @@ Tel: 02 114 3325 | Email: salemarketing@tif.ac.th`
 สถาบันการบิน Thai Inter Flying ขอขอบพระคุณที่ท่านให้ความสนใจสมัครเรียนหลักสูตรนักบิน ระบบได้บันทึกข้อมูลใบสมัครของท่านเรียบร้อยแล้ว
 
 หมายเลขใบสมัคร: ${applicationNumber}
-รหัสผ่านสำหรับติดตามสถานะ: ${password}
+รหัสสำหรับติดตามสถานะ: ${password}
 
-ท่านสามารถนำหมายเลขใบสมัครและ Password ไปเข้าตรวจสอบสถานะได้ที่: https://studen-phi.vercel.app/track
+ท่านสามารถนำหมายเลขใบสมัครและรหัสติดตามสถานะ ไปเข้าตรวจสอบสถานะได้ที่: ${trackUrl}
 
 สถาบันการบิน Thai Inter Flying
 โทรศัพท์: 02 114 3325 | อีเมล: salemarketing@tif.ac.th`;
@@ -119,7 +122,7 @@ Tel: 02 114 3325 | Email: salemarketing@tif.ac.th`
                     <tr>
                       <td style="border-top:1px dashed #cbd5e1; padding-top:12px;">
                         <span style="font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; display:block; margin-bottom:4px;">
-                          ${isEn ? "Tracking Password" : "รหัสผ่านสำหรับติดตามสถานะ (Tracking Password)"}
+                          ${isEn ? "Tracking Passcode" : "รหัสสำหรับติดตามสถานะ (Tracking Code)"}
                         </span>
                         <span style="font-size:22px; font-weight:800; font-family:monospace; color:#d97706;">
                           ${password}
@@ -141,16 +144,16 @@ Tel: 02 114 3325 | Email: salemarketing@tif.ac.th`
                       }</li>
                       <li>${
                         isEn
-                          ? "You can track your application status at any time using your Application Number and Password."
-                          : "ท่านสามารถนำหมายเลขใบสมัครและ Password ข้างต้น ไปเข้าตรวจสอบสถานะได้ตลอดเวลาที่หน้าเว็บไซต์"
+                          ? "You can track your application status at any time using your Application Number and Passcode."
+                          : "ท่านสามารถนำหมายเลขใบสมัครและรหัสติดตามสถานะ ไปเข้าตรวจสอบสถานะได้ตลอดเวลาที่หน้าเว็บไซต์"
                       }</li>
                     </ul>
                   </div>
 
                   <!-- Call to action button -->
                   <div style="text-align:center; margin-bottom:28px;">
-                    <a href="https://studen-phi.vercel.app/track" target="_blank" style="display:inline-block; background-color:#0b132b; color:#d4af37; font-size:14px; font-weight:700; text-decoration:none; padding:14px 28px; border-radius:10px; border:1px solid #d4af37;">
-                      🔍 ${isEn ? "Track Application Status" : "คลิกที่นี่เพื่อติดตามสถานะการสมัคร"}
+                    <a href="${trackUrl}" target="_blank" style="display:inline-block; background-color:#0b132b; color:#d4af37; font-size:14px; font-weight:700; text-decoration:none; padding:14px 28px; border-radius:10px; border:1px solid #d4af37;">
+                      ${isEn ? "Track Application Status" : "ติดตามสถานะการสมัคร"}
                     </a>
                   </div>
 
@@ -186,7 +189,7 @@ Tel: 02 114 3325 | Email: salemarketing@tif.ac.th`
   try {
     const info = await transporter.sendMail({
       from: {
-        name: "Thai Inter Flying x Nok Air",
+        name: "Thai Inter Flying",
         address: user,
       },
       replyTo: "salemarketing@tif.ac.th",
@@ -195,9 +198,9 @@ Tel: 02 114 3325 | Email: salemarketing@tif.ac.th`
       text: textContent,
       html: htmlContent,
       headers: {
-        "X-Priority": "1",
-        "X-MSMail-Priority": "High",
-        "Importance": "high",
+        "Auto-Submitted": "auto-generated",
+        "X-Auto-Response-Suppress": "All",
+        "Precedence": "bulk",
       },
     });
 

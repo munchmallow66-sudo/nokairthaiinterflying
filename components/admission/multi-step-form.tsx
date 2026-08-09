@@ -24,6 +24,7 @@ import {
   Clock,
   Copy,
   Check,
+  Mail,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -658,6 +659,23 @@ export function MultiStepForm() {
           <p className="text-xs text-slate-600 leading-relaxed max-w-lg mx-auto">
             {t("submitSuccessNextStepDesc")}
           </p>
+        </div>
+
+        {/* Email Spam Notice */}
+        <div className="bg-blue-50/80 border border-blue-200 rounded-2xl p-4 sm:p-5 mb-6 text-left flex items-start gap-3.5 shadow-sm">
+          <div className="h-9 w-9 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 border border-blue-200">
+            <Mail className="h-5 w-5" />
+          </div>
+          <div className="text-xs text-slate-700 space-y-1">
+            <span className="font-bold text-blue-950 text-sm block">
+              {language === "th" ? "📩 แจ้งเตือนการรับอีเมลยืนยัน:" : "📩 Email Confirmation Notice:"}
+            </span>
+            <p className="leading-relaxed text-slate-600">
+              {language === "th"
+                ? "ระบบได้ส่งอีเมลยืนยันและรหัสติดตามสถานะไปยังอีเมลของท่านแล้ว หากไม่พบอีเมลในกล่องขาเข้า (Inbox) กรุณาตรวจสอบในโฟลเดอร์ อีเมลขยะ (Junk / Spam Mail) และกด 'ไม่ใช่อีเมลขยะ' (Not Spam)"
+                : "A confirmation email has been sent to your inbox. If you do not see it in your Inbox, please check your Junk/Spam folder and mark it as 'Not Spam'."}
+            </p>
+          </div>
         </div>
 
         <div className="flex flex-col sm:flex-row justify-center gap-3">
