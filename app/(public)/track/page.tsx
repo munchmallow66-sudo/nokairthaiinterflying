@@ -764,14 +764,16 @@ export default function TrackStatusPage() {
 
     const localMatches = Array.from(uniqueAppMap.values());
 
-    if (localMatches.length > 0) {
-      const firstMatch = localMatches[0];
-      if (firstMatch.password && firstMatch.password.trim() !== passValue) {
-        setErrorMsg(language === "en" ? "Invalid Password. Please check your password again." : "รหัสผ่าน (Password) ไม่ถูกต้อง กรุณาตรวจสอบรหัสผ่านอีกครั้ง");
-        setLoading(false);
-        return;
-      }
+    // Fail closed on the cached-data shortcut. The old guard was
+    // `if (firstMatch.password && ...)`, so a cached record carrying no
+    // password displayed the applicant's data for *any* password typed in.
+    // A blank or mismatching password now falls through to /api/track, which
+    // is the single authority on whether this password opens this record.
+    const firstMatch = localMatches[0];
+    const localPassword = (firstMatch?.password || "").toString().trim();
+    const localPasswordMatches = localPassword !== "" && localPassword === passValue;
 
+    if (localMatches.length > 0 && localPasswordMatches) {
       const student = firstMatch.student;
       const studentName = student
         ? `${student.title || ""} ${student.firstNameTh || student.firstNameEn || ""} ${student.lastNameTh || student.lastNameEn || ""} (${student.firstNameEn || ""} ${student.lastNameEn || ""})`.trim()

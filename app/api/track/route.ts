@@ -115,17 +115,24 @@ export async function POST(req: Request) {
 
     const appList = Array.from(uniqueAppMap.values());
 
-    const targetApp = appList[0];
-    if (targetApp && targetApp.password) {
-      if (inputPassword !== targetApp.password.trim()) {
-        return NextResponse.json(
-          { found: false, error: "รหัสผ่าน (Password) ไม่ถูกต้อง กรุณาตรวจสอบรหัสผ่านอีกครั้ง" },
-          { status: 401 }
-        );
-      }
+    // Fail closed. The old gate was `if (targetApp && targetApp.password)`, so
+    // an application row with a NULL/blank password let anyone through on the
+    // application number alone. It also only checked appList[0], meaning one
+    // password unlocked every application returned by a nationalId/phone
+    // lookup. Only applications this password actually opens are returned.
+    const authorizedApps = appList.filter((app: any) => {
+      const stored = (app.password || "").toString().trim();
+      return stored !== "" && stored === inputPassword;
+    });
+
+    if (authorizedApps.length === 0) {
+      return NextResponse.json(
+        { found: false, error: "รหัสผ่าน (Password) ไม่ถูกต้อง กรุณาตรวจสอบรหัสผ่านอีกครั้ง" },
+        { status: 401 }
+      );
     }
 
-    const applications = appList.map((app: any) => {
+    const applications = authorizedApps.map((app: any) => {
       let stepIndex = 1;
       let statusLabelTh = "ยื่นใบสมัครแล้ว";
       let statusLabelEn = "Application Submitted";
@@ -229,7 +236,9 @@ export async function POST(req: Request) {
       return {
         id: app.id,
         applicationNumber: app.applicationNumber,
-        password: app.password,
+        // The tracking password is never echoed back — the client already has
+        // it, and shipping it in the response puts it in browser caches, logs
+        // and localStorage via ApplicationContext.
         courseName: "แบบฟอร์มสมัครเรียนการบินออนไลน์",
         status: app.status,
         statusLabelTh,
