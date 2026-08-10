@@ -1,0 +1,82 @@
+{
+  "home-desktop": {
+    "bytes": 307270,
+    "scrollHeight": 6702
+  },
+  "about-desktop": {
+    "bytes": 762449,
+    "scrollHeight": 1029
+  },
+  "admission-desktop": {
+    "bytes": 778909,
+    "scrollHeight": 1159
+  },
+  "contact-desktop": {
+    "bytes": 280192,
+    "scrollHeight": 1973
+  },
+  "courses-desktop": {
+    "bytes": 887676,
+    "scrollHeight": 1530
+  },
+  "gallery-desktop": {
+    "bytes": 953948,
+    "scrollHeight": 1002
+  },
+  "pay-desktop": {
+    "bytes": 241099,
+    "scrollHeight": 1292
+  },
+  "pilot-career-desktop": {
+    "bytes": 1432232,
+    "scrollHeight": 1478
+  },
+  "track-desktop": {
+    "bytes": 223786,
+    "scrollHeight": 1212
+  },
+  "apply-desktop": {
+    "bytes": 195170,
+    "scrollHeight": 1535
+  },
+  "home-mobile": {
+    "bytes": 457952,
+    "scrollHeight": 11454
+  },
+  "about-mobile": {
+    "bytes": 396126,
+    "scrollHeight": 2184
+  },
+  "admission-mobile": {
+    "bytes": 362998,
+    "scrollHeight": 2085
+  },
+  "contact-mobile": {
+    "bytes": 234828,
+    "scrollHeight": 3404
+  },
+  "courses-mobile": {
+    "bytes": 508798,
+    "scrollHeight": 4009
+  },
+  "gallery-mobile": {
+    "bytes": 647099,
+    "scrollHeight": 2412
+  },
+  "pay-mobile": {
+    "bytes": 174701,
+    "scrollHeight": 1688
+  },
+  "pilot-career-mobile": {
+    "bytes": 573034,
+    "scrollHeight": 2150
+  },
+  "track-mobile": {
+    "bytes": 162780,
+    "scrollHeight": 1608
+  },
+  "apply-mobile": {
+    "bytes": 179359,
+    "scrollHeight": 2824
+  }
+}
