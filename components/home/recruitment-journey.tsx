@@ -74,17 +74,17 @@ export function RecruitmentJourney() {
           note: t("p1Item1Note"),
         },
         {
+          date: t("p1Item3Date"),
+          title: t("p1Item3Title"),
+          desc: t("p1Item3Desc"),
+          icon: Clock,
+        },
+        {
           date: t("p1Item2Date"),
           title: t("p1Item2Title"),
           desc: t("p1Item2Desc"),
           icon: Building,
           isEvent: true,
-        },
-        {
-          date: t("p1Item3Date"),
-          title: t("p1Item3Title"),
-          desc: t("p1Item3Desc"),
-          icon: Clock,
         },
         {
           date: t("p1Item4Date"),

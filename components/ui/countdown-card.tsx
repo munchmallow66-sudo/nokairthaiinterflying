@@ -20,8 +20,8 @@ export function CountdownCard() {
   });
 
   React.useEffect(() => {
-    // Target deadline: September 11, 2026 23:59:59 (ICT +07:00)
-    const targetDate = new Date("2026-09-11T23:59:59+07:00").getTime();
+    // Target deadline: September 17, 2026 23:59:59 (ICT +07:00)
+    const targetDate = new Date("2026-09-17T23:59:59+07:00").getTime();
 
     const calculateTimeLeft = () => {
       const now = new Date().getTime();
