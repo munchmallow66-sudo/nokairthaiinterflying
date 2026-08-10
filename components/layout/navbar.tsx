@@ -116,7 +116,7 @@ export function Navbar() {
 
       {/* Mobile Drawer Navigation */}
       {mobileMenuOpen && (
-        <div className="pointer-events-auto lg:hidden mt-3 rounded-3xl bg-[#051329] border border-tif-gold/40 p-5 space-y-4 shadow-[0_20px_50px_rgba(0,0,0,0.8)] backdrop-blur-2xl animate-in slide-in-from-top-3 duration-250">
+        <div className="pointer-events-auto lg:hidden mt-3 rounded-3xl bg-[#051329] border border-tif-gold/40 p-5 space-y-4 shadow-[0_20px_50px_rgba(0,0,0,0.8)] animate-in slide-in-from-top-3 duration-250">
           <nav className="flex flex-col space-y-1.5 text-sm font-semibold">
             <Link
               href="/"

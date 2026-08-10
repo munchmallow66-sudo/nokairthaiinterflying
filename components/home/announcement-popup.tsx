@@ -61,7 +61,7 @@ export function AnnouncementPopup() {
   const isImageOnly = currentItem.type === "IMAGE" && Boolean(currentItem.imageUrl);
 
   const modalContent = isImageOnly ? (
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 bg-slate-950/85 animate-in fade-in duration-300">
       {/* Backdrop click to close */}
       <div className="fixed inset-0" onClick={handleClose} />
 
@@ -140,7 +140,7 @@ export function AnnouncementPopup() {
       </div>
     </div>
   ) : (
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 bg-slate-950/85 animate-in fade-in duration-300">
       {/* Backdrop click to close */}
       <div className="fixed inset-0" onClick={handleClose} />
 
@@ -196,7 +196,7 @@ export function AnnouncementPopup() {
           </div>
 
           {/* Right Column (7/12): Content & Actions Section */}
-          <div className="lg:col-span-7 p-6 sm:p-8 flex flex-col justify-between space-y-6 bg-slate-900/90 backdrop-blur-xl">
+          <div className="lg:col-span-7 p-6 sm:p-8 flex flex-col justify-between space-y-6 bg-slate-900/95">
             
             {/* Header Badge & Title */}
             <div className="space-y-3 pr-8">

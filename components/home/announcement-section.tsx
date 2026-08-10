@@ -61,8 +61,8 @@ export function AnnouncementSection() {
       <ScrollReveal direction="up" distance={30}>
         <div className="relative overflow-hidden rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl p-6 sm:p-8">
           {/* Subtle decorative background glow */}
-          <div className="absolute top-0 right-0 -mt-12 -mr-12 w-96 h-96 bg-tif-gold/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 left-0 -mb-12 -ml-12 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="ambient-orb absolute top-0 right-0 -mt-28 -mr-28 w-[32rem] h-[32rem] bg-[radial-gradient(closest-side,rgba(200,162,74,0.10),transparent_100%)]" />
+          <div className="ambient-orb absolute bottom-0 left-0 -mb-28 -ml-28 w-[32rem] h-[32rem] bg-[radial-gradient(closest-side,rgba(59,130,246,0.10),transparent_100%)]" />
 
           {/* Section Header */}
           <div className="relative z-10 flex items-center justify-between mb-6 pb-4 border-b border-slate-800">
@@ -160,7 +160,7 @@ export function AnnouncementSection() {
       {/* Image Preview Modal */}
       {selectedImage && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 animate-in fade-in"
           onClick={() => setSelectedImage(null)}
         >
           <div className="relative max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl bg-slate-900 p-2 shadow-2xl border border-slate-800">

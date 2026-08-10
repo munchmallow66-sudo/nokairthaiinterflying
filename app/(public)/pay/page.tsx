@@ -134,7 +134,7 @@ export default function PaymentPage() {
   return (
     <div className="min-h-screen pt-28 pb-16 px-4 sm:px-6 lg:px-8 bg-[#f5f5f5] text-slate-900 relative overflow-hidden">
       {/* Background Glow */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-tif-gold/15 rounded-full blur-[140px] pointer-events-none" />
+      <div className="ambient-orb absolute top-[15%] left-1/2 -translate-x-1/2 w-[52rem] h-[52rem] bg-[radial-gradient(closest-side,rgba(200,162,74,0.15),transparent_100%)]" />
 
       <div className="max-w-4xl mx-auto space-y-8 relative z-10">
         {/* Header */}
@@ -152,7 +152,7 @@ export default function PaymentPage() {
         </div>
 
         {/* Search Card */}
-        <div className="bg-slate-900/90 border border-slate-700/80 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
+        <div className="bg-slate-900/95 border border-slate-700/80 rounded-3xl p-6 sm:p-8 shadow-2xl">
           <form onSubmit={handleSearchApp} className="space-y-4">
             <label className="block text-xs font-extrabold uppercase tracking-wider text-amber-300">
               ค้นหาใบสมัครของคุณ (Search Your Application)
@@ -176,7 +176,7 @@ export default function PaymentPage() {
 
         {/* Found Application Details & Payment Box */}
         {foundApp && (
-          <div className="bg-slate-900/95 border border-slate-700/80 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl space-y-6 animate-in fade-in duration-400">
+          <div className="bg-slate-900/95 border border-slate-700/80 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 animate-in fade-in duration-400">
             {/* Candidate Summary Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-slate-800 gap-4">
               <div className="space-y-1">

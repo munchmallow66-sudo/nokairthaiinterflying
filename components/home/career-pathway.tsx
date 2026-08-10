@@ -22,8 +22,8 @@ export function CareerPathway() {
       <ScrollReveal direction="up" distance={35}>
         <div className="relative rounded-3xl bg-gradient-to-br from-white via-slate-50 to-slate-100/80 border border-slate-200/90 p-8 sm:p-12 lg:p-14 text-slate-800 shadow-xl overflow-hidden">
           {/* Subtle Background Glows */}
-          <div className="absolute -top-24 -right-24 w-96 h-96 bg-tif-gold/15 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-tif-navy/5 rounded-full blur-3xl pointer-events-none" />
+          <div className="ambient-orb absolute -top-40 -right-40 w-[32rem] h-[32rem] bg-[radial-gradient(closest-side,rgba(200,162,74,0.15),transparent_100%)]" />
+          <div className="ambient-orb absolute -bottom-40 -left-40 w-[32rem] h-[32rem] bg-[radial-gradient(closest-side,rgba(10,35,66,0.05),transparent_100%)]" />
           
           <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
             {/* Left Column: Storytelling & Pathway Headline (col-7) */}

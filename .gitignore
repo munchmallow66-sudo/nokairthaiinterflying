@@ -9,6 +9,11 @@
 /test-results/
 /blob-report/
 
+# Visual-regression captures. screenshots/before/ is committed as the baseline;
+# every later phase is a local artifact — a full run is ~26MB of PNGs.
+/screenshots/*
+!/screenshots/before/
+
 # next.js
 /.next/
 /out/

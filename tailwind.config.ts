@@ -32,8 +32,8 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ["Inter", "sans-serif"],
-        display: ["Cinzel", "serif"],
+        sans: ["var(--font-inter)", "Inter", "sans-serif"],
+        display: ["var(--font-cinzel)", "Cinzel", "serif"],
       },
       boxShadow: {
         luxury: "0 20px 40px -15px rgba(10, 35, 66, 0.15)",

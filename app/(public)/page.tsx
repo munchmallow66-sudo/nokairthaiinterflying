@@ -225,7 +225,9 @@ export default function HomePage() {
       {/* ================================================================ */}
       {/* 3. SECTION 02 — REQUIREMENTS (Interactive 3D Bento Grid)        */}
       {/* ================================================================ */}
-      <section className="mt-24 lg:mt-32 bg-white/80 backdrop-blur-md border-y border-slate-200/70 py-24 lg:py-32 relative overflow-hidden">
+      {/* bg is near-opaque, so no backdrop-filter: a full-width blurred backdrop
+          is re-sampled on every scroll frame in Safari. */}
+      <section className="mt-24 lg:mt-32 bg-white/90 border-y border-slate-200/70 py-24 lg:py-32 relative overflow-hidden">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 w-full">
           <ScrollReveal direction="up">
             {/* Section header */}

@@ -202,7 +202,7 @@ export function RecruitmentJourney() {
       <ScrollReveal delay={150} direction="up">
         <div className="mb-12 bg-tif-navyDark rounded-2xl p-4 sm:p-6 text-white shadow-2xl border border-tif-gold/30 relative overflow-hidden">
           {/* Subtle Background Glow */}
-          <div className="absolute top-0 right-0 w-96 h-96 bg-tif-gold/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="ambient-orb absolute -top-16 -right-16 w-[32rem] h-[32rem] bg-[radial-gradient(closest-side,rgba(200,162,74,0.10),transparent_100%)]" />
           
           <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-3">
             {phases.map((phase, idx) => {
