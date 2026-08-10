@@ -268,7 +268,27 @@ export const translations = {
     selectDocAlert: "กรุณาเลือกไฟล์เอกสารที่ต้องการอัปโหลด",
     selectSlipAlert: "กรุณาเลือกไฟล์สลิปโอนเงิน (JPG, PNG หรือ PDF)",
     reuploadSuccessAlert: "อัปโหลดเอกสารใหม่เรียบร้อยแล้ว! ข้อมูลส่งไปยังเจ้าหน้าที่เรียบร้อยแล้ว",
+    reuploadFailedAlert: "ระบบไม่สามารถบันทึกเอกสารได้ กรุณาลองใหม่อีกครั้ง",
     slipSuccessAlert: "ส่งสลิปชำระเงินเรียบร้อยแล้ว! ข้อมูลส่งไปยังหน้า Admin แล้ว",
+
+    // Full document-set resubmission (Step 3 review failed)
+    fullReuploadBtn: "อัปโหลดเอกสารใหม่ทั้งหมด",
+    fullReuploadModalTitle: "ส่งเอกสารประกอบการสมัครใหม่ทั้งชุด",
+    fullReuploadModalDesc: "แนบไฟล์ใหม่ให้ครบทุกรายการ ระบบจะแทนที่เอกสารเดิมทั้งหมดและส่งให้เจ้าหน้าที่ตรวจอีกครั้ง",
+    fullReuploadIntro:
+      "เอกสารของท่านไม่ผ่านการตรวจ กรุณาแนบไฟล์เอกสารฉบับใหม่ให้ครบทุกรายการที่จำเป็น",
+    fullReuploadReplaceNotice:
+      "เมื่อกดยืนยัน ไฟล์เอกสารเดิมทั้งหมดจะถูกแทนที่ด้วยไฟล์ชุดใหม่นี้ และสถานะจะกลับเข้าสู่ขั้นตอนตรวจเอกสาร (Step 3)",
+    fullReuploadRequiredLabel: "เอกสารที่ต้องแนบให้ครบ",
+    fullReuploadOptionalLabel: "เอกสารเพิ่มเติม (ถ้ามี)",
+    fullReuploadPreviousRejectLabel: "รายการนี้เคยถูกแจ้งแก้ไข:",
+    fullReuploadAttachedCountLabel: "แนบไฟล์แล้ว",
+    fullReuploadMissingAlert: "กรุณาแนบไฟล์เอกสารให้ครบทุกรายการที่จำเป็นก่อนกดยืนยัน",
+    fullReuploadUploadingLabel: "กำลังอัปโหลดเอกสาร",
+    fullReuploadSubmitBtn: "ยืนยันส่งเอกสารใหม่ทั้งหมด",
+    fullReuploadSuccessAlert:
+      "ส่งเอกสารชุดใหม่เรียบร้อยแล้ว! เจ้าหน้าที่จะดำเนินการตรวจเอกสารของท่านอีกครั้ง",
+    fullReuploadUploadErr: "อัปโหลดไฟล์ไม่สำเร็จ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วลองใหม่",
     docPassportPhoto: "รูปถ่าย 1.5 นิ้ว",
     docNationalId: "สำเนาบัตรประชาชน",
     docTranscript: "สำเนาวุฒิการศึกษา",
@@ -1263,7 +1283,28 @@ export const translations = {
     selectDocAlert: "Please select a document file to upload",
     selectSlipAlert: "Please select a payment slip file (JPG, PNG, or PDF)",
     reuploadSuccessAlert: "New document uploaded successfully! Information submitted to staff.",
+    reuploadFailedAlert: "The system could not save your document. Please try again.",
     slipSuccessAlert: "Payment slip submitted successfully! Sent to Admin panel.",
+
+    // Full document-set resubmission (Step 3 review failed)
+    fullReuploadBtn: "Re-upload All Documents",
+    fullReuploadModalTitle: "Resubmit Your Complete Document Set",
+    fullReuploadModalDesc:
+      "Attach a new file for every item. This replaces all of your previous documents and sends them back to staff for review.",
+    fullReuploadIntro:
+      "Your documents did not pass review. Please attach a new file for every required item.",
+    fullReuploadReplaceNotice:
+      "On confirmation, all of your previous document files are replaced by this new set and your application returns to document review (Step 3).",
+    fullReuploadRequiredLabel: "Required documents",
+    fullReuploadOptionalLabel: "Additional documents (if any)",
+    fullReuploadPreviousRejectLabel: "Previously returned for correction:",
+    fullReuploadAttachedCountLabel: "Attached",
+    fullReuploadMissingAlert: "Please attach a file for every required document before confirming.",
+    fullReuploadUploadingLabel: "Uploading document",
+    fullReuploadSubmitBtn: "Confirm & Submit All Documents",
+    fullReuploadSuccessAlert:
+      "Your new document set has been submitted. Staff will review your documents again.",
+    fullReuploadUploadErr: "File upload failed. Please check your internet connection and try again.",
     docPassportPhoto: "1.5 Inch Photo",
     docNationalId: "National ID Card Copy",
     docTranscript: "Educational Transcript Copy",

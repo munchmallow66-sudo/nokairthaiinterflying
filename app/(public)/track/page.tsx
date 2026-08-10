@@ -33,7 +33,7 @@ import { useLanguage } from "@/lib/i18n/language-context";
 import { PILOT_WORKFLOW_STEPS } from "@/types";
 import { compressImageIfNeeded } from "@/lib/image-compressor";
 import { useApplicationContext } from "@/lib/context/application-context";
-import { formatDocumentFileName, getCloudinaryPdfThumbnail } from "@/lib/utils";
+import { canonicalDocType, getResubmitDocTypes, isDocumentReviewFailed } from "@/lib/document-review";
 
 
 interface ApplicationData {
@@ -132,15 +132,15 @@ const getStepGuidance = (app: ApplicationData, lang: "th" | "en" = "th") => {
       badgeBg: "bg-rose-100 border-rose-300 text-rose-800",
       icon: AlertCircle,
       title: isEn
-        ? "Your documents require attention (Please fix attached files)"
-        : "เอกสารของคุณยังไม่ผ่านการอนุมัติ (กรุณาแก้ไขเอกสารแนบ)",
+        ? "Your documents require attention (Please re-submit your document set)"
+        : "เอกสารของคุณยังไม่ผ่านการอนุมัติ (กรุณาส่งเอกสารใหม่ทั้งชุด)",
       description: isEn
-        ? "Staff found incomplete or invalid document attachments. Please check the reason and re-upload replacement files."
-        : "เจ้าหน้าที่ตรวจพบเอกสารที่ไม่ถูกต้องหรือไม่ชัดเจน กรุณาตรวจสอบเหตุผลและทำการอัปโหลดไฟล์ใหม่ทดแทน",
+        ? "Staff found incomplete or invalid document attachments. Please re-upload your complete document set so staff can review it again from scratch."
+        : "เจ้าหน้าที่ตรวจพบเอกสารที่ไม่ถูกต้องหรือไม่ครบถ้วน กรุณาอัปโหลดเอกสารประกอบการสมัครใหม่ทั้งชุด เพื่อให้เจ้าหน้าที่ตรวจใหม่ทั้งหมดอีกครั้ง",
       nextActionTitle: isEn ? "Next Action for Applicant:" : "สิ่งที่ผู้สมัครต้องทำถัดไป:",
       nextAction: isEn
-        ? "Click 'Re-upload File' on the document items below to submit for staff review."
-        : "คลิกปุ่ม 'อัปโหลดส่งใหม่' ในรายการเอกสารด้านล่างที่ถูกแจ้งแก้ไข เพื่อส่งให้เจ้าหน้าที่ตรวจสอบอีกครั้ง",
+        ? "Click 'Re-upload All Documents' below and attach a new file for every required item. Your previous files are replaced and the application returns to document review."
+        : "คลิกปุ่ม 'อัปโหลดเอกสารใหม่ทั้งหมด' ด้านล่าง และแนบไฟล์ใหม่ให้ครบทุกรายการ ระบบจะแทนที่ไฟล์เดิมทั้งหมดและส่งกลับเข้าขั้นตอนตรวจเอกสารอีกครั้ง",
       actionType: "REUPLOAD",
     };
   }
@@ -519,7 +519,7 @@ const formatRemarks = (remarks?: string, stepIndex?: number, lang: "th" | "en" =
 
 export default function TrackStatusPage() {
   const { t, language } = useLanguage();
-  const { applications: ctxApps, updateApplication, syncApplicationFromServer } = useApplicationContext();
+  const { applications: ctxApps, syncApplicationFromServer } = useApplicationContext();
   const [nationalId, setNationalId] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -544,6 +544,15 @@ export default function TrackStatusPage() {
   const [reuploadType, setReuploadType] = useState("NATIONAL_ID");
   const [reuploadFile, setReuploadFile] = useState<File | null>(null);
   const [uploadingReupload, setUploadingReupload] = useState(false);
+  const [reuploadError, setReuploadError] = useState("");
+
+  // Full document-set resubmission (offered when Step 3 review has failed)
+  const [fullReuploadOpen, setFullReuploadOpen] = useState(false);
+  const [fullReuploadApp, setFullReuploadApp] = useState<ApplicationData | null>(null);
+  const [fullReuploadFiles, setFullReuploadFiles] = useState<Record<string, File>>({});
+  const [fullReuploadBusy, setFullReuploadBusy] = useState(false);
+  const [fullReuploadProgress, setFullReuploadProgress] = useState({ done: 0, total: 0 });
+  const [fullReuploadError, setFullReuploadError] = useState("");
 
   const handleOpenPayModal = (appNum: string) => {
     setActivePayAppNum(appNum);
@@ -560,7 +569,102 @@ export default function TrackStatusPage() {
     setActiveReuploadDoc(doc || null);
     setReuploadType(doc?.type || "NATIONAL_ID");
     setReuploadFile(null);
+    setReuploadError("");
     setReuploadModalOpen(true);
+  };
+
+  const handleOpenFullReupload = (app: ApplicationData) => {
+    setFullReuploadApp(app);
+    setActivePayAppNum(app.applicationNumber);
+    setFullReuploadFiles({});
+    setFullReuploadProgress({ done: 0, total: 0 });
+    setFullReuploadError("");
+    setFullReuploadOpen(true);
+  };
+
+  /**
+   * Puts one file on the CDN and hands back the metadata the documents
+   * endpoint stores. Throws rather than falling back to a local object URL:
+   * a URL that only exists in this browser is not a document staff can open.
+   */
+  const uploadDocumentFile = async (file: File, type: string) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("type", type);
+
+    const res = await fetch("/api/upload", { method: "POST", body: formData });
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok || !data?.secureUrl) {
+      throw new Error(data?.error || t("fullReuploadUploadErr"));
+    }
+
+    return {
+      type,
+      secureUrl: data.secureUrl as string,
+      publicId: data.publicId as string | undefined,
+      originalName: file.name,
+      fileSize: file.size,
+    };
+  };
+
+  /** Re-reads this applicant's record so labels and step index come from the DB. */
+  const refreshTracking = async () => {
+    const queryValue = nationalId.trim();
+    const passValue = password.trim();
+    if (!queryValue || !passValue) return;
+
+    try {
+      const res = await fetch("/api/track", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: queryValue, password: passValue }),
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.found && Array.isArray(data.applications)) {
+        setResult(data);
+      }
+    } catch (err) {
+      console.warn("Could not refresh tracking data after upload:", err);
+    }
+  };
+
+  /**
+   * Mirrors what the server just saved, then re-reads the record. The optimistic
+   * half only exists so the rejected cards disappear immediately; the refresh is
+   * what the rendered status actually rests on.
+   */
+  const applyServerDocuments = (
+    appNum: string,
+    payload: { status?: string; remarks?: string; documents?: ApplicationData["documents"] }
+  ) => {
+    setResult((prev) => {
+      if (!prev?.applications) return prev;
+      return {
+        ...prev,
+        applications: prev.applications.map((a) =>
+          a.applicationNumber !== appNum
+            ? a
+            : {
+                ...a,
+                status: payload.status || a.status,
+                remarks: payload.remarks ?? a.remarks,
+                documents: payload.documents ?? a.documents,
+              }
+        ),
+      };
+    });
+
+    // Local cache only — the DB already holds this.
+    if (syncApplicationFromServer) {
+      syncApplicationFromServer(appNum, {
+        ...(payload.status ? { status: payload.status as any } : {}),
+        ...(payload.remarks !== undefined ? { remarks: payload.remarks } : {}),
+        ...(payload.documents ? { documents: payload.documents as any } : {}),
+      });
+    }
+
+    void refreshTracking();
   };
 
   const handleConfirmReupload = async () => {
@@ -568,102 +672,111 @@ export default function TrackStatusPage() {
       alert(t("selectDocAlert"));
       return;
     }
+
     setUploadingReupload(true);
+    setReuploadError("");
 
-    let secureUrl = "";
     try {
-      const formData = new FormData();
-      formData.append("file", reuploadFile);
-      formData.append("type", reuploadType);
+      const uploaded = await uploadDocumentFile(reuploadFile, reuploadType);
 
-      const res = await fetch("/api/upload", {
+      const res = await fetch("/api/track/documents", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          appNum: activePayAppNum,
+          password: password.trim(),
+          replaceAll: false,
+          documents: [uploaded],
+        }),
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        secureUrl = data.secureUrl;
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || t("reuploadFailedAlert"));
       }
-    } catch (err) {
-      console.error("Failed to upload reupload file:", err);
+
+      applyServerDocuments(activePayAppNum, data);
+      setReuploadModalOpen(false);
+      setReuploadFile(null);
+      alert(t("reuploadSuccessAlert"));
+    } catch (err: any) {
+      // Was reported as a success while nothing had been written — the file
+      // appeared on the applicant's screen and staff never received it.
+      console.error("Document re-upload failed:", err);
+      setReuploadError(err?.message || t("reuploadFailedAlert"));
+    } finally {
+      setUploadingReupload(false);
+    }
+  };
+
+  const handleConfirmFullReupload = async () => {
+    if (!fullReuploadApp) return;
+
+    const { required, optional } = getResubmitDocTypes(fullReuploadApp.documents);
+    const missing = required.filter((type) => !fullReuploadFiles[type]);
+
+    if (missing.length > 0) {
+      setFullReuploadError(t("fullReuploadMissingAlert"));
+      return;
     }
 
-    if (!secureUrl) {
-      secureUrl = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = () => resolve(URL.createObjectURL(reuploadFile));
-        reader.readAsDataURL(reuploadFile);
+    const queued = [...required, ...optional].filter((type) => fullReuploadFiles[type]);
+
+    setFullReuploadBusy(true);
+    setFullReuploadError("");
+    setFullReuploadProgress({ done: 0, total: queued.length });
+
+    try {
+      const uploaded = [];
+      for (const type of queued) {
+        uploaded.push(await uploadDocumentFile(fullReuploadFiles[type], type));
+        setFullReuploadProgress((p) => ({ ...p, done: p.done + 1 }));
+      }
+
+      const res = await fetch("/api/track/documents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          appNum: fullReuploadApp.applicationNumber,
+          password: password.trim(),
+          replaceAll: true,
+          documents: uploaded,
+        }),
       });
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || t("reuploadFailedAlert"));
+      }
+
+      applyServerDocuments(fullReuploadApp.applicationNumber, data);
+      setFullReuploadOpen(false);
+      setFullReuploadFiles({});
+      setFullReuploadApp(null);
+      alert(t("fullReuploadSuccessAlert"));
+    } catch (err: any) {
+      console.error("Full document resubmission failed:", err);
+      setFullReuploadError(err?.message || t("reuploadFailedAlert"));
+    } finally {
+      setFullReuploadBusy(false);
+    }
+  };
+
+  const handleFullReuploadFile = async (type: string, file: File | undefined) => {
+    if (!file) return;
+
+    let selected = file;
+    if (selected.size > 5 * 1024 * 1024 && selected.type.startsWith("image/")) {
+      selected = await compressImageIfNeeded(selected, 5 * 1024 * 1024);
     }
 
-    setUploadingReupload(false);
-    setReuploadModalOpen(false);
-
-    if (result && result.applications) {
-      const updatedApplications = result.applications.map((a) => {
-        if (a.applicationNumber !== activePayAppNum) return a;
-
-        // Cleanly filter out old doc matching activeReuploadDoc id, reuploadType, or matching photo/id type
-        const filteredDocs = (a.documents || []).filter(
-          (d) =>
-            d.id !== activeReuploadDoc?.id &&
-            d.type !== reuploadType &&
-            !(reuploadType.includes("PHOTO") && d.type.includes("PHOTO")) &&
-            !(reuploadType.includes("NATIONAL_ID") && d.type.includes("NATIONAL_ID")) &&
-            !(reuploadType.includes("TRANSCRIPT") && d.type.includes("TRANSCRIPT")) &&
-            !(reuploadType.includes("HOUSE") && d.type.includes("HOUSE"))
-        );
-
-        const newDoc = {
-          id: activeReuploadDoc?.id || `doc_${Date.now()}`,
-          type: reuploadType,
-          secureUrl: secureUrl,
-          originalName: formatDocumentFileName(
-            activePayAppNum,
-            "",
-            result?.studentName?.split(" ")[0] || "",
-            reuploadType,
-            reuploadFile.name
-          ),
-          isVerified: false,
-          isRejected: false,
-          rejectReason: undefined,
-        };
-
-        const updatedDocs = [...filteredDocs, newDoc];
-        const remainingRejected = updatedDocs.filter((d) => d.isRejected);
-
-        // Sync with ApplicationContext if available
-        if (updateApplication) {
-          updateApplication(a.id, {
-            documents: updatedDocs as any,
-            status: (a.status === "REJECTED" || a.status === "WAITING_DOCUMENTS" ? "SUBMITTED" : a.status) as any,
-            remarks: `ส่งเอกสารใหม่ "${reuploadFile.name}" เข้าสู่ระบบเรียบร้อยแล้ว เจ้าหน้าที่จะดำเนินการตรวจสอบอีกครั้ง`,
-          });
-        }
-
-        return {
-          ...a,
-          status: a.status === "REJECTED" || a.status === "WAITING_DOCUMENTS" ? "SUBMITTED" : a.status,
-          statusLabelTh: remainingRejected.length > 0
-            ? `ส่งเอกสารฉบับใหม่เรียบร้อยแล้ว (ยังเหลือเอกสารต้องแก้ไขอีก ${remainingRejected.length} รายการ)`
-            : "อัปโหลดเอกสารฉบับใหม่เรียบร้อยแล้ว (รอเจ้าหน้าที่ตรวจสอบอีกครั้ง)",
-          statusLabelEn: remainingRejected.length > 0
-            ? `New document uploaded (${remainingRejected.length} item(s) requiring attention)`
-            : "New document uploaded successfully (Pending Staff Verification)",
-          remarks: `ส่งเอกสารใหม่ "${reuploadFile.name}" เข้าสู่ระบบเรียบร้อยแล้ว เจ้าหน้าที่จะดำเนินการตรวจสอบอีกครั้ง`,
-          documents: updatedDocs,
-        };
-      });
-
-      setResult({
-        ...result,
-        applications: updatedApplications,
-      });
+    if (selected.size > 5 * 1024 * 1024) {
+      alert(t("fileTooLargeDocAlert"));
+      return;
     }
-    alert(t("reuploadSuccessAlert"));
+
+    setFullReuploadError("");
+    setFullReuploadFiles((prev) => ({ ...prev, [type]: selected }));
   };
 
   const handleConfirmSubmitSlip = async () => {
@@ -1512,8 +1625,11 @@ export default function TrackStatusPage() {
                     {formatRemarks(app.remarks, app.stepIndex, language)}
                   </div>
 
-                  {/* Document Re-upload Warning */}
-                  {(app.status === "WAITING_DOCUMENTS" || app.status === "REJECTED" || app.status === "DOCS_PENDING" || app.documents?.some((d) => d.isRejected)) && (
+                  {/* Document Re-upload Warning. Gated on a failed *document*
+                      review: REJECTED also carries written-exam and interview
+                      outcomes, and those are final — inviting that applicant to
+                      re-upload documents promises a second chance they do not have. */}
+                  {(isDocumentReviewFailed(app) || app.status === "DOCS_PENDING") && (
                     <div className="mt-3 p-4 rounded-xl border border-rose-200 bg-rose-50 space-y-3">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-rose-200 pb-2.5">
                         <div className="flex items-center gap-2 text-rose-700 font-bold text-xs">
@@ -1521,20 +1637,26 @@ export default function TrackStatusPage() {
                           <span>
                             {app.status === "REJECTED" || app.documents?.some((d) => d.isRejected)
                               ? (language === "en"
-                                  ? "Document Screening Not Passed — Please upload additional or corrected documents"
-                                  : "ไม่ผ่านการตรวจเอกสาร — กรุณากดปุ่มเพิ่มเอกสารหรืออัปโหลดเอกสารใหม่")
+                                  ? "Document Screening Not Passed — Please re-upload your complete document set"
+                                  : "ไม่ผ่านการตรวจเอกสาร — กรุณาอัปโหลดเอกสารใหม่ทั้งชุด")
                               : t("docReuploadRequiredTitle")}
                           </span>
                         </div>
                         <Button
                           size="sm"
                           variant="gold"
-                          onClick={() => handleOpenReuploadModal(app.applicationNumber)}
+                          onClick={() => handleOpenFullReupload(app)}
                           className="font-bold text-xs shrink-0 shadow-sm"
                         >
-                          <Upload className="mr-1.5 h-3.5 w-3.5" /> {language === "en" ? "Add / Upload Document" : "กดเพิ่มเอกสาร"}
+                          <Upload className="mr-1.5 h-3.5 w-3.5" /> {t("fullReuploadBtn")} (
+                          {getResubmitDocTypes(app.documents).required.length})
                         </Button>
                       </div>
+
+                      {/* The whole set is replaced, so say so before they start. */}
+                      <p className="text-[11px] text-rose-700 font-medium leading-relaxed bg-white/70 border border-rose-200 rounded-lg p-2.5">
+                        {t("fullReuploadReplaceNotice")}
+                      </p>
 
                       <div className="space-y-2 text-xs">
                         {app.documents?.filter((d) => d.isRejected)?.map((doc) => {
@@ -1570,20 +1692,6 @@ export default function TrackStatusPage() {
                             </div>
                           );
                         })}
-
-                        {(!app.documents || app.documents.filter((d) => d.isRejected).length === 0) && (
-                          <div className="p-3 bg-white rounded-lg border border-rose-200 flex items-center justify-between">
-                            <span className="text-slate-600 font-medium">{t("attachNewFilePrompt")}</span>
-                            <Button
-                              size="sm"
-                              variant="gold"
-                              onClick={() => handleOpenReuploadModal(app.applicationNumber)}
-                              className="font-bold text-xs shrink-0"
-                            >
-                              <Upload className="mr-1 h-3.5 w-3.5" /> {t("attachNewFileBtn")}
-                            </Button>
-                          </div>
-                        )}
                       </div>
                     </div>
                   )}
@@ -1612,10 +1720,7 @@ export default function TrackStatusPage() {
                   app.status === "ACCEPTANCE_CONFIRMED";
 
                 const isDocCheckFailedOrPending =
-                  app.status === "REJECTED" ||
-                  app.status === "WAITING_DOCUMENTS" ||
-                  app.status === "DOCS_PENDING" ||
-                  rejectedDocs.length > 0;
+                  isDocumentReviewFailed(app) || app.status === "DOCS_PENDING";
 
                 // Hide attached documents section only if step >= 4 AND document screening passed cleanly
                 if (isStep4OrNext && !isDocCheckFailedOrPending) {
@@ -2039,6 +2144,13 @@ export default function TrackStatusPage() {
             )}
           </div>
 
+          {reuploadError && (
+            <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-[11px] text-rose-700 font-medium flex items-start gap-1.5">
+              <AlertCircle className="h-3.5 w-3.5 text-rose-500 shrink-0 mt-0.5" />
+              <span>{reuploadError}</span>
+            </div>
+          )}
+
           <div className="flex items-center justify-end space-x-2 pt-1">
             <Button variant="outline" size="sm" onClick={() => setReuploadModalOpen(false)}>
               {t("cancelBtn")}
@@ -2054,6 +2166,190 @@ export default function TrackStatusPage() {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      {/* ================================================================ */}
+      {/* FULL DOCUMENT-SET RESUBMISSION MODAL (document review failed)     */}
+      {/* ================================================================ */}
+      <Modal
+        isOpen={fullReuploadOpen}
+        onClose={() => {
+          if (fullReuploadBusy) return;
+          setFullReuploadOpen(false);
+        }}
+        title={`${t("fullReuploadModalTitle")} (${fullReuploadApp?.applicationNumber || ""})`}
+        description={t("fullReuploadModalDesc")}
+        maxWidth="2xl"
+        variant="light"
+      >
+        {(() => {
+          if (!fullReuploadApp) return null;
+
+          const { required, optional } = getResubmitDocTypes(fullReuploadApp.documents);
+
+          // Reasons are keyed by canonical type so a rejected legacy row still
+          // shows its reason on the slot that replaces it.
+          const rejectReasons: Record<string, string> = {};
+          (fullReuploadApp.documents || []).forEach((doc) => {
+            if (doc.isRejected && doc.rejectReason) {
+              rejectReasons[canonicalDocType(doc.type)] = doc.rejectReason;
+            }
+          });
+
+          const attachedRequired = required.filter((type) => fullReuploadFiles[type]).length;
+
+          const renderSlot = (type: string, isRequired: boolean) => {
+            const file = fullReuploadFiles[type];
+            const reason = rejectReasons[type];
+
+            return (
+              <div
+                key={type}
+                className={`p-3 rounded-xl border space-y-2 ${
+                  file
+                    ? "border-emerald-300 bg-emerald-50/60"
+                    : isRequired
+                    ? "border-rose-200 bg-rose-50/40"
+                    : "border-slate-200 bg-slate-50"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <span className="text-[11px] font-bold text-tif-navy leading-snug">
+                    {getDocTypeLabel(type, t)}
+                    {isRequired && <span className="text-rose-500"> *</span>}
+                  </span>
+                  {file ? (
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded shrink-0 flex items-center">
+                      <CheckCircle2 className="mr-1 h-3 w-3" /> {t("fullReuploadAttachedCountLabel")}
+                    </span>
+                  ) : reason ? (
+                    <span className="text-[10px] font-bold text-rose-600 bg-rose-100 border border-rose-200 px-2 py-0.5 rounded shrink-0">
+                      {t("statusReupload")}
+                    </span>
+                  ) : null}
+                </div>
+
+                {reason && (
+                  <p className="text-[10px] text-rose-700 bg-rose-100/70 border border-rose-200 rounded p-1.5 leading-tight">
+                    <strong>{t("fullReuploadPreviousRejectLabel")}</strong> {reason}
+                  </p>
+                )}
+
+                <input
+                  type="file"
+                  accept="image/*,.pdf"
+                  disabled={fullReuploadBusy}
+                  onChange={(e) => {
+                    void handleFullReuploadFile(type, e.target.files?.[0]);
+                  }}
+                  className="w-full text-[11px] text-slate-700 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-[11px] file:font-bold file:bg-tif-navy file:text-white hover:file:bg-tif-navyDark cursor-pointer bg-white p-1 rounded-lg border border-slate-200 disabled:opacity-60"
+                />
+
+                {file && (
+                  <div className="flex items-center justify-between text-[10px] text-emerald-800 font-medium">
+                    <span className="truncate">{file.name}</span>
+                    <span className="font-mono shrink-0 font-bold">
+                      ({Math.round(file.size / 1024)} KB)
+                    </span>
+                  </div>
+                )}
+              </div>
+            );
+          };
+
+          return (
+            <div className="space-y-3 text-xs text-slate-700">
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 space-y-1.5">
+                <span className="text-[11px] font-bold text-rose-800 flex items-center gap-1.5">
+                  <AlertCircle className="h-4 w-4 text-rose-500 shrink-0" />
+                  {t("fullReuploadIntro")}
+                </span>
+                <p className="text-[10px] text-rose-700 leading-relaxed">
+                  {t("fullReuploadReplaceNotice")}
+                </p>
+              </div>
+
+              {fullReuploadApp.remarks && (
+                <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-[11px] text-amber-900">
+                  <span className="font-bold block mb-0.5">{t("staffRemarksLabel")}</span>
+                  {formatRemarks(fullReuploadApp.remarks, fullReuploadApp.stepIndex, language)}
+                </div>
+              )}
+
+              <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-tif-navy">
+                  {t("fullReuploadRequiredLabel")}
+                </span>
+                <span
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                    attachedRequired === required.length
+                      ? "bg-emerald-100 border-emerald-300 text-emerald-800"
+                      : "bg-slate-100 border-slate-300 text-slate-600"
+                  }`}
+                >
+                  {attachedRequired} / {required.length}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {required.map((type) => renderSlot(type, true))}
+              </div>
+
+              {optional.length > 0 && (
+                <>
+                  <div className="border-b border-slate-200 pb-1.5">
+                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
+                      {t("fullReuploadOptionalLabel")}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {optional.map((type) => renderSlot(type, false))}
+                  </div>
+                </>
+              )}
+
+              <span className="text-[10px] text-slate-500 block">{t("autoCompressHint")}</span>
+
+              {fullReuploadError && (
+                <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-[11px] text-rose-700 font-medium flex items-start gap-1.5">
+                  <AlertCircle className="h-3.5 w-3.5 text-rose-500 shrink-0 mt-0.5" />
+                  <span>{fullReuploadError}</span>
+                </div>
+              )}
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={fullReuploadBusy}
+                  onClick={() => setFullReuploadOpen(false)}
+                >
+                  {t("cancelBtn")}
+                </Button>
+                <Button
+                  variant="gold"
+                  size="sm"
+                  onClick={handleConfirmFullReupload}
+                  disabled={fullReuploadBusy || attachedRequired < required.length}
+                  className="font-bold px-4"
+                >
+                  {fullReuploadBusy ? (
+                    <>
+                      <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                      {t("fullReuploadUploadingLabel")} {fullReuploadProgress.done}/
+                      {fullReuploadProgress.total}
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="mr-1.5 h-3.5 w-3.5" />
+                      {t("fullReuploadSubmitBtn")}
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          );
+        })()}
       </Modal>
     </div>
   );
