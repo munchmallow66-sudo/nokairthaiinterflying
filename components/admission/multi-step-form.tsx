@@ -175,7 +175,7 @@ export function MultiStepForm() {
     { type: "NATIONAL_ID_CERTIFIED", titleTh: "2. สำเนาบัตรประชาชน (รับรองสำเนาถูกต้อง)", titleEn: "2. Certified National ID" },
     { type: "TRANSCRIPT_CERTIFIED", titleTh: "3. สำเนาวุฒิการศึกษา (รับรองสำเนาถูกต้อง)", titleEn: "3. Certified Academic Transcript" },
     { type: "HOUSE_REGISTRATION_CERTIFIED", titleTh: "4. สำเนาทะเบียนบ้าน (รับรองสำเนาถูกต้อง)", titleEn: "4. Certified House Registration" },
-    { type: "MEDICAL_CERTIFICATE_CLASS_1", titleTh: "5. ใบสำคัญแพทย์ Class 1 (Medical Certificate Class 1)", titleEn: "5. Class 1 Aviation Medical Certificate" },
+    { type: "TOEIC", titleTh: "5. ผลการทดสอบภาษาอังกฤษ (English Proficiency Test Result)", titleEn: "5. English Proficiency Test Result" },
     { type: "CRIMINAL_RECORD_CHECK", titleTh: "6. ผลตรวจประวัติอาชญากรรม", titleEn: "6. Criminal Record Check" },
     ...(isMale
       ? [
@@ -1235,11 +1235,11 @@ export function MultiStepForm() {
                   onRemove={() => handleDocumentRemove("HOUSE_REGISTRATION_CERTIFIED")}
                 />
                 <Uploader
-                  label={t("docMedicalLabel")}
-                  type="MEDICAL_CERTIFICATE_CLASS_1"
-                  existingFile={documents.find((d: any) => d?.type === "MEDICAL_CERTIFICATE_CLASS_1")}
+                  label={t("docEnglishTestLabel")}
+                  type="TOEIC"
+                  existingFile={documents.find((d: any) => d?.type === "TOEIC")}
                   onUploadSuccess={handleDocumentUpload}
-                  onRemove={() => handleDocumentRemove("MEDICAL_CERTIFICATE_CLASS_1")}
+                  onRemove={() => handleDocumentRemove("TOEIC")}
                 />
                 <Uploader
                   label={t("docCriminalLabel")}

@@ -157,6 +157,202 @@ function DocumentPreviewBox({ doc }: { doc: { secureUrl: string; originalName: s
   );
 }
 
+const DOC_TYPE_LABELS: Record<string, string> = {
+  // Candidate Application Form keys
+  APPLICATION_FEE_SLIP: "สลิปชำระเงินค่าสมัคร 1,800 บาท",
+  PHOTO_1_INCH: "รูปถ่าย 1.5 นิ้ว (1.5-Inch Photo)",
+  PHOTO_2_INCH: "รูปถ่าย 2 นิ้ว (Passport Photo 2\")",
+  NATIONAL_ID_CERTIFIED: "สำเนาบัตรประชาชน (รับรองสำเนาถูกต้อง)",
+  TRANSCRIPT_CERTIFIED: "สำเนาวุฒิการศึกษา (รับรองสำเนาถูกต้อง)",
+  HOUSE_REGISTRATION_CERTIFIED: "สำเนาทะเบียนบ้าน (รับรองสำเนาถูกต้อง)",
+  MEDICAL_CERTIFICATE_CLASS_1: "ใบสำคัญแพทย์ Class 1 (Medical Cert)",
+  CRIMINAL_RECORD_CHECK: "ผลตรวจสอบประวัติอาชญากรรม (ถ้ามี)",
+  MILITARY_SERVICE_EXEMPTION: "ใบสำคัญแสดงการขอยกเว้นการรับราชการทหาร (สด.8 หรือ สด.43)",
+
+  // General / Admin keys
+  PASSPORT_PHOTO: "รูปถ่าย 1.5 นิ้ว",
+  NATIONAL_ID: "สำเนาบัตรประชาชน",
+  TRANSCRIPT: "สำเนาวุฒิการศึกษา",
+  TOEIC: "ผลสอบภาษาอังกฤษ (TOEIC / IELTS)",
+  TOEIC_SCORE: "ผลสอบภาษาอังกฤษ (TOEIC / IELTS)",
+  MEDICAL_CERT: "ใบรับรองแพทย์เวชศาสตร์การบิน",
+  MEDICAL_CERTIFICATE: "ใบรับรองแพทย์เวชศาสตร์การบิน",
+  HOUSE_REGISTRATION: "สำเนาทะเบียนบ้าน",
+  PASSPORT: "หนังสือเดินทาง (Passport)",
+  OTHER: "เอกสารอื่นๆ (Other Documents)",
+};
+
+// Class 1 medical certificate is uploaded at step 12, long after the step 4
+// document review — it is tracked separately from the application-form documents.
+const MEDICAL_CERT_DOC_TYPES = ["MEDICAL_CERTIFICATE_CLASS_1", "MEDICAL_CERT", "MEDICAL_CERTIFICATE"];
+
+const isMedicalCertDoc = (docType: string) => MEDICAL_CERT_DOC_TYPES.includes(docType);
+
+// A document counts as approved once an admin ticks it, or — for the documents
+// covered by the step 4 review — once the application moved past that review.
+// Step 12 medical certificates are excluded: they arrive after the review, so
+// they always need an explicit approval.
+function isDocApproved(appStatus: string, doc: { type: string; isVerified?: boolean; isRejected?: boolean }) {
+  if (doc.isVerified) return true;
+  if (doc.isRejected) return false;
+  if (isMedicalCertDoc(doc.type as string)) return false;
+  return appStatus !== "SUBMITTED" && appStatus !== "DOCS_UNDER_REVIEW" && appStatus !== "REJECTED";
+}
+
+function AdminDocumentCard({
+  doc,
+  isVerified,
+  onOpen,
+  onToggleVerify,
+  onReplace,
+  onReject,
+  onDelete,
+}: {
+  doc: any;
+  isVerified: boolean;
+  onOpen: () => void;
+  onToggleVerify: () => void;
+  onReplace: () => void;
+  onReject: () => void;
+  onDelete: () => void;
+}) {
+  const label = DOC_TYPE_LABELS[doc.type] || doc.type;
+  const isPdf = isPdfFile(doc.secureUrl, doc.originalName);
+
+  return (
+    <div
+      className={`group relative overflow-hidden rounded-xl border p-3.5 transition-all flex flex-col justify-between space-y-3 ${
+        doc.isRejected
+          ? "bg-rose-950/20 border-rose-800/80 hover:border-rose-600"
+          : isVerified
+          ? "bg-slate-950/80 border-emerald-900/60 hover:border-emerald-500/50"
+          : "bg-slate-950/80 border-slate-800 hover:border-tif-gold/50"
+      }`}
+    >
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded bg-slate-900 text-tif-gold border border-slate-800">
+            {label}
+          </span>
+          {doc.isRejected ? (
+            <span className="text-[10px] font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded flex items-center border border-rose-500/30">
+              <XCircle className="mr-1 h-3 w-3" /> ให้ส่งใหม่
+            </span>
+          ) : isVerified ? (
+            <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded flex items-center border border-emerald-500/20">
+              <CheckCircle2 className="mr-1 h-3 w-3" /> Verified
+            </span>
+          ) : (
+            <span className="text-[10px] font-semibold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded flex items-center border border-amber-500/20">
+              <Clock className="mr-1 h-3 w-3" /> Pending
+            </span>
+          )}
+        </div>
+
+        <div
+          onClick={onOpen}
+          className="relative h-36 w-full rounded-lg overflow-hidden bg-slate-900 border border-slate-800 cursor-pointer group-hover:opacity-95 transition-all flex items-center justify-center"
+        >
+          {isPdf ? (
+            doc.secureUrl?.includes("cloudinary.com") ? (
+              <div className="relative w-full h-full">
+                <img
+                  src={getCloudinaryPdfThumbnail(doc.secureUrl) || doc.secureUrl}
+                  alt={doc.originalName}
+                  className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+                <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-rose-950/90 border border-rose-500/40 text-[9px] font-bold text-rose-300 flex items-center shadow">
+                  <FileText className="mr-1 h-3 w-3 text-rose-400" /> PDF
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center p-3 text-center space-y-2 bg-slate-950/90 w-full h-full">
+                <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400">
+                  <FileText className="h-8 w-8" />
+                </div>
+                <span className="text-[11px] font-bold text-rose-300 font-mono tracking-tight">
+                  PDF Document
+                </span>
+              </div>
+            )
+          ) : (
+            <img
+              src={doc.secureUrl}
+              alt={doc.originalName}
+              className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          )}
+          <div className="absolute inset-0 bg-slate-950/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            <span className="bg-slate-900/90 text-tif-gold text-xs font-semibold px-3 py-1.5 rounded-lg border border-tif-gold/40 flex items-center shadow-lg">
+              <Eye className="mr-1.5 h-3.5 w-3.5" /> {isPdf ? "เปิดดูไฟล์ PDF" : "คลิกดูรูปใหญ่"}
+            </span>
+          </div>
+        </div>
+
+        <p className="text-[11px] text-slate-400 truncate font-mono">{doc.originalName}</p>
+
+        {/* Rejection Warning Remark */}
+        {doc.isRejected && doc.rejectReason && (
+          <div className="p-2 rounded-lg bg-rose-500/10 border border-rose-500/30 text-[10px] text-rose-300 leading-tight">
+            <strong>ระบุสาเหตุ:</strong> {doc.rejectReason}
+          </div>
+        )}
+      </div>
+
+      {/* Document Action Controls */}
+      <div className="pt-2.5 border-t border-slate-800/80 flex flex-col space-y-2">
+        <div className="flex items-center justify-between gap-1">
+          <button
+            type="button"
+            onClick={onOpen}
+            className="text-[11px] text-tif-gold font-semibold hover:underline flex items-center"
+          >
+            <ZoomIn className="mr-1 h-3.5 w-3.5" /> {isPdf ? "เปิดดู PDF" : "ขยายดูรูป"}
+          </button>
+
+          <button
+            type="button"
+            onClick={onToggleVerify}
+            className={`text-[10px] px-2.5 py-1 rounded-lg font-bold transition ${
+              isVerified
+                ? "bg-emerald-950/80 text-emerald-300 border border-emerald-700/60 hover:bg-slate-800 hover:text-slate-300"
+                : "bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/40"
+            }`}
+          >
+            {isVerified ? "✓ อนุมัติแล้ว" : "อนุมัติรูปนี้"}
+          </button>
+        </div>
+
+        <div className="flex items-center justify-between gap-1 pt-1">
+          <button
+            type="button"
+            onClick={onReplace}
+            className="text-[10px] px-2 py-1 rounded-lg font-medium bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-slate-800 flex items-center"
+          >
+            <Edit3 className="mr-1 h-3 w-3" /> เปลี่ยนรูปแทน
+          </button>
+
+          <button
+            type="button"
+            onClick={onReject}
+            className="text-[10px] px-2 py-1 rounded-lg font-medium bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center"
+          >
+            <XCircle className="mr-1 h-3 w-3" /> แจ้งให้ส่งใหม่
+          </button>
+
+          <button
+            type="button"
+            onClick={onDelete}
+            className="text-[10px] px-2 py-1 rounded-lg font-medium bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center"
+          >
+            <Trash2 className="h-3 w-3" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function StudentApplicationsPage() {
   const { t } = useLanguage();
   const {
@@ -1561,6 +1757,80 @@ export default function StudentApplicationsPage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Step 12 — Class 1 Medical Certificate (mirrored from the documents tab) */}
+                {(() => {
+                  const medicalDocs = (selectedApp.documents || []).filter((d) => isMedicalCertDoc(d.type as string));
+                  const medicalStepIndex = PILOT_WORKFLOW_STEPS.findIndex((s) => s.key === "MEDICAL_CHECK_CLASS_1");
+                  const hasReachedMedicalStep = medicalStepIndex >= 0 && currentStepIndex >= medicalStepIndex;
+
+                  return (
+                    <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                        <div>
+                          <h4 className="text-xs font-bold text-tif-gold uppercase tracking-wider flex items-center">
+                            <FileCheck className="mr-2 h-4 w-4 text-tif-gold" /> ใบสำคัญแพทย์ Class 1 (ขั้นตอนที่ 12 / Class 1 Medical Certificate)
+                          </h4>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            เอกสารที่ผู้สมัครอัปโหลดในขั้นตอนที่ 12 — ตรวจสอบ อนุมัติ แจ้งให้ส่งใหม่ หรืออัปโหลดแทนผู้สมัครได้จากหน้านี้
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Badge variant={medicalDocs.some((d) => isDocApproved(selectedApp.status as string, d as any)) ? "success" : "gold"}>
+                            {medicalDocs.length === 0
+                              ? "ยังไม่ได้รับเอกสาร"
+                              : medicalDocs.some((d) => isDocApproved(selectedApp.status as string, d as any))
+                              ? "อนุมัติแล้ว"
+                              : "รอตรวจสอบ"}
+                          </Badge>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setExtraDocType("MEDICAL_CERTIFICATE_CLASS_1");
+                              setExtraDocName("Medical_Class_1.jpg");
+                              setAddExtraDocModalOpen(true);
+                            }}
+                            className="text-xs font-semibold border-slate-700 text-slate-200 hover:text-tif-gold hover:border-tif-gold"
+                          >
+                            <Plus className="mr-1 h-3.5 w-3.5 text-tif-gold" /> อัปโหลดแทนผู้สมัคร
+                          </Button>
+                        </div>
+                      </div>
+
+                      {medicalDocs.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {medicalDocs.map((doc) => {
+                            const isDocVerified = isDocApproved(selectedApp.status as string, doc as any);
+
+                            return (
+                              <AdminDocumentCard
+                                key={doc.id}
+                                doc={doc}
+                                isVerified={isDocVerified}
+                                onOpen={() => handleOpenDocModal(doc)}
+                                onToggleVerify={() => handleToggleDocVerification(doc.id, !isDocVerified)}
+                                onReplace={() => handleOpenReplaceDocModal(doc)}
+                                onReject={() => handleOpenRejectDocModal(doc)}
+                                onDelete={() => handleDeleteDoc(doc.id, doc.originalName)}
+                              />
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="p-8 text-center rounded-xl bg-slate-950/40 border border-dashed border-slate-800 space-y-1.5">
+                          <Stethoscope className="mx-auto h-8 w-8 text-slate-600" />
+                          <p className="text-xs text-slate-300 font-semibold">ยังไม่มีใบสำคัญแพทย์ Class 1 ในระบบ</p>
+                          <p className="text-[11px] text-slate-500">
+                            {hasReachedMedicalStep
+                              ? "ผู้สมัครอยู่ในขั้นตอนที่ 12 แล้ว แต่ยังไม่ได้อัปโหลดเอกสาร — สามารถอัปโหลดแทนผู้สมัครได้จากปุ่มด้านบน"
+                              : `ผู้สมัครจะอัปโหลดเอกสารนี้เมื่อเข้าสู่ขั้นตอนที่ ${medicalStepIndex + 1} (ตรวจสุขภาพ Class 1)`}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             )}
 
@@ -1672,175 +1942,21 @@ export default function StudentApplicationsPage() {
                 {selectedApp.documents && selectedApp.documents.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {selectedApp.documents.map((doc) => {
-                      const docTypeLabels: Record<string, string> = {
-                        // Candidate Application Form keys
-                        APPLICATION_FEE_SLIP: "สลิปชำระเงินค่าสมัคร 1,800 บาท",
-                        PHOTO_1_INCH: "รูปถ่าย 1.5 นิ้ว (1.5-Inch Photo)",
-                        PHOTO_2_INCH: "รูปถ่าย 2 นิ้ว (Passport Photo 2\")",
-                        NATIONAL_ID_CERTIFIED: "สำเนาบัตรประชาชน (รับรองสำเนาถูกต้อง)",
-                        TRANSCRIPT_CERTIFIED: "สำเนาวุฒิการศึกษา (รับรองสำเนาถูกต้อง)",
-                        HOUSE_REGISTRATION_CERTIFIED: "สำเนาทะเบียนบ้าน (รับรองสำเนาถูกต้อง)",
-                        MEDICAL_CERTIFICATE_CLASS_1: "ใบสำคัญแพทย์ Class 1 (Medical Cert)",
-                        CRIMINAL_RECORD_CHECK: "ผลตรวจสอบประวัติอาชญากรรม (ถ้ามี)",
-                        MILITARY_SERVICE_EXEMPTION: "ใบสำคัญแสดงการขอยกเว้นการรับราชการทหาร (สด.8 หรือ สด.43)",
-
-                        // General / Admin keys
-                        PASSPORT_PHOTO: "รูปถ่าย 1.5 นิ้ว",
-                        NATIONAL_ID: "สำเนาบัตรประชาชน",
-                        TRANSCRIPT: "สำเนาวุฒิการศึกษา",
-                        TOEIC: "ผลสอบภาษาอังกฤษ (TOEIC / IELTS)",
-                        TOEIC_SCORE: "ผลสอบภาษาอังกฤษ (TOEIC / IELTS)",
-                        MEDICAL_CERT: "ใบรับรองแพทย์เวชศาสตร์การบิน",
-                        HOUSE_REGISTRATION: "สำเนาทะเบียนบ้าน",
-                        PASSPORT: "หนังสือเดินทาง (Passport)",
-                        OTHER: "เอกสารอื่นๆ (Other Documents)",
-                      };
-                      const label = docTypeLabels[doc.type] || doc.type;
+                      const isDocVerified = isDocApproved(selectedApp.status as string, doc as any);
 
                       return (
-                        (() => {
-                          const isDocPassedOverall =
-                            (selectedApp.status as string) !== "SUBMITTED" &&
-                            (selectedApp.status as string) !== "DOCS_UNDER_REVIEW" &&
-                            (selectedApp.status as string) !== "REJECTED";
-                          const isDocVerified = doc.isVerified || (isDocPassedOverall && !doc.isRejected);
-
-                          return (
-                            <div
-                              key={doc.id}
-                              className={`group relative overflow-hidden rounded-xl border p-3.5 transition-all flex flex-col justify-between space-y-3 ${
-                                doc.isRejected
-                                  ? "bg-rose-950/20 border-rose-800/80 hover:border-rose-600"
-                                  : isDocVerified
-                                  ? "bg-slate-950/80 border-emerald-900/60 hover:border-emerald-500/50"
-                                  : "bg-slate-950/80 border-slate-800 hover:border-tif-gold/50"
-                              }`}
-                            >
-                              <div className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded bg-slate-900 text-tif-gold border border-slate-800">
-                                    {label}
-                                  </span>
-                                  {doc.isRejected ? (
-                                    <span className="text-[10px] font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded flex items-center border border-rose-500/30">
-                                      <XCircle className="mr-1 h-3 w-3" /> ให้ส่งใหม่
-                                    </span>
-                                  ) : isDocVerified ? (
-                                    <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded flex items-center border border-emerald-500/20">
-                                      <CheckCircle2 className="mr-1 h-3 w-3" /> Verified
-                                    </span>
-                                  ) : (
-                                    <span className="text-[10px] font-semibold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded flex items-center border border-amber-500/20">
-                                      <Clock className="mr-1 h-3 w-3" /> Pending
-                                    </span>
-                                  )}
-                                </div>
-
-                                <div
-                                  onClick={() => handleOpenDocModal(doc)}
-                                  className="relative h-36 w-full rounded-lg overflow-hidden bg-slate-900 border border-slate-800 cursor-pointer group-hover:opacity-95 transition-all flex items-center justify-center"
-                                >
-                                  {isPdfFile(doc.secureUrl, doc.originalName) ? (
-                                    doc.secureUrl?.includes("cloudinary.com") ? (
-                                      <div className="relative w-full h-full">
-                                        <img
-                                          src={getCloudinaryPdfThumbnail(doc.secureUrl) || doc.secureUrl}
-                                          alt={doc.originalName}
-                                          className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                        />
-                                        <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-rose-950/90 border border-rose-500/40 text-[9px] font-bold text-rose-300 flex items-center shadow">
-                                          <FileText className="mr-1 h-3 w-3 text-rose-400" /> PDF
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      <div className="flex flex-col items-center justify-center p-3 text-center space-y-2 bg-slate-950/90 w-full h-full">
-                                        <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400">
-                                          <FileText className="h-8 w-8" />
-                                        </div>
-                                        <span className="text-[11px] font-bold text-rose-300 font-mono tracking-tight">
-                                          PDF Document
-                                        </span>
-                                      </div>
-                                    )
-                                  ) : (
-                                    <img
-                                      src={doc.secureUrl}
-                                      alt={doc.originalName}
-                                      className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                    />
-                                  )}
-                                  <div className="absolute inset-0 bg-slate-950/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                    <span className="bg-slate-900/90 text-tif-gold text-xs font-semibold px-3 py-1.5 rounded-lg border border-tif-gold/40 flex items-center shadow-lg">
-                                      <Eye className="mr-1.5 h-3.5 w-3.5" /> {isPdfFile(doc.secureUrl, doc.originalName) ? "เปิดดูไฟล์ PDF" : "คลิกดูรูปใหญ่"}
-                                    </span>
-                                  </div>
-                                </div>
-
-                                <p className="text-[11px] text-slate-400 truncate font-mono">{doc.originalName}</p>
-
-                                {/* Rejection Warning Remark */}
-                                {doc.isRejected && doc.rejectReason && (
-                                  <div className="p-2 rounded-lg bg-rose-500/10 border border-rose-500/30 text-[10px] text-rose-300 leading-tight">
-                                    <strong>ระบุสาเหตุ:</strong> {doc.rejectReason}
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Document Action Controls */}
-                              <div className="pt-2.5 border-t border-slate-800/80 flex flex-col space-y-2">
-                                <div className="flex items-center justify-between gap-1">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenDocModal(doc)}
-                                    className="text-[11px] text-tif-gold font-semibold hover:underline flex items-center"
-                                  >
-                                    <ZoomIn className="mr-1 h-3.5 w-3.5" /> {isPdfFile(doc.secureUrl, doc.originalName) ? "เปิดดู PDF" : "ขยายดูรูป"}
-                                  </button>
-
-                                  <button
-                                    type="button"
-                                    onClick={() => handleToggleDocVerification(doc.id, !isDocVerified)}
-                                    className={`text-[10px] px-2.5 py-1 rounded-lg font-bold transition ${
-                                      isDocVerified
-                                        ? "bg-emerald-950/80 text-emerald-300 border border-emerald-700/60 hover:bg-slate-800 hover:text-slate-300"
-                                        : "bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/40"
-                                    }`}
-                                  >
-                                    {isDocVerified ? "✓ อนุมัติแล้ว" : "อนุมัติรูปนี้"}
-                                  </button>
-                                </div>
-
-                            <div className="flex items-center justify-between gap-1 pt-1">
-                              <button
-                                type="button"
-                                onClick={() => handleOpenReplaceDocModal(doc)}
-                                className="text-[10px] px-2 py-1 rounded-lg font-medium bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-slate-800 flex items-center"
-                              >
-                                <Edit3 className="mr-1 h-3 w-3" /> เปลี่ยนรูปแทน
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => handleOpenRejectDocModal(doc)}
-                                className="text-[10px] px-2 py-1 rounded-lg font-medium bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center"
-                              >
-                                <XCircle className="mr-1 h-3 w-3" /> แจ้งให้ส่งใหม่
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteDoc(doc.id, doc.originalName)}
-                                className="text-[10px] px-2 py-1 rounded-lg font-medium bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
+                        <AdminDocumentCard
+                          key={doc.id}
+                          doc={doc}
+                          isVerified={isDocVerified}
+                          onOpen={() => handleOpenDocModal(doc)}
+                          onToggleVerify={() => handleToggleDocVerification(doc.id, !isDocVerified)}
+                          onReplace={() => handleOpenReplaceDocModal(doc)}
+                          onReject={() => handleOpenRejectDocModal(doc)}
+                          onDelete={() => handleDeleteDoc(doc.id, doc.originalName)}
+                        />
                       );
-                    })()
-                  );
-                })}
+                    })}
                   </div>
                 ) : (
                   <div className="p-8 text-center rounded-xl bg-slate-950/40 border border-dashed border-slate-800">
@@ -2786,6 +2902,7 @@ export default function StudentApplicationsPage() {
               <option value="NATIONAL_ID_CERTIFIED">สำเนาบัตรประชาชน (Certified National ID)</option>
               <option value="TRANSCRIPT_CERTIFIED">สำเนาวุฒิการศึกษา (Certified Transcript)</option>
               <option value="HOUSE_REGISTRATION_CERTIFIED">สำเนาทะเบียนบ้าน (Certified House Registration)</option>
+              <option value="TOEIC">ผลการทดสอบภาษาอังกฤษ (English Proficiency Test Result)</option>
               <option value="MEDICAL_CERTIFICATE_CLASS_1">ใบสำคัญแพทย์ CLASS 1 / ใบรับรองแพทย์เวชศาสตร์การบิน</option>
               <option value="PHOTO_1_INCH">รูปถ่าย 1.5 นิ้ว (1.5-Inch Photo)</option>
               <option value="CRIMINAL_RECORD_CHECK">ผลตรวจประวัติอาชญากรรม (Criminal Record Check)</option>
