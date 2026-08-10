@@ -37,12 +37,12 @@ export const translations = {
 
     // Countdown Card
     countdownTitle: "นับถอยหลังปิดรับสมัครศิษย์บินพาณิชย์",
-    countdownSub: "ระยะเวลาเปิดรับสมัคร: 15 สิงหาคม - 11 กันยายน 2569",
+    countdownSub: "ระยะเวลาเปิดรับสมัคร: 11 สิงหาคม - 11 กันยายน 2569",
     daysUnit: "วัน",
     hoursUnit: "ชั่วโมง",
     minutesUnit: "นาที",
     secondsUnit: "วินาที",
-    intakePeriodText: "กำหนดการรับสมัคร 15 ส.ค. - 11 ก.ย. 2569",
+    intakePeriodText: "กำหนดการรับสมัคร 11 ส.ค. - 11 ก.ย. 2569",
 
     // Recruitment Journey Roadmap
     recruitmentJourneyBadge: "RECRUITMENT ROADMAP",
@@ -54,12 +54,12 @@ export const translations = {
     phase4Overview: "Phase 4: Orientation & Class Starts",
     phase1Title: "Phase 1: Application Submission",
     phase1Sub: "ยื่นใบสมัคร & ส่งเอกสาร",
-    phase1Dates: "15 Aug - 11 Sep",
-    p1Item1Date: "15 Aug",
+    phase1Dates: "11 Aug - 11 Sep",
+    p1Item1Date: "11 Aug",
     p1Item1Title: "Online Application Launch",
     p1Item1Sub1: "1.1 Initial Document Review (ตรวจสอบเอกสารเบื้องต้น)",
     p1Item1Sub2: "1.2 Notice of Acceptance (แจ้งผลการรับพิจารณาเอกสาร)",
-    p1Item1Sub3: "1.3 Application Fee Payment: ค่าธรรมเนียมการสมัคร THB 1,800 (ไม่สามารถขอคืนเงินได้ และต้องชำระภายใน 3 วันหลังจากเอกสารได้รับการตรวจสอบเรียบร้อย)",
+    p1Item1Sub3: "1.3 Application Fee Payment: ค่าธรรมเนียมการสมัคร THB 1,800 (ไม่สามารถขอคืนเงินได้ และต้องชำระภายใน 24 ชั่วโมงหลังจากเอกสารได้รับการตรวจสอบเรียบร้อย)",
     p1Item1Note: "*การลงทะเบียนเข้าร่วม Open House ต้องยืนยันระหว่างการยื่นเอกสาร (จำกัดสูงสุด 2 ท่านต่อผู้สมัคร)",
     p1Item2Date: "19 Sep",
     p1Item2Title: "TIF x Nok Air Open House",
@@ -1028,12 +1028,12 @@ export const translations = {
 
     // Countdown Card
     countdownTitle: "Cadet Pilot Application Deadline Countdown",
-    countdownSub: "Application Period: 15 August - 11 September 2026",
+    countdownSub: "Application Period: 11 August - 11 September 2026",
     daysUnit: "Days",
     hoursUnit: "Hours",
     minutesUnit: "Mins",
     secondsUnit: "Secs",
-    intakePeriodText: "Intake Period: 15 Aug - 11 Sep 2026",
+    intakePeriodText: "Intake Period: 11 Aug - 11 Sep 2026",
 
     // Recruitment Journey Roadmap
     recruitmentJourneyBadge: "RECRUITMENT ROADMAP",
@@ -1045,12 +1045,12 @@ export const translations = {
     phase4Overview: "Phase 4: Orientation & Class Starts",
     phase1Title: "Phase 1: Application Submission",
     phase1Sub: "Application & Documents",
-    phase1Dates: "15 Aug - 11 Sep",
-    p1Item1Date: "15 Aug",
+    phase1Dates: "11 Aug - 11 Sep",
+    p1Item1Date: "11 Aug",
     p1Item1Title: "Online Application Launch",
     p1Item1Sub1: "1.1 Initial Document Review",
     p1Item1Sub2: "1.2 Notice of Acceptance",
-    p1Item1Sub3: "1.3 Application Fee Payment : 1,800 and payable within 3 days of completion of document verification. (Non-refundable)",
+    p1Item1Sub3: "1.3 Application Fee Payment : 1,800 and payable within 24 hours of completion of document verification. (Non-refundable)",
     p1Item1Note: "*Open House registration has to be confirmed during document submission. (Maximum 2 attendees per applicant)",
     p1Item2Date: "19 Sep",
     p1Item2Title: "TIF x Nok Air Open House",
