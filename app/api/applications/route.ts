@@ -9,8 +9,24 @@ import { sendApplicationConfirmationEmail, sendSelectionRejectionEmail } from "@
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+/** Resolves the caller's admin session, or null for anyone else. */
+async function getAdminSession() {
+  const cookieStore = await cookies();
+  const sessionToken = cookieStore.get("admin_session")?.value;
+  return sessionToken ? await verifyAdminSessionToken(sessionToken) : null;
+}
+
+// Admin-only: this returns every applicant's full record — national ID,
+// passport, contact details, and the plaintext tracking password. The
+// middleware guard only covers /admin page routes, not /api, so the check
+// has to live here.
 export async function GET() {
   try {
+    const session = await getAdminSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { getPrisma } = await import("@/lib/prisma");
     const prisma = getPrisma();
     const applications = await prisma.application.findMany({
@@ -216,6 +232,11 @@ export async function POST(req: Request) {
             courseId: defaultCourse.id,
             branch: "Bangkok Headquarters",
             status: "DOCS_UNDER_REVIEW",
+            // Must be persisted: it is the only copy the server keeps. The
+            // applicant's email and the browser both get it from the response,
+            // but /api/track verifies against this column and the admin detail
+            // panel reads it back — a NULL here locks the applicant out.
+            password: appPassword,
             documents: {
               create: (validated.documents || []).map((doc) => ({
                 type: doc.type as any,
@@ -409,9 +430,7 @@ export async function PATCH(req: Request) {
       // at index 0 of the array. Requires a resolvable admin session, since
       // AdminNote.authorId is a required FK to a real User row.
       if (Array.isArray(adminNotes) && adminNotes.length > 0) {
-        const cookieStore = await cookies();
-        const sessionToken = cookieStore.get("admin_session")?.value;
-        const session = sessionToken ? await verifyAdminSessionToken(sessionToken) : null;
+        const session = await getAdminSession();
 
         if (session?.id) {
           try {

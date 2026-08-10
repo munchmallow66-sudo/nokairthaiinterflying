@@ -455,6 +455,12 @@ function mergeWithServer(
     return {
       ...dbApp,
       ...localApp,
+      // The DB is the authority on the tracking password — it is what
+      // /api/track verifies against. Local only fills in for a row the server
+      // has no password for (a just-submitted app on the applicant's own
+      // browser), otherwise a cache written while the column was still NULL
+      // would keep shadowing the real value in the admin panel.
+      password: dbApp.password || localApp.password || null,
       joinOpenHouse: localApp.joinOpenHouse !== undefined ? localApp.joinOpenHouse : dbApp.joinOpenHouse,
       remarks: localApp.remarks || dbApp.remarks,
       status: localApp.status || dbApp.status,
