@@ -67,7 +67,7 @@ export const translations = {
     p1Item3Date: "17 Sep",
     p1Item3Title: "Online Application Closing",
     p1Item3Desc: "ปิดรับสมัครทางออนไลน์",
-    p1Item4Date: "17 Sep",
+    p1Item4Date: "19 Sep",
     p1Item4Title: "Final Date for Original Document Submission",
     p1Item4Desc: "วันสุดท้ายในการยื่นเอกสารฉบับจริง ณ สำนักงานใหญ่ TIF (หลักสี่ กรุงเทพฯ)",
 
@@ -1058,7 +1058,7 @@ export const translations = {
     p1Item3Date: "17 Sep",
     p1Item3Title: "Online Application Closing",
     p1Item3Desc: "Online Application System Closes",
-    p1Item4Date: "17 Sep",
+    p1Item4Date: "19 Sep",
     p1Item4Title: "Final Date for Original Document Submission",
     p1Item4Desc: "TIF Head Office, Laksi, Bangkok",
 
