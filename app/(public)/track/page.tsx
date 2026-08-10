@@ -736,11 +736,39 @@ export default function TrackStatusPage() {
     setLoading(true);
     setResult(null);
 
-    // 1. Search from ApplicationContext (localStorage) first
+    // Always call POST /api/track to fetch live data directly from Postgres DB
+    try {
+      const res = await fetch("/api/track", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: queryValue, password: passValue }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.found && Array.isArray(data.applications) && data.applications.length > 0) {
+        setResult(data);
+        // Sync retrieved DB application status into ApplicationContext
+        data.applications.forEach((app: any) => {
+          if (app.applicationNumber && updateApplication) {
+            updateApplication(app.applicationNumber, {
+              status: app.status,
+              remarks: app.remarks,
+              joinOpenHouse: app.joinOpenHouse,
+            });
+          }
+        });
+        setLoading(false);
+        return;
+      }
+    } catch (err: any) {
+      console.warn("API tracking fetch error, trying local fallback:", err);
+    }
+
+    // Local Context Fallback (if network fails or app was just created locally)
     const queryUpper = queryValue.toUpperCase();
     const queryDigits = queryValue.replace(/\D/g, "");
 
-    // Check for exact application number match first
     const exactAppMatch = ctxApps.filter(
       (app) => app.applicationNumber && app.applicationNumber.toUpperCase() === queryUpper
     );
@@ -754,7 +782,6 @@ export default function TrackStatusPage() {
       });
     }
 
-    // Deduplicate by application number or ID to avoid showing duplicate cards
     const uniqueAppMap = new Map<string, typeof ctxApps[0]>();
     matchedApps.forEach((app) => {
       const key = app.applicationNumber || app.id;
@@ -764,12 +791,6 @@ export default function TrackStatusPage() {
     });
 
     const localMatches = Array.from(uniqueAppMap.values());
-
-    // Fail closed on the cached-data shortcut. The old guard was
-    // `if (firstMatch.password && ...)`, so a cached record carrying no
-    // password displayed the applicant's data for *any* password typed in.
-    // A blank or mismatching password now falls through to /api/track, which
-    // is the single authority on whether this password opens this record.
     const firstMatch = localMatches[0];
     const localPassword = (firstMatch?.password || "").toString().trim();
     const localPasswordMatches = localPassword !== "" && localPassword === passValue;
@@ -864,113 +885,38 @@ export default function TrackStatusPage() {
         nationalId: student?.nationalId || queryDigits || "-",
         applications,
       });
-      setLoading(false);
-      return;
+    } else {
+      setErrorMsg(t("trackNotFoundErr"));
+      setResult(null);
     }
-
-    // 2. Fallback: call API (for DB-backed data)
-    try {
-      const res = await fetch("/api/track", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: queryValue, password: passValue }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok && !data.found) {
-        setErrorMsg(data.error || t("trackNotFoundErr"));
-        setResult(null);
-      } else {
-        setResult(data);
-      }
-    } catch (err: any) {
-      setErrorMsg(t("trackConnErr"));
-    } finally {
-      setLoading(false);
-    }
+    setLoading(false);
   };
 
-  // Live Real-Time Auto Sync: Listen to Admin updates in ApplicationContext & sync Track view instantly
+  // Real-Time Polling Effect: Periodically query POST /api/track to fetch status updates live
   React.useEffect(() => {
-    if (!result || !result.applications || result.applications.length === 0) return;
+    if (!result || !result.found || !nationalId.trim() || !password.trim()) return;
 
-    const getStatusInfo = (status: string, remarks?: string) => {
-      switch (status) {
-        case "ONLINE_REGISTRATION": return { stepIndex: 1, labelTh: "1/13: เปิดรับสมัครออนไลน์", labelEn: "1/13: Online Registration Open" };
-        case "SUBMITTED": return { stepIndex: 2, labelTh: "2/13: กรอกใบสมัคร + แนบเอกสาร", labelEn: "2/13: Submitted & Attached Docs" };
-        case "DOCS_UNDER_REVIEW":
-        case "WAITING_DOCUMENTS": return { stepIndex: 3, labelTh: "3/13: ตรวจเอกสารเบื้องต้น", labelEn: "3/13: Document Review in Progress" };
-        case "DOCS_PASSED":
-        case "DOCUMENT_VERIFIED": return { stepIndex: 4, labelTh: "4/13: ผ่านการตรวจเอกสาร", labelEn: "4/13: Documents Review Passed" };
-        case "APPLICATION_FEE_PAID": return { stepIndex: 5, labelTh: "5/13: ชำระค่าสมัคร 1,800 บาท", labelEn: "5/13: App Fee Paid (1,800 THB)" };
-        case "PAID":
-        case "PAYMENT_PENDING":
-        case "PAYMENT_VERIFIED":
-        case "OPEN_HOUSE_ATTENDED": return { stepIndex: 6, labelTh: "6/13: เข้าร่วม Open House", labelEn: "6/13: Attended Open House" };
-        case "PHYSICAL_DOCS_SUBMITTED": return { stepIndex: 7, labelTh: "7/13: ส่งเอกสารตัวจริงให้เจ้าหน้าที่เรียบร้อยแล้ว", labelEn: "7/13: Physical Documents Submitted" };
-        case "WRITTEN_EXAM": return { stepIndex: 8, labelTh: "8/13: กำหนดวันสอบข้อเขียน", labelEn: "8/13: Written Exam Scheduled" };
-        case "WRITTEN_EXAM_PASSED": return { stepIndex: 9, labelTh: "9/13: ผ่านการสอบข้อเขียน", labelEn: "9/13: Written Exam Passed" };
-        case "INTERVIEW_SCHEDULED": return { stepIndex: 10, labelTh: "10/13: กำหนดวันสอบสัมภาษณ์", labelEn: "10/13: Interview Scheduled" };
-        case "INTERVIEW_PASSED": return { stepIndex: 11, labelTh: "11/13: ผ่านการสอบสัมภาษณ์", labelEn: "11/13: Interview Passed" };
-        case "MEDICAL_CHECK_CLASS_1": return { stepIndex: 12, labelTh: "12/13: เข้ารับการตรวจสุขภาพ Class 1 เวชศาสตร์การบิน", labelEn: "12/13: Class 1 Medical Check" };
-        case "ACCEPTANCE_CONFIRMED":
-        case "ACCEPTED":
-        case "CONTRACT_SIGNED":
-        case "TUITION_FIRST_INSTALLMENT_PAID":
-        case "ORIENTATION":
-        case "PILOT_JOURNEY_BEGUN":
-        case "ENROLLED": return { stepIndex: 13, labelTh: "13/13: ยืนยันสิทธิ์เข้าศึกษาสำเร็จ", labelEn: "13/13: Acceptance Confirmed" };
-        case "REJECTED":
-          if (remarks?.includes("สัมภาษณ์") || remarks?.includes("Interview")) {
-            return { stepIndex: 11, labelTh: "11/13: ประกาศผลสัมภาษณ์ (ขอขอบพระคุณที่เข้าร่วมการคัดเลือก)", labelEn: "11/13: Panel Interview Results" };
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch("/api/track", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: nationalId.trim(), password: password.trim() }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.found && Array.isArray(data.applications)) {
+            const isDiff = JSON.stringify(data.applications) !== JSON.stringify(result.applications);
+            if (isDiff) {
+              setResult(data);
+            }
           }
-          if (remarks?.includes("ข้อเขียน") || remarks?.includes("Written Exam") || remarks?.includes("ขอบพระคุณ") || remarks?.includes("กำลังใจ") || remarks?.includes("เกณฑ์") || remarks?.includes("สอบ")) {
-            return { stepIndex: 9, labelTh: "9/13: ประกาศผลสอบข้อเขียน (ขอขอบพระคุณที่เข้าร่วมการคัดเลือก)", labelEn: "9/13: Written Exam Results" };
-          }
-          return { stepIndex: 3, labelTh: "3/13: ตรวจเอกสารเบื้องต้น (ข้อมูลและเอกสารไม่สมบูรณ์)", labelEn: "3/13: Initial Document Review (Incomplete Information and Documents)" };
-        default: return { stepIndex: 1, labelTh: "ยื่นใบสมัครแล้ว", labelEn: "Application Submitted" };
-      }
-    };
+        }
+      } catch (err) {}
+    }, 6000);
 
-    const updatedApps = result.applications.map((resApp) => {
-      const liveApp = ctxApps.find(
-        (a) => a.id === resApp.id || a.applicationNumber === resApp.applicationNumber
-      );
-      if (!liveApp) return resApp;
-
-      const info = getStatusInfo(liveApp.status, liveApp.remarks);
-
-      let latestRemarks = liveApp.remarks || (liveApp.adminNotes && liveApp.adminNotes.length > 0 ? liveApp.adminNotes[0].content : resApp.remarks);
-
-      return {
-        ...resApp,
-        status: liveApp.status,
-        statusLabelTh: info.labelTh,
-        statusLabelEn: info.labelEn,
-        stepIndex: info.stepIndex,
-        remarks: latestRemarks,
-        updatedAt: liveApp.updatedAt ? new Date(liveApp.updatedAt).toLocaleString("th-TH") : resApp.updatedAt,
-        documents: (liveApp.documents || []).map((doc: any) => ({
-          id: doc.id || `doc_${Date.now()}`,
-          type: doc.type,
-          secureUrl: doc.secureUrl || "",
-          originalName: doc.originalName || doc.type,
-          isVerified: doc.isVerified || false,
-          isRejected: doc.isRejected || false,
-          rejectReason: doc.rejectReason,
-        })),
-      };
-    });
-
-    const isDifferent = JSON.stringify(updatedApps) !== JSON.stringify(result.applications);
-    if (isDifferent) {
-      setResult({
-        ...result,
-        applications: updatedApps,
-      });
-    }
-  }, [ctxApps, result]);
+    return () => clearInterval(interval);
+  }, [result, nationalId, password]);
 
 
   const steps = [
