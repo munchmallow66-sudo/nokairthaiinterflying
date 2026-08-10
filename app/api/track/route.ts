@@ -60,6 +60,8 @@ export async function POST(req: Request) {
             student: { include: { user: true } },
             course: true,
             interviews: { orderBy: { createdAt: "desc" }, take: 1 },
+            payments: { orderBy: { createdAt: "desc" } },
+            documents: { orderBy: { uploadedAt: "asc" } },
           },
         });
         if (dbApplication) {
@@ -80,6 +82,8 @@ export async function POST(req: Request) {
               include: {
                 course: true,
                 interviews: { orderBy: { createdAt: "desc" }, take: 1 },
+                payments: { orderBy: { createdAt: "desc" } },
+                documents: { orderBy: { uploadedAt: "asc" } },
               },
               orderBy: { createdAt: "desc" },
             },
@@ -133,6 +137,14 @@ export async function POST(req: Request) {
     }
 
     const applications = authorizedApps.map((app: any) => {
+      // Whether a payment slip is on file is a fact the applicant's page must
+      // not have to guess at. It used to infer it from keywords in `remarks`,
+      // which meant an applicant who had already paid was shown the payment
+      // button again whenever the wording did not match.
+      const paymentRows: any[] = Array.isArray(app.payments) ? app.payments : [];
+      const activePayment = paymentRows.find((p) => p.status !== "REJECTED") || null;
+      const latestPayment = paymentRows[0] || null;
+
       let stepIndex = 1;
       let statusLabelTh = "ยื่นใบสมัครแล้ว";
       let statusLabelEn = "Application Submitted";
@@ -165,8 +177,14 @@ export async function POST(req: Request) {
           statusLabelTh = "5/13: ชำระค่าสมัคร 1,800 บาทเรียบร้อยแล้ว";
           statusLabelEn = "5/13: App Fee Paid (1,800 THB)";
           break;
-        case "PAID":
+        // Still step 5: the slip is in but the fee is not approved yet, so this
+        // must not read as though the applicant had already reached Open House.
         case "PAYMENT_PENDING":
+          stepIndex = 5;
+          statusLabelTh = "5/13: ตรวจสอบสลิปชำระเงิน 1,800 บาท";
+          statusLabelEn = "5/13: Payment Slip Under Verification";
+          break;
+        case "PAID":
         case "PAYMENT_VERIFIED":
         case "OPEN_HOUSE_ATTENDED":
           stepIndex = 6;
@@ -254,7 +272,26 @@ export async function POST(req: Request) {
         remarks:
           app.remarks || app.interviews?.[0]?.notes || "เจ้าหน้าที่กำลังดำเนินการตามลำดับขั้นตอน",
         updatedAt: app.updatedAt ? (typeof app.updatedAt === 'string' ? app.updatedAt : app.updatedAt.toLocaleString("th-TH")) : "อัปเดตล่าสุดวันนี้",
-        documents: app.documents || student?.documents || [],
+        joinOpenHouse: app.joinOpenHouse ?? null,
+        // `hasPaymentSlip` answers "has this applicant already paid?" — a
+        // rejected slip does not count, so they can attach a replacement.
+        hasPaymentSlip: !!activePayment,
+        paymentStatus: latestPayment?.status || null,
+        // Neither query used to include these, and Student has no documents
+        // relation for the fallback to reach either, so this was always []. An
+        // applicant told "เอกสารไม่ผ่าน" got no list and no reason — and a
+        // per-document rejection that left the status alone showed nothing at
+        // all. Only the fields the track page renders are exposed; publicId is
+        // an internal Cloudinary handle and stays server-side.
+        documents: (Array.isArray(app.documents) ? app.documents : []).map((doc: any) => ({
+          id: doc.id,
+          type: doc.type,
+          secureUrl: doc.secureUrl,
+          originalName: doc.originalName,
+          isVerified: !!doc.isVerified,
+          isRejected: !!doc.isRejected,
+          rejectReason: doc.rejectReason || undefined,
+        })),
       };
     });
 

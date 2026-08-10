@@ -47,7 +47,10 @@ interface ApplicationData {
   stepIndex: number;
   remarks: string;
   updatedAt: string;
-  joinOpenHouse?: boolean;
+  joinOpenHouse?: boolean | null;
+  /** Set by /api/track from the payments table. Undefined only for the offline cache. */
+  hasPaymentSlip?: boolean;
+  paymentStatus?: string | null;
   documents?: {
     id: string;
     type: string;
@@ -70,11 +73,20 @@ interface TrackingResponse {
 const getStepGuidance = (app: ApplicationData, lang: "th" | "en" = "th") => {
   const status = app.status;
   const hasRejectedDocs = app.documents?.some((d) => d.isRejected);
+  // The payments table is the authority on whether this applicant has paid.
+  // Sniffing `remarks` for the word "สลิป" is only a fallback for the offline
+  // cache, which carries no payment data — as the primary test it both missed
+  // real payments (any remark the admin reworded) and invented them (the
+  // approval note itself contains "สลิป").
+  const slipRejected = app.paymentStatus === "REJECTED" && app.hasPaymentSlip === false;
   const hasSlipUploaded =
-    status === "PAYMENT_PENDING" ||
-    app.remarks?.includes("สลิป") ||
-    app.remarks?.includes("Slip") ||
-    app.remarks?.includes("โอนเงิน");
+    !slipRejected &&
+    (app.hasPaymentSlip === true ||
+      status === "PAYMENT_PENDING" ||
+      (app.hasPaymentSlip === undefined &&
+        (app.remarks?.includes("สลิป") ||
+          app.remarks?.includes("Slip") ||
+          app.remarks?.includes("โอนเงิน"))));
   const isEn = lang === "en";
 
   if (status === "REJECTED" && !hasRejectedDocs && (app.remarks?.includes("ขอบพระคุณ") || app.remarks?.includes("กำลังใจ") || app.remarks?.includes("เกณฑ์") || app.remarks?.includes("สัมภาษณ์") || app.remarks?.includes("สอบ"))) {
@@ -193,9 +205,31 @@ const getStepGuidance = (app: ApplicationData, lang: "th" | "en" = "th") => {
         actionType: "WAIT",
       };
 
+    // Payment already approved by staff. This used to share a branch with the
+    // pre-payment statuses below, so an applicant whose fee had been approved
+    // was still shown "Pay 1,800 THB" and a slip upload button.
+    case "APPLICATION_FEE_PAID":
+      return {
+        condition: isEn
+          ? "Condition: Application Fee Paid (Step 5/13)"
+          : "เงื่อนไข: ชำระค่าสมัคร 1,800 บาทเรียบร้อยแล้ว (Step 5/13)",
+        badgeBg: "bg-emerald-100 border-emerald-300 text-emerald-900 font-bold",
+        icon: CheckCircle2,
+        title: isEn
+          ? "Payment Approved — No Further Payment Required"
+          : "อนุมัติการชำระเงินเรียบร้อยแล้ว (ไม่ต้องชำระเงินซ้ำ)",
+        description: isEn
+          ? "Staff has verified and approved your 1,800 THB application fee. Your payment is complete for this step."
+          : "เจ้าหน้าที่ได้ตรวจสอบและอนุมัติการชำระค่าสมัคร 1,800 บาทของท่านเรียบร้อยแล้ว ท่านไม่ต้องโอนเงินหรือแนบสลิปเพิ่มเติมอีก",
+        nextActionTitle: isEn ? "Next Action for Applicant:" : "สิ่งที่ผู้สมัครต้องทำถัดไป:",
+        nextAction: isEn
+          ? "No action needed. Prepare to join the Open House event on September 12, 2026."
+          : "ไม่ต้องดำเนินการใดๆ เพิ่มเติม กรุณาเตรียมความพร้อมเข้าร่วมงาน Open House ในวันที่ 12 กันยายน 2569",
+        actionType: "PAYMENT_APPROVED",
+      };
+
     case "DOCS_PASSED":
     case "DOCUMENT_VERIFIED":
-    case "APPLICATION_FEE_PAID":
       if (hasSlipUploaded) {
         return {
           condition: isEn
@@ -211,8 +245,8 @@ const getStepGuidance = (app: ApplicationData, lang: "th" | "en" = "th") => {
             : "ระบบได้รับการแนบหลักฐานการโอนเงิน 1,800 บาท และบันทึกข้อมูลความประสงค์ Open House ของท่านเรียบร้อยแล้ว เจ้าหน้าที่จะทำการตรวจสอบยอดเงินและอนุมัติการสมัครภายใน 24 ชม.",
           nextActionTitle: isEn ? "Next Action for Applicant:" : "สิ่งที่ผู้สมัครต้องทำถัดไป:",
           nextAction: isEn
-            ? "Wait for staff payment verification. Status will automatically update upon approval. (You can view or re-attach slip using the button below)."
-            : "รอเจ้าหน้าที่ตรวจสอบสลิปโอนเงิน เมื่ออนุมัติแล้วระบบจะปรับสถานะเป็นขั้นตอนถัดไปให้อัตโนมัติ (ท่านสามารถคลิกดูหรือแนบสลิปใหม่ได้ที่ปุ่มด้านล่าง)",
+            ? "No action needed — do not transfer or attach a slip again. Status updates automatically once staff approves the payment."
+            : "ไม่ต้องดำเนินการใดๆ เพิ่มเติม และไม่ต้องโอนเงินหรือแนบสลิปซ้ำอีก เมื่อเจ้าหน้าที่อนุมัติแล้วระบบจะปรับสถานะเป็นขั้นตอนถัดไปให้อัตโนมัติ",
           actionType: "SLIP_SUBMITTED",
         };
       }
@@ -686,7 +720,10 @@ export default function TrackStatusPage() {
 
         const updatedRemarks = `${t("slipReceivedRemarks")}${openHouseRemarks}`;
 
-        updateApplication(activePayAppNum, {
+        // Local cache only. POST /api/payments has already written the payment
+        // and the Open House choice server-side; PATCHing the same fields from
+        // here would race that write and could overwrite the remarks it set.
+        syncApplicationFromServer(activePayAppNum, {
           remarks: updatedRemarks,
           joinOpenHouse: joinOpenHouse,
         });
@@ -698,7 +735,11 @@ export default function TrackStatusPage() {
               a.applicationNumber === activePayAppNum
                 ? {
                     ...a,
-                    statusLabelTh: "อัปโหลดสลิป 1,800 บาทเรียบร้อยแล้ว (เจ้าหน้ากำลังตรวจสอบ)",
+                    // Mirror what the server now holds, so the payment button
+                    // stays gone until the next poll rather than flickering back.
+                    hasPaymentSlip: true,
+                    paymentStatus: "PENDING",
+                    statusLabelTh: "อัปโหลดสลิป 1,800 บาทเรียบร้อยแล้ว (เจ้าหน้าที่กำลังตรวจสอบ)",
                     statusLabelEn: "Payment slip 1,800 THB uploaded (Staff reviewing)",
                     remarks: updatedRemarks,
                     joinOpenHouse: joinOpenHouse,
@@ -836,8 +877,9 @@ export default function TrackStatusPage() {
             return { stepIndex: 4, labelTh: "4/13: ผ่านการตรวจเอกสาร", labelEn: "4/13: Documents Review Passed" };
           case "APPLICATION_FEE_PAID":
             return { stepIndex: 5, labelTh: "5/13: ชำระค่าสมัคร 1,800 บาท", labelEn: "5/13: App Fee Paid (1,800 THB)" };
-          case "PAID":
           case "PAYMENT_PENDING":
+            return { stepIndex: 5, labelTh: "5/13: ตรวจสอบสลิปชำระเงิน 1,800 บาท", labelEn: "5/13: Payment Slip Under Verification" };
+          case "PAID":
           case "PAYMENT_VERIFIED":
           case "OPEN_HOUSE_ATTENDED":
             return { stepIndex: 6, labelTh: "6/13: เข้าร่วม Open House", labelEn: "6/13: Attended Open House" };
@@ -885,7 +927,11 @@ export default function TrackStatusPage() {
           statusLabelEn: info.labelEn,
           submissionDate: app.createdAt ? new Date(app.createdAt).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
           stepIndex: info.stepIndex,
-          remarks: t("staffProcessingProgress"),
+          // The cached remarks, not a placeholder. This offline copy carries no
+          // payment rows, so its remarks are the only evidence left that a slip
+          // was already submitted — replacing them wholesale was enough to put
+          // the "Attach Payment Slip" button back in front of someone who paid.
+          remarks: app.remarks || t("staffProcessingProgress"),
           updatedAt: app.updatedAt ? new Date(app.updatedAt).toLocaleString(language === "en" ? "en-US" : "th-TH") : t("lastUpdatedToday"),
           joinOpenHouse: app.joinOpenHouse,
           documents: (app.documents || []).map((doc: any) => ({
@@ -1325,41 +1371,55 @@ export default function TrackStatusPage() {
                           {guidance.nextAction}
                         </p>
 
-                        {(guidance.actionType === "PAY" || guidance.actionType === "SLIP_SUBMITTED" || (app.stepIndex === 5 && app.status !== "PAYMENT_PENDING")) && (() => {
-                          const isSubmitted = guidance.actionType === "SLIP_SUBMITTED" || app.status === "PAYMENT_PENDING" || app.remarks?.includes("สลิป") || app.remarks?.includes("Slip") || app.remarks?.includes("โอนเงิน");
+                        {/* Payment action. The upload button is rendered only while the
+                            fee is genuinely still outstanding — once a slip is on file
+                            this turns into a read-only receipt, so an applicant who has
+                            already paid is never invited to pay a second time. */}
+                        {(() => {
+                          const isPaymentStep =
+                            guidance.actionType === "PAY" ||
+                            guidance.actionType === "SLIP_SUBMITTED" ||
+                            guidance.actionType === "PAYMENT_APPROVED" ||
+                            app.status === "PAYMENT_PENDING";
+
+                          if (!isPaymentStep) return null;
+
+                          const isApproved = guidance.actionType === "PAYMENT_APPROVED";
+                          const isAwaitingPayment = guidance.actionType === "PAY";
+
+                          if (!isAwaitingPayment) {
+                            return (
+                              <div className="pt-3 mt-3 border-t flex items-start gap-2.5 p-3.5 rounded-xl border bg-emerald-50/90 border-emerald-300 text-emerald-950">
+                                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                                <div className="space-y-1 min-w-0">
+                                  <span className="text-xs font-bold block leading-relaxed">
+                                    {isApproved
+                                      ? t("paymentApprovedNotice")
+                                      : t("paymentSlipReceivedNotice")}
+                                  </span>
+                                  <span className="text-[11px] font-medium text-emerald-800 block">
+                                    {isApproved
+                                      ? t("paymentApprovedHint")
+                                      : t("paymentSlipReceivedHint")}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          }
 
                           return (
-                            <div className={`pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t mt-3 p-3.5 rounded-xl border ${
-                              isSubmitted
-                                ? "bg-emerald-50/90 border-emerald-300 text-emerald-950"
-                                : "bg-amber-50/70 border-amber-300 text-amber-950"
-                            }`}>
+                            <div className="pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t mt-3 p-3.5 rounded-xl border bg-amber-50/70 border-amber-300 text-amber-950">
                               <span className="text-xs font-bold flex items-center gap-1.5">
-                                {isSubmitted
-                                  ? t("paymentSlipSubmittedPrompt")
-                                  : t("paymentSlipInstructionPrompt")}
+                                {t("paymentSlipInstructionPrompt")}
                               </span>
                               <Button
                                 size="sm"
-                                variant={isSubmitted ? "outline" : "gold"}
+                                variant="gold"
                                 onClick={() => handleOpenPayModal(app.applicationNumber)}
-                                className={`font-bold text-xs shrink-0 py-2.5 px-4 ${
-                                  isSubmitted
-                                    ? "border-emerald-400 text-emerald-950 hover:bg-emerald-100 bg-white shadow-xs"
-                                    : "shadow-gold"
-                                }`}
+                                className="font-bold text-xs shrink-0 py-2.5 px-4 shadow-gold"
                               >
-                                {isSubmitted ? (
-                                  <>
-                                    <CheckCircle2 className="mr-1.5 h-4 w-4 text-emerald-600" />
-                                    {t("slipSubmittedBtn")}
-                                  </>
-                                ) : (
-                                  <>
-                                    <CreditCard className="mr-1.5 h-4 w-4" />
-                                    {t("attachPaymentSlipBtn")}
-                                  </>
-                                )}
+                                <CreditCard className="mr-1.5 h-4 w-4" />
+                                {t("attachPaymentSlipBtn")}
                               </Button>
                             </div>
                           );

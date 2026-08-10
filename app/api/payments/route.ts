@@ -60,7 +60,19 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { appNum, student, studentName, feeType, amount, status, slipUrl, invoiceNo, receiptNo } = body;
+    const {
+      appNum,
+      student,
+      studentName,
+      feeType,
+      amount,
+      status,
+      slipUrl,
+      invoiceNo,
+      receiptNo,
+      joinOpenHouse,
+      openHouseAttendees,
+    } = body;
 
     let finalSlipUrl = slipUrl || "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=500";
     let cloudinaryOk = true;
@@ -124,6 +136,73 @@ export async function POST(req: Request) {
           } as any,
         });
         dbWriteOk = true;
+
+        // The slip used to land in the payments table only, leaving the
+        // application row looking exactly as it did before payment — and the
+        // applicant's Open House choice was written by a separate PATCH from the
+        // browser that could race this request. Record the applicant-supplied
+        // facts here, on the application, so a refresh cannot lose them.
+        //
+        // The workflow status is deliberately NOT advanced for a pending slip:
+        // step 5 (APPLICATION_FEE_PAID) means finance approved the transfer, and
+        // moving an application there — or to PAYMENT_PENDING, which is not one
+        // of the 13 workflow steps the admin panel knows — would misreport the
+        // application to staff. The payment row itself is what tells the track
+        // page the fee has been paid.
+        if (cloudinaryOk) {
+          const appUpdate: any = {};
+
+          if (typeof joinOpenHouse === "boolean") {
+            appUpdate.joinOpenHouse = joinOpenHouse;
+          }
+
+          // Remarks are only safe to overwrite while the application is still
+          // waiting on this fee. Past that point the column carries exam
+          // results and staff instructions that must not be clobbered.
+          const AWAITING_FEE_STATUSES = ["DOCS_PASSED", "DOCUMENT_VERIFIED", "PAYMENT_PENDING"];
+
+          if (AWAITING_FEE_STATUSES.includes(targetApp.status)) {
+            const verified = newPayment.status === "VERIFIED";
+
+            const openHouseNote =
+              typeof joinOpenHouse === "boolean"
+                ? joinOpenHouse
+                  ? ` | ลงทะเบียนเข้าร่วมงาน Open House วันที่ 12 ก.ย. 2569${
+                      Number(openHouseAttendees) > 0 ? ` (จำนวน ${Number(openHouseAttendees)} ท่าน)` : ""
+                    }`
+                  : " | ไม่ประสงค์เข้าร่วมงาน Open House"
+                : "";
+
+            if (verified) {
+              // Staff recorded an already-verified payment (admin "Add slip"),
+              // which is the same transition PATCH performs on approval.
+              appUpdate.status = "APPLICATION_FEE_PAID";
+              appUpdate.remarks = `อนุมัติสลิปการชำระเงิน ${newPayment.amount.toLocaleString(
+                "th-TH"
+              )} บาทเรียบร้อยแล้ว${openHouseNote}`;
+            } else {
+              appUpdate.remarks = `ได้รับสลิปโอนเงินเรียบร้อยแล้ว เจ้าหน้าที่จะทำการตรวจสอบและอนุมัติใบสมัครภายใน 24 ชม.${openHouseNote}`;
+            }
+          }
+
+          if (Object.keys(appUpdate).length > 0) {
+            // Kept separate from the payment insert on purpose: the payment row
+            // is the durable record /api/track reads to decide whether the fee
+            // is still owed, so a failure to advance the application status must
+            // not fail a slip the applicant did successfully submit.
+            try {
+              await prisma.application.update({
+                where: { id: targetApp.id },
+                data: appUpdate,
+              });
+            } catch (appErr) {
+              console.error(
+                "Payment saved but application status update failed:",
+                appErr instanceof Error ? appErr.stack : appErr
+              );
+            }
+          }
+        }
       } else {
         dbError = `No application found for applicationNumber ${newPayment.appNum}`;
       }
