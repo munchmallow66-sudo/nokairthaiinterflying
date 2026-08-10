@@ -506,75 +506,93 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: "Application ID is required" }, { status: 400 });
     }
 
-    try {
-      const { getPrisma } = await import("@/lib/prisma");
-      const prisma = getPrisma();
+    const { getPrisma } = await import("@/lib/prisma");
+    const prisma = getPrisma();
 
-      // Find application and associated student/user IDs before deletion
-      const targetApp = await prisma.application.findFirst({
+    // Find application and associated student/user IDs before deletion.
+    // Anything that throws below propagates to the 500 handler: the client
+    // rolls its optimistic removal back on a non-2xx, so reporting success
+    // here when the row is still in the DB is what made deletes look like
+    // they had worked while every other browser kept showing the applicant.
+    const targetApp = await prisma.application.findFirst({
+      where: {
+        OR: [{ id }, { applicationNumber: id }],
+      },
+      include: {
+        student: true,
+      },
+    });
+
+    // Already gone — a delete that finds nothing to delete has still reached
+    // the state the caller asked for, so this is a success, not an error.
+    if (!targetApp) {
+      return NextResponse.json({
+        success: true,
+        alreadyAbsent: true,
+        message: "Application not found in database",
+      });
+    }
+
+    const studentId = targetApp.studentId;
+    const userId = targetApp.student?.userId;
+
+    // Delete Application first. Documents/payments/interviews/adminNotes go
+    // with it via onDelete: Cascade in prisma/schema.prisma.
+    await prisma.application.delete({
+      where: { id: targetApp.id },
+    });
+
+    // Student and User are follow-up cleanup of records the application hung
+    // off. The application itself is already gone by this point, so a failure
+    // here leaves orphans to sweep rather than an undeleted application, and
+    // must not turn a completed delete into an error for the caller.
+    if (studentId) {
+      try {
+        await prisma.student.delete({
+          where: { id: studentId },
+        });
+      } catch (e) {
+        console.warn(`Could not delete student ${studentId}:`, e);
+      }
+    }
+
+    if (userId) {
+      try {
+        await prisma.user.delete({
+          where: { id: userId },
+        });
+      } catch (e) {
+        console.warn(`Could not delete user ${userId}:`, e);
+      }
+    }
+
+    // Also clean up any orphan students with no applications attached
+    try {
+      const orphanStudents = await prisma.student.findMany({
         where: {
-          OR: [{ id }, { applicationNumber: id }],
+          applications: {
+            none: {},
+          },
         },
-        include: {
-          student: true,
-        },
+        select: { id: true, userId: true },
       });
 
-      if (targetApp) {
-        const studentId = targetApp.studentId;
-        const userId = targetApp.student?.userId;
-
-        // Delete Application first
-        await prisma.application.delete({
-          where: { id: targetApp.id },
-        });
-
-        // Delete associated Student record if exists
-        if (studentId) {
-          try {
-            await prisma.student.delete({
-              where: { id: studentId },
-            });
-          } catch (e) {}
-        }
-
-        // Delete associated User record if exists
-        if (userId) {
-          try {
-            await prisma.user.delete({
-              where: { id: userId },
-            });
-          } catch (e) {}
-        }
+      for (const orphan of orphanStudents) {
+        try {
+          await prisma.student.delete({ where: { id: orphan.id } });
+          if (orphan.userId) {
+            await prisma.user.delete({ where: { id: orphan.userId } });
+          }
+        } catch (e) {}
       }
-
-      // Also clean up any orphan students with no applications attached
-      try {
-        const orphanStudents = await prisma.student.findMany({
-          where: {
-            applications: {
-              none: {},
-            },
-          },
-          select: { id: true, userId: true },
-        });
-
-        for (const orphan of orphanStudents) {
-          try {
-            await prisma.student.delete({ where: { id: orphan.id } });
-            if (orphan.userId) {
-              await prisma.user.delete({ where: { id: orphan.userId } });
-            }
-          } catch (e) {}
-        }
-      } catch (e) {}
-
-    } catch (dbErr) {
-      console.warn("DB application delete notice:", dbErr);
-    }
+    } catch (e) {}
 
     return NextResponse.json({ success: true, message: "Application deleted successfully" });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error("Application delete failed:", err);
+    return NextResponse.json(
+      { error: err?.message || "Failed to delete application" },
+      { status: 500 }
+    );
   }
 }

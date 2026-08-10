@@ -418,32 +418,75 @@ interface ApplicationContextType {
   addExtraDocument: (appId: string, type: string, url: string, name: string) => void;
   deleteDocument: (appId: string, docId: string) => void;
   verifyAllDocuments: (appId: string) => void;
-  deleteApplication: (appId: string) => void;
+  deleteApplication: (appId: string) => Promise<void>;
   addApplication: (newApp: ApplicationWithDetails) => void;
   resetToSampleData: () => void;
 }
 
-const DELETED_KEY = "tif_deleted_application_ids_v1";
+// Deletes used to be recorded here as a per-device tombstone list and filtered
+// out at load time, which meant a delete only ever "took" in the browser that
+// performed it. The DB is now the sole authority on what exists; the key is
+// only referenced to clear it off clients that still carry one, since a stale
+// tombstone would keep hiding applications that are still live.
+const LEGACY_DELETED_KEY = "tif_deleted_application_ids_v1";
 
 const ApplicationContext = React.createContext<ApplicationContextType | undefined>(undefined);
 
+/**
+ * Overlays local edits onto the authoritative server list. Rows are keyed off
+ * the server response alone: an application the server does not return no
+ * longer exists, so it must not survive the merge. (Re-adding local-only rows
+ * here is what used to resurrect deleted applications after a refetch.)
+ */
+function mergeWithServer(
+  prev: ApplicationWithDetails[],
+  dbApps: any[]
+): ApplicationWithDetails[] {
+  const prevMap = new Map<string, any>();
+  prev.forEach((app) => {
+    if (app.id) prevMap.set(app.id, app);
+    if (app.applicationNumber) prevMap.set(app.applicationNumber, app);
+  });
+
+  return dbApps.map((dbApp: any) => {
+    const localApp = prevMap.get(dbApp.id) || prevMap.get(dbApp.applicationNumber);
+    if (!localApp) return dbApp;
+
+    return {
+      ...dbApp,
+      ...localApp,
+      joinOpenHouse: localApp.joinOpenHouse !== undefined ? localApp.joinOpenHouse : dbApp.joinOpenHouse,
+      remarks: localApp.remarks || dbApp.remarks,
+      status: localApp.status || dbApp.status,
+      documents: localApp.documents && localApp.documents.length > 0 ? localApp.documents : dbApp.documents,
+      payments: localApp.payments && localApp.payments.length > 0 ? localApp.payments : dbApp.payments,
+    };
+  });
+}
+
 export function ApplicationProvider({ children }: { children: React.ReactNode }) {
   const [applications, setApplications] = React.useState<ApplicationWithDetails[]>([]);
-  const [deletedIds, setDeletedIds] = React.useState<string[]>([]);
   const [isInitialized, setIsInitialized] = React.useState(false);
 
-  // 1. Load persisted data & deleted tombstones, then sync directly with Server DB
+  // Re-reads the authoritative list. Throws on a bad response so callers can
+  // tell "the server says this list is empty" apart from "the server did not
+  // answer" — only the former may clear rows off the screen.
+  const refetchApplications = React.useCallback(async () => {
+    const res = await fetch("/api/applications");
+    if (!res.ok) {
+      throw new Error(`Failed to load applications (${res.status})`);
+    }
+    const dbApps = await res.json();
+    if (!Array.isArray(dbApps)) {
+      throw new Error("Unexpected applications payload from server");
+    }
+    setApplications((prev) => mergeWithServer(prev, dbApps));
+  }, []);
+
+  // 1. Clear legacy tombstones, load the local cache, then sync with Server DB
   React.useEffect(() => {
-    let currentDeleted: string[] = [];
     try {
-      const savedDeleted = localStorage.getItem(DELETED_KEY);
-      if (savedDeleted) {
-        const parsed = JSON.parse(savedDeleted);
-        if (Array.isArray(parsed)) {
-          currentDeleted = parsed;
-          setDeletedIds(parsed);
-        }
-      }
+      localStorage.removeItem(LEGACY_DELETED_KEY);
     } catch (e) {}
 
     // Load initial local cache while fetching server
@@ -452,10 +495,7 @@ export function ApplicationProvider({ children }: { children: React.ReactNode })
       if (savedData !== null) {
         const parsed = JSON.parse(savedData);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const filtered = parsed.filter(
-            (app: any) => !currentDeleted.includes(app.id) && !currentDeleted.includes(app.applicationNumber)
-          );
-          setApplications(filtered);
+          setApplications(parsed);
         } else {
           setApplications(INITIAL_SAMPLE_APPLICATIONS);
         }
@@ -467,53 +507,10 @@ export function ApplicationProvider({ children }: { children: React.ReactNode })
     }
     setIsInitialized(true);
 
-    // Fetch authoritative applications from Server DB and merge with local state
-    fetch("/api/applications")
-      .then((res) => (res.ok ? res.json() : []))
-      .then((dbApps) => {
-        if (Array.isArray(dbApps) && dbApps.length > 0) {
-          const cleanDbApps = dbApps.filter(
-            (a: any) => !currentDeleted.includes(a.id) && !currentDeleted.includes(a.applicationNumber)
-          );
-
-          setApplications((prev) => {
-            const prevMap = new Map<string, any>();
-            prev.forEach((app) => {
-              if (app.id) prevMap.set(app.id, app);
-              if (app.applicationNumber) prevMap.set(app.applicationNumber, app);
-            });
-
-            const mergedList = cleanDbApps.map((dbApp: any) => {
-              const localApp = prevMap.get(dbApp.id) || prevMap.get(dbApp.applicationNumber);
-              if (!localApp) return dbApp;
-
-              return {
-                ...dbApp,
-                ...localApp,
-                joinOpenHouse:
-                  localApp.joinOpenHouse !== undefined ? localApp.joinOpenHouse : dbApp.joinOpenHouse,
-                remarks: localApp.remarks || dbApp.remarks,
-                status: localApp.status || dbApp.status,
-                documents: localApp.documents && localApp.documents.length > 0 ? localApp.documents : dbApp.documents,
-                payments: localApp.payments && localApp.payments.length > 0 ? localApp.payments : dbApp.payments,
-              };
-            });
-
-            const serverIds = new Set(cleanDbApps.map((d: any) => d.id));
-            const serverAppNums = new Set(cleanDbApps.map((d: any) => d.applicationNumber));
-
-            prev.forEach((localApp) => {
-              if (!serverIds.has(localApp.id) && !serverAppNums.has(localApp.applicationNumber)) {
-                mergedList.push(localApp);
-              }
-            });
-
-            return mergedList;
-          });
-        }
-      })
-      .catch((err) => console.warn("Failed to fetch applications from DB:", err));
-  }, []);
+    refetchApplications().catch((err) =>
+      console.warn("Failed to fetch applications from DB:", err)
+    );
+  }, [refetchApplications]);
 
   // 2. Persist applications state to localStorage whenever modified
   React.useEffect(() => {
@@ -753,28 +750,38 @@ export function ApplicationProvider({ children }: { children: React.ReactNode })
     } catch (e) {}
   };
 
-  const deleteApplication = (appId: string) => {
-    const targetApp = applications.find((a) => a.id === appId);
-    const appNum = targetApp?.applicationNumber;
+  // Rejects if the application is still in the DB afterwards. Callers must let
+  // that rejection surface rather than reporting success, otherwise the admin
+  // is told a row is gone while every other browser still loads it.
+  const deleteApplication = async (appId: string) => {
+    if (!appId) throw new Error("Missing application id");
 
-    // 1. Remove from state immediately
+    // Snapshot before the optimistic removal so a failed delete can be undone.
+    const snapshot = applications;
     setApplications((prev) => prev.filter((app) => app.id !== appId && app.applicationNumber !== appId));
 
-    // 2. Track deleted ID in state and tombstone localStorage (Context7 principle)
-    setDeletedIds((prev) => {
-      const updated = Array.from(new Set([...prev, appId, ...(appNum ? [appNum] : [])]));
-      try {
-        localStorage.setItem(DELETED_KEY, JSON.stringify(updated));
-      } catch (e) {}
-      return updated;
-    });
-
-    // 3. Delete from backend DB via API
     try {
-      fetch(`/api/applications?id=${appId}`, {
+      const res = await fetch(`/api/applications?id=${encodeURIComponent(appId)}`, {
         method: "DELETE",
-      }).catch((e) => console.warn("API delete error:", e));
-    } catch (e) {}
+      });
+      if (!res.ok) {
+        const detail = await res.json().catch(() => null);
+        throw new Error(detail?.error || `Delete failed with status ${res.status}`);
+      }
+    } catch (err) {
+      setApplications(snapshot);
+      throw err;
+    }
+
+    // Re-read rather than trusting the optimistic removal, so the list matches
+    // what other browsers will load.
+    try {
+      await refetchApplications();
+    } catch (err) {
+      // The delete itself is confirmed; only the follow-up read failed, so the
+      // list may be marginally stale until the next load.
+      console.warn("Applications refetch after delete failed:", err);
+    }
   };
 
   const addApplication = (newApp: ApplicationWithDetails) => {
@@ -783,10 +790,9 @@ export function ApplicationProvider({ children }: { children: React.ReactNode })
 
   const resetToSampleData = () => {
     setApplications(INITIAL_SAMPLE_APPLICATIONS);
-    setDeletedIds([]);
     try {
       localStorage.removeItem(STORAGE_KEY);
-      localStorage.removeItem(DELETED_KEY);
+      localStorage.removeItem(LEGACY_DELETED_KEY);
     } catch (e) {}
   };
 

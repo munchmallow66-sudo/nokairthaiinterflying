@@ -1083,15 +1083,25 @@ export default function StudentApplicationsPage() {
     alert("แจ้งปฏิเสธเอกสารเรียบร้อยแล้ว — ระบบได้แสดงคำแนะนำให้ผู้สมัครแก้ไขแล้ว");
   };
 
-  const handleDeleteApp = (id: string) => {
-    if (window.confirm("คุณต้องการลบข้อมูลใบสมัครนี้ออกจากระบบใช่หรือไม่? (Action cannot be undone)")) {
-      deleteApplication(id);
-      if (selectedApp?.id === id) {
-        setDrawerOpen(false);
-        setSelectedApp(null);
-      }
-      alert("ลบข้อมูลใบสมัครเรียบร้อยแล้ว");
+  const handleDeleteApp = async (id: string) => {
+    if (!window.confirm("คุณต้องการลบข้อมูลใบสมัครนี้ออกจากระบบใช่หรือไม่? (Action cannot be undone)")) return;
+
+    try {
+      await deleteApplication(id);
+    } catch (err: any) {
+      // The row is restored by the context on failure; saying "deleted" here
+      // would hide an applicant that every other browser still sees.
+      alert(
+        `ลบข้อมูลใบสมัครไม่สำเร็จ — ข้อมูลยังอยู่ในระบบ กรุณาลองใหม่อีกครั้ง\n(${err?.message || "unknown error"})`
+      );
+      return;
     }
+
+    if (selectedApp?.id === id) {
+      setDrawerOpen(false);
+      setSelectedApp(null);
+    }
+    alert("ลบข้อมูลใบสมัครเรียบร้อยแล้ว");
   };
 
   return (
