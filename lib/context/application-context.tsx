@@ -405,6 +405,7 @@ export const INITIAL_SAMPLE_APPLICATIONS: ApplicationWithDetails[] = [
 interface ApplicationContextType {
   applications: ApplicationWithDetails[];
   updateApplication: (appId: string, updatedFields: Partial<ApplicationWithDetails>) => void;
+  syncApplicationFromServer: (appId: string, updatedFields: Partial<ApplicationWithDetails>) => void;
   announceRejection: (
     appId: string,
     stage: "WRITTEN_EXAM" | "INTERVIEW",
@@ -542,9 +543,43 @@ export function ApplicationProvider({ children }: { children: React.ReactNode })
     }
   }, [applications, isInitialized]);
 
+  // Applies values that came *from* the server to the local copy, without
+  // PATCHing them straight back.
+  //
+  // The track page used updateApplication for this, which made a read-only
+  // status lookup write to the database on every search. Two things went wrong:
+  // /api/track synthesises its `remarks` string rather than echoing the column,
+  // so the round-trip overwrote whatever the admin had written with a
+  // placeholder; and the value written was whatever the page read a moment
+  // earlier, so a status the admin changed mid-request was reverted.
+  const syncApplicationFromServer = (
+    appId: string,
+    updatedFields: Partial<ApplicationWithDetails>
+  ) => {
+    if (!appId) return;
+    const cleanId = appId.trim().toLowerCase();
+    setApplications((prev) =>
+      prev.map((app) =>
+        app.id === appId ||
+        app.applicationNumber === appId ||
+        (app.id && app.id.toLowerCase() === cleanId) ||
+        (app.applicationNumber && app.applicationNumber.toLowerCase() === cleanId)
+          ? { ...app, ...updatedFields }
+          : app
+      )
+    );
+  };
+
   const updateApplication = (appId: string, updatedFields: Partial<ApplicationWithDetails>) => {
     if (!appId) return;
     const cleanId = appId.trim().toLowerCase();
+
+    // Snapshot for rollback. The optimistic update below is what the admin
+    // sees; if the write does not land, leaving it on screen means staff act on
+    // a status the database never accepted while the applicant is still shown
+    // the old one.
+    const snapshot = applications;
+
     setApplications((prev) =>
       prev.map((app) =>
         app.id === appId ||
@@ -555,13 +590,21 @@ export function ApplicationProvider({ children }: { children: React.ReactNode })
           : app
       )
     );
-    try {
-      fetch("/api/applications", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: appId, ...updatedFields }),
-      }).catch((e) => console.warn("API sync error:", e));
-    } catch (e) {}
+
+    fetch("/api/applications", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: appId, ...updatedFields }),
+    })
+      .then(async (res) => {
+        if (res.ok) return;
+        const detail = await res.json().catch(() => null);
+        throw new Error(detail?.error || `Update failed with status ${res.status}`);
+      })
+      .catch((e) => {
+        console.error(`Application update for ${appId} did not persist:`, e);
+        setApplications(snapshot);
+      });
   };
 
   // A step 8 (written exam) rejection is announced as step 9, and a step 10
@@ -821,6 +864,7 @@ export function ApplicationProvider({ children }: { children: React.ReactNode })
       value={{
         applications,
         updateApplication,
+        syncApplicationFromServer,
         announceRejection,
         toggleDocVerification,
         rejectDocument,

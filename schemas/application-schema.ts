@@ -133,3 +133,142 @@ export const fullApplicationSchema = step1Schema
   );
 
 export type FullApplicationInput = z.infer<typeof fullApplicationSchema>;
+
+/**
+ * Text the officer may leave blank, collapsed to a placeholder. Several columns
+ * behind these fields are NOT NULL in Postgres (Address, Education.school/degree,
+ * EmergencyContact, MedicalInfo.bloodType), so they need *something* — "-" reads
+ * as "not supplied yet" where invented data like "Bangkok" would silently become
+ * a fact nobody entered.
+ */
+const staffText = (fallback = "-") =>
+  z
+    .string()
+    .optional()
+    .nullable()
+    .transform((v) => (typeof v === "string" && v.trim() !== "" ? v.trim() : fallback));
+
+/** Same idea for the NOT NULL numeric columns (Education.gpax/graduationYear, MedicalInfo.height/weight). */
+const staffNumber = (fallback: number) =>
+  z
+    .union([z.string(), z.number()])
+    .optional()
+    .nullable()
+    .transform((v) => {
+      if (v === null || v === undefined || v === "") return fallback;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : fallback;
+    });
+
+/** Nullable score columns: blank stays blank rather than becoming a zero score. */
+const staffOptionalNumber = () =>
+  z
+    .union([z.string(), z.number()])
+    .optional()
+    .nullable()
+    .transform((v) => {
+      if (v === null || v === undefined || v === "") return null;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    });
+
+/**
+ * Applications keyed in by staff from the admin panel ("เพิ่มใบสมัคร").
+ *
+ * These are walk-ins and phone enquiries, not completed online submissions:
+ * there is no uploaded document set and most of the form is blank, so
+ * fullApplicationSchema — which demands six certified documents plus Thai/English
+ * name spellings and a 13-digit national ID — would reject every one of them.
+ *
+ * The output shape is deliberately identical to fullApplicationSchema's so that
+ * POST /api/applications runs one transaction for both paths. Anything the
+ * officer skipped lands as a placeholder the admin can complete later from the
+ * edit modal.
+ */
+export const adminCreateApplicationSchema = z.object({
+  title: staffText(""),
+  firstNameTh: staffText(),
+  lastNameTh: staffText(),
+  firstNameEn: z.string().min(1, "First Name (EN) is required"),
+  lastNameEn: staffText(),
+  nickname: staffText(""),
+  gender: staffText(""),
+  // Nullable in Prisma, and a real unknown: never stamp today's date onto it.
+  birthday: z
+    .string()
+    .optional()
+    .nullable()
+    .transform((v) => (typeof v === "string" && v.trim() !== "" ? v.trim() : null)),
+  age: staffOptionalNumber(),
+  nationality: staffText("Thai"),
+  religion: staffText(""),
+  // Optional here, unlike the public form — staff often take a name and phone
+  // number first. When supplied it must still be a real 13-digit ID, because
+  // it is the duplicate-application guard.
+  nationalId: z
+    .string()
+    .optional()
+    .nullable()
+    .transform((v) => (typeof v === "string" && v.trim() !== "" ? v.trim() : null))
+    .refine((v) => v === null || /^\d{13}$/.test(v), {
+      message: "เลขบัตรประชาชนต้องเป็นตัวเลข 13 หลักเท่านั้น (13 Digits Only)",
+    }),
+  passport: staffText(""),
+  phone: z.string().min(1, "กรุณากรอกเบอร์โทรศัพท์"),
+  email: z.string().email("Invalid email address"),
+  lineId: staffText(""),
+  facebook: staffText(""),
+
+  currentAddress: staffText(),
+  province: staffText(),
+  district: staffText(),
+  subdistrict: staffText(),
+  postalCode: staffText(),
+
+  school: staffText(),
+  university: staffText(""),
+  degree: staffText(),
+  gpax: staffNumber(0),
+  graduationYear: staffNumber(new Date().getFullYear()),
+
+  emergencyName: staffText(),
+  relationship: staffText(),
+  emergencyPhone: staffText(),
+  emergencyAddress: staffText(),
+
+  fatherName: staffText(""),
+  motherName: staffText(""),
+  parentOccupation: staffText(""),
+  parentPhone: staffText(""),
+  parentAddress: staffText(""),
+
+  height: staffNumber(0),
+  weight: staffNumber(0),
+  bloodType: staffText(),
+  medicalConditions: staffText(""),
+  allergy: staffText(""),
+  medication: staffText(""),
+
+  toeicScore: staffOptionalNumber(),
+  ieltsScore: staffOptionalNumber(),
+  icaoLevel: staffOptionalNumber(),
+  otherCertificates: staffText(""),
+
+  company: staffText(""),
+  position: staffText(""),
+  years: staffOptionalNumber(),
+
+  documents: z
+    .array(
+      z.object({
+        type: z.string(),
+        secureUrl: z.string(),
+        publicId: z.string(),
+        originalName: z.string(),
+      })
+    )
+    .optional()
+    .transform((v) => v || []),
+});
+
+export type AdminCreateApplicationInput = z.infer<typeof adminCreateApplicationSchema>;

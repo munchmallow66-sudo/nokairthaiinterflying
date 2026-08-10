@@ -245,7 +245,14 @@ export async function POST(req: Request) {
         statusLabelEn,
         submissionDate: app.createdAt ? (typeof app.createdAt === 'string' ? app.createdAt : app.createdAt.toISOString().split("T")[0]) : new Date().toISOString().split("T")[0],
         stepIndex,
-        remarks: app.interviews?.[0]?.notes || "เจ้าหน้าที่กำลังดำเนินการตามลำดับขั้นตอน",
+        // The application's own remarks come first. They are what the admin
+        // actually wrote — rejection reasons, document requests, exam results —
+        // and dropping them straight to the interview note meant the applicant
+        // never saw a single message staff sent. It also broke getStepGuidance()
+        // on the client, which decides what to tell the applicant by looking for
+        // keywords in this string and so always fell through to its default.
+        remarks:
+          app.remarks || app.interviews?.[0]?.notes || "เจ้าหน้าที่กำลังดำเนินการตามลำดับขั้นตอน",
         updatedAt: app.updatedAt ? (typeof app.updatedAt === 'string' ? app.updatedAt : app.updatedAt.toLocaleString("th-TH")) : "อัปเดตล่าสุดวันนี้",
         documents: app.documents || student?.documents || [],
       };

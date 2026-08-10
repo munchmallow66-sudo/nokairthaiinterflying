@@ -7,7 +7,7 @@ import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ApplicationWithDetails, PILOT_WORKFLOW_STEPS } from "@/types";
-import { formatDate, formatCurrency, isPdfFile, createBlobUrlFromBase64Pdf, getCloudinaryPdfThumbnail, generateSecurePassword } from "@/lib/utils";
+import { formatDate, formatCurrency, isPdfFile, createBlobUrlFromBase64Pdf, getCloudinaryPdfThumbnail } from "@/lib/utils";
 import { downloadAllDocumentsAsZip } from "@/lib/export";
 import {
   User,
@@ -673,6 +673,7 @@ export default function StudentApplicationsPage() {
   };
 
   const [addModalOpen, setAddModalOpen] = React.useState(false);
+  const [isCreating, setIsCreating] = React.useState(false);
   const [editModalOpen, setEditModalOpen] = React.useState(false);
   const [editingApp, setEditingApp] = React.useState<ApplicationWithDetails | null>(null);
 
@@ -911,97 +912,185 @@ export default function StudentApplicationsPage() {
     alert(t("saveChangesAlert"));
   };
 
-  const handleSaveNew = () => {
+  // Staff-keyed application. This must reach Postgres, not just local state:
+  // the tracking password the server issues is the applicant's only way into
+  // /track, and a row that exists solely in this browser's localStorage gives
+  // them a password no other device can verify.
+  //
+  // Blank fields are sent blank. The old version invented an age of 25, a
+  // Bangkok address, a 3.5 GPAX and a 750 TOEIC to fill the gaps, which was
+  // harmless while nothing persisted but would now hand officers fabricated
+  // scores that read exactly like data an applicant supplied.
+  const handleSaveNew = async () => {
     if (!formFirstNameEn || !formPhone || !formEmail) {
       alert("กรุณากรอกชื่อ, เบอร์โทรศัพท์ และอีเมล");
       return;
     }
+    if (formNationalId && !/^\d{13}$/.test(formNationalId.trim())) {
+      alert("เลขบัตรประชาชนต้องเป็นตัวเลข 13 หลักเท่านั้น");
+      return;
+    }
+    if (isCreating) return;
 
-    const appPassword = generateSecurePassword(6);
+    const num = (v: number | string) => (v === "" ? null : Number(v));
 
-    const newApp: ApplicationWithDetails = {
-      id: `app_${Date.now()}`,
-      applicationNumber: `TIF-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-      password: appPassword,
-      branch: "Bangkok Headquarters",
-      status: formStatus as any,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      student: {
-        id: `std_${Date.now()}`,
-        firstNameTh: formFirstNameTh || "สมชาย",
-        lastNameTh: formLastNameTh || "ใจดี",
-        firstNameEn: formFirstNameEn,
-        lastNameEn: formLastNameEn || "",
-        nickname: formNickname || "",
-        gender: formGender || "Male",
-        birthday: formBirthday ? new Date(formBirthday) : new Date(),
-        age: 25,
-        nationality: "Thai",
-        religion: "Buddhism",
-        phone: formPhone,
-        nationalId: formNationalId || "-",
-        passport: formPassport || "-",
-        lineId: formLineId || "-",
-        facebook: formFacebook || "-",
-        user: {
+    setIsCreating(true);
+    try {
+      const res = await fetch("/api/applications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          adminCreate: true,
+          status: formStatus,
+          branch: formBranch,
+          firstNameTh: formFirstNameTh,
+          lastNameTh: formLastNameTh,
+          firstNameEn: formFirstNameEn,
+          lastNameEn: formLastNameEn,
+          nickname: formNickname,
+          gender: formGender,
+          birthday: formBirthday,
+          nationality: "Thai",
+          nationalId: formNationalId,
+          passport: formPassport,
+          phone: formPhone,
           email: formEmail,
-        },
-        address: {
-          currentAddress: formCurrentAddress || "Bangkok",
-          province: formProvince || "Bangkok",
-          district: formDistrict || "Chatuchak",
-          subdistrict: formSubdistrict || "Chomphon",
-          postalCode: formPostalCode || "10900",
-        },
-        education: {
-          school: formSchool || "Institution",
-          university: formUniversity || "University",
-          degree: formDegree || "Bachelor Degree",
-          gpax: formGpax !== "" ? Number(formGpax) : 3.5,
-          graduationYear: formGraduationYear !== "" ? Number(formGraduationYear) : 2025,
-        },
-        parent: {
-          fatherName: formFatherName || "-",
-          motherName: formMotherName || "-",
-          occupation: formParentOccupation || "-",
-          phone: formParentPhone || formPhone,
-        },
-        emergency: {
-          name: formEmergencyName || "-",
-          relationship: formEmergencyRelationship || "-",
-          phone: formEmergencyPhone || formPhone,
-          address: formEmergencyAddress || "-",
-        },
-        medical: {
-          height: formHeight !== "" ? Number(formHeight) : 175,
-          weight: formWeight !== "" ? Number(formWeight) : 68,
-          bloodType: formBloodType || "O",
-          medicalConditions: formMedicalConditions || "-",
-          allergy: formAllergy || "-",
-        },
-        english: {
-          toeicScore: formToeicScore !== "" ? Number(formToeicScore) : 750,
-          ieltsScore: formIeltsScore !== "" ? Number(formIeltsScore) : 6.5,
-          icaoLevel: formIcaoLevel !== "" ? Number(formIcaoLevel) : 4,
-        },
-      },
-      course: {
-        id: "cadet-001",
-        name: "Cadet Student Program",
-        code: "CADET",
-        price: 1800,
-        duration: "Initial Entry",
-      },
-      documents: [],
-      payments: [],
-      interviews: [],
-      adminNotes: [],
-    };
+          lineId: formLineId,
+          facebook: formFacebook,
+          currentAddress: formCurrentAddress,
+          province: formProvince,
+          district: formDistrict,
+          subdistrict: formSubdistrict,
+          postalCode: formPostalCode,
+          school: formSchool,
+          university: formUniversity,
+          degree: formDegree,
+          gpax: num(formGpax),
+          graduationYear: num(formGraduationYear),
+          emergencyName: formEmergencyName,
+          relationship: formEmergencyRelationship,
+          emergencyPhone: formEmergencyPhone,
+          emergencyAddress: formEmergencyAddress,
+          fatherName: formFatherName,
+          motherName: formMotherName,
+          parentOccupation: formParentOccupation,
+          parentPhone: formParentPhone,
+          height: num(formHeight),
+          weight: num(formWeight),
+          bloodType: formBloodType,
+          medicalConditions: formMedicalConditions,
+          allergy: formAllergy,
+          toeicScore: num(formToeicScore),
+          ieltsScore: num(formIeltsScore),
+          icaoLevel: num(formIcaoLevel),
+          documents: [],
+        }),
+      });
 
-    addApplication(newApp);
-    setAddModalOpen(false);
-    alert(t("createSuccessAlert"));
+      const data = await res.json().catch(() => null);
+
+      if (res.status === 409 && data?.duplicate) {
+        alert(`มีใบสมัครที่ใช้เลขบัตรประชาชนนี้อยู่แล้ว: ${data.applicationNumber}`);
+        return;
+      }
+      if (!res.ok || data?.success === false) {
+        throw new Error(data?.error || `Request failed with status ${res.status}`);
+      }
+
+      // Mirror what the server actually stored, keyed on its id so the next
+      // refetch merges onto this row instead of duplicating it.
+      addApplication({
+        id: data.id,
+        applicationNumber: data.applicationNumber,
+        password: data.password,
+        branch: formBranch,
+        status: formStatus as any,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        student: {
+          id: `std_${Date.now()}`,
+          firstNameTh: formFirstNameTh || "-",
+          lastNameTh: formLastNameTh || "-",
+          firstNameEn: formFirstNameEn,
+          lastNameEn: formLastNameEn || "-",
+          nickname: formNickname || null,
+          gender: formGender || null,
+          birthday: formBirthday ? new Date(formBirthday) : null,
+          age: null,
+          nationality: "Thai",
+          religion: null,
+          phone: formPhone,
+          nationalId: formNationalId || null,
+          passport: formPassport || null,
+          lineId: formLineId || null,
+          facebook: formFacebook || null,
+          user: { email: formEmail },
+          address: {
+            currentAddress: formCurrentAddress || "-",
+            province: formProvince || "-",
+            district: formDistrict || "-",
+            subdistrict: formSubdistrict || "-",
+            postalCode: formPostalCode || "-",
+          },
+          education: {
+            school: formSchool || "-",
+            university: formUniversity || null,
+            degree: formDegree || "-",
+            gpax: formGpax !== "" ? Number(formGpax) : 0,
+            graduationYear:
+              formGraduationYear !== "" ? Number(formGraduationYear) : new Date().getFullYear(),
+          },
+          parent: {
+            fatherName: formFatherName || null,
+            motherName: formMotherName || null,
+            occupation: formParentOccupation || null,
+            phone: formParentPhone || null,
+          },
+          emergency: {
+            name: formEmergencyName || "-",
+            relationship: formEmergencyRelationship || "-",
+            phone: formEmergencyPhone || "-",
+            address: formEmergencyAddress || "-",
+          },
+          medical: {
+            height: formHeight !== "" ? Number(formHeight) : 0,
+            weight: formWeight !== "" ? Number(formWeight) : 0,
+            bloodType: formBloodType || "-",
+            medicalConditions: formMedicalConditions || null,
+            allergy: formAllergy || null,
+          },
+          english: {
+            toeicScore: num(formToeicScore),
+            ieltsScore: num(formIeltsScore),
+            icaoLevel: num(formIcaoLevel),
+          },
+        },
+        course: {
+          id: "cadet-001",
+          name: "Cadet Student Program",
+          code: "CADET",
+          price: 1800,
+          duration: "Initial Entry",
+        },
+        documents: [],
+        payments: [],
+        interviews: [],
+        adminNotes: [],
+      });
+
+      setAddModalOpen(false);
+      alert(
+        `${t("createSuccessAlert")}\n\n` +
+          `เลขใบสมัคร: ${data.applicationNumber}\n` +
+          `รหัสผ่านติดตามสถานะ: ${data.password}\n\n` +
+          `ระบบได้ส่งอีเมลแจ้งเลขใบสมัครและรหัสผ่านไปที่ ${formEmail} แล้ว`
+      );
+    } catch (err: any) {
+      console.error("Admin create application failed:", err);
+      alert(`ไม่สามารถสร้างใบสมัครได้: ${err?.message || "Unknown error"}`);
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   // 5. Document Review Decision (Pass → ready for payment, Fail → rejected with comment)
@@ -2732,8 +2821,13 @@ export default function StudentApplicationsPage() {
             />
           </div>
 
-          <Button variant="gold" className="w-full mt-4" onClick={handleSaveNew}>
-            {t("confirmCreateCadetBtn")}
+          <Button
+            variant="gold"
+            className="w-full mt-4"
+            onClick={handleSaveNew}
+            disabled={isCreating}
+          >
+            {isCreating ? "กำลังบันทึกลงฐานข้อมูล..." : t("confirmCreateCadetBtn")}
           </Button>
         </div>
       </Modal>

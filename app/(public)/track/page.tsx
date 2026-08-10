@@ -485,7 +485,7 @@ const formatRemarks = (remarks?: string, stepIndex?: number, lang: "th" | "en" =
 
 export default function TrackStatusPage() {
   const { t, language } = useLanguage();
-  const { applications: ctxApps, updateApplication } = useApplicationContext();
+  const { applications: ctxApps, updateApplication, syncApplicationFromServer } = useApplicationContext();
   const [nationalId, setNationalId] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -737,6 +737,9 @@ export default function TrackStatusPage() {
     setResult(null);
 
     // Always call POST /api/track to fetch live data directly from Postgres DB
+    let serverAnswered = false;
+    let serverError = "";
+
     try {
       const res = await fetch("/api/track", {
         method: "POST",
@@ -744,16 +747,15 @@ export default function TrackStatusPage() {
         body: JSON.stringify({ query: queryValue, password: passValue }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
 
-      if (res.ok && data.found && Array.isArray(data.applications) && data.applications.length > 0) {
+      if (res.ok && data?.found && Array.isArray(data.applications) && data.applications.length > 0) {
         setResult(data);
-        // Sync retrieved DB application status into ApplicationContext
+        // Local cache only — never PATCHed back. This is a read-only lookup.
         data.applications.forEach((app: any) => {
-          if (app.applicationNumber && updateApplication) {
-            updateApplication(app.applicationNumber, {
+          if (app.applicationNumber && syncApplicationFromServer) {
+            syncApplicationFromServer(app.applicationNumber, {
               status: app.status,
-              remarks: app.remarks,
               joinOpenHouse: app.joinOpenHouse,
             });
           }
@@ -761,11 +763,30 @@ export default function TrackStatusPage() {
         setLoading(false);
         return;
       }
+
+      // The server answered and said no — wrong password, or no such
+      // application. That answer is authoritative and must be shown. Falling
+      // through to the cache here is what froze the status page: an applicant
+      // whose password no longer matched got their own stale localStorage copy
+      // rendered as a live status, so every admin update looked like it never
+      // happened.
+      serverAnswered = true;
+      serverError = data?.error || t("trackNotFoundErr");
     } catch (err: any) {
+      // Only a genuine transport failure reaches here, and only that earns the
+      // offline cache below.
       console.warn("API tracking fetch error, trying local fallback:", err);
     }
 
-    // Local Context Fallback (if network fails or app was just created locally)
+    if (serverAnswered) {
+      setErrorMsg(serverError);
+      setResult(null);
+      setLoading(false);
+      return;
+    }
+
+    // Offline fallback: the request never got an answer. Anything shown from
+    // here on is a cached copy from this device and may be out of date.
     const queryUpper = queryValue.toUpperCase();
     const queryDigits = queryValue.replace(/\D/g, "");
 
@@ -885,6 +906,13 @@ export default function TrackStatusPage() {
         nationalId: student?.nationalId || queryDigits || "-",
         applications,
       });
+      // Say so. Cached status shown as though it were live is exactly what made
+      // admin updates appear to go missing.
+      setErrorMsg(
+        language === "en"
+          ? "Could not reach the server — showing a copy saved on this device. The status may be out of date; please search again when you are back online."
+          : "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กำลังแสดงข้อมูลที่บันทึกไว้ในเครื่องนี้ สถานะอาจไม่ใช่ล่าสุด กรุณาค้นหาอีกครั้งเมื่อเชื่อมต่ออินเทอร์เน็ตได้"
+      );
     } else {
       setErrorMsg(t("trackNotFoundErr"));
       setResult(null);

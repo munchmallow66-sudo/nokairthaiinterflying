@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { fullApplicationSchema } from "@/schemas/application-schema";
+import { fullApplicationSchema, adminCreateApplicationSchema } from "@/schemas/application-schema";
 import { generateApplicationNumber, generateSecurePassword, formatDocumentFileName } from "@/lib/utils";
 import { verifyAdminSessionToken } from "@/lib/auth";
 import { sendApplicationConfirmationEmail, sendSelectionRejectionEmail } from "@/lib/email";
@@ -64,16 +64,6 @@ export async function GET() {
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
-  const ip = getClientIp(req);
-  const rateCheck = checkRateLimit(`app_submit_${ip}`, 5, 60 * 1000);
-
-  if (!rateCheck.success) {
-    return NextResponse.json(
-      { error: `ท่านทำรายการส่งใบสมัครถี่เกินไป กรุณารออีก ${rateCheck.resetInSeconds} วินาที` },
-      { status: 429 }
-    );
-  }
-
   let body: any;
   let clientAppNumber: string | undefined;
 
@@ -84,12 +74,34 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
+  // Staff keying in a walk-in from the admin panel. Authenticated, so it takes
+  // the relaxed schema and skips the public anti-spam limit — an officer
+  // entering a morning's enquiries would otherwise trip it after five.
+  const isAdminCreate = body?.adminCreate === true;
+  if (isAdminCreate && !(await getAdminSession())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!isAdminCreate) {
+    const ip = getClientIp(req);
+    const rateCheck = checkRateLimit(`app_submit_${ip}`, 5, 60 * 1000);
+
+    if (!rateCheck.success) {
+      return NextResponse.json(
+        { error: `ท่านทำรายการส่งใบสมัครถี่เกินไป กรุณารออีก ${rateCheck.resetInSeconds} วินาที` },
+        { status: 429 }
+      );
+    }
+  }
+
   const appNumber = clientAppNumber || generateApplicationNumber();
 
   try {
     const { getPrisma } = await import("@/lib/prisma");
     const prisma = getPrisma();
-    const validated = fullApplicationSchema.parse(body);
+    const validated = isAdminCreate
+      ? adminCreateApplicationSchema.parse(body)
+      : fullApplicationSchema.parse(body);
 
     // Duplicate check: national ID is the only field that blocks a resubmission.
     // Email and phone are allowed to repeat (e.g. siblings sharing a parent's
@@ -150,8 +162,10 @@ export async function POST(req: Request) {
             lastNameEn: validated.lastNameEn,
             nickname: validated.nickname,
             gender: validated.gender,
-            birthday: new Date(validated.birthday),
-            age: validated.age,
+            // Both nullable: a staff-keyed walk-in often has neither yet, and a
+            // blank must stay blank rather than becoming "born today, age 0".
+            birthday: validated.birthday ? new Date(validated.birthday) : null,
+            age: validated.age ?? null,
             nationality: validated.nationality,
             religion: validated.religion,
             nationalId: validated.nationalId || null,
@@ -230,8 +244,11 @@ export async function POST(req: Request) {
             applicationNumber: appNumber,
             studentId: student.id,
             courseId: defaultCourse.id,
-            branch: "Bangkok Headquarters",
-            status: "DOCS_UNDER_REVIEW",
+            // An online submission always starts at document review; a staff-keyed
+            // one starts wherever the officer says, since the applicant may already
+            // be several steps in by the time it is entered.
+            branch: (isAdminCreate && body.branch) || "Bangkok Headquarters",
+            status: (isAdminCreate && body.status) || "DOCS_UNDER_REVIEW",
             // Must be persisted: it is the only copy the server keeps. The
             // applicant's email and the browser both get it from the response,
             // but /api/track verifies against this column and the admin detail
@@ -416,15 +433,26 @@ export async function PATCH(req: Request) {
       if (joinOpenHouse !== undefined) updateData.joinOpenHouse = joinOpenHouse;
       if (remarks !== undefined) updateData.remarks = remarks;
 
-      // Update Application status and details in DB
+      // Update Application status and details in DB.
+      //
+      // This must fail loudly. It used to swallow the error and still answer
+      // `success: true`, so a write that never landed — an unknown id, or a
+      // status string that is not in the ApplicationStatus enum — left the admin
+      // looking at a status the database had never accepted, while the
+      // applicant's page kept correctly reporting the old one. Same trap the
+      // delete flow was fixed for below.
       let updatedApp: any = null;
-      try {
+      if (Object.keys(updateData).length > 0) {
+        if (!targetAppRecord) {
+          return NextResponse.json(
+            { success: false, error: `Application not found: ${id}` },
+            { status: 404 }
+          );
+        }
         updatedApp = await prisma.application.update({
           where: { id: targetAppId },
           data: updateData,
         });
-      } catch (updateErr) {
-        console.warn(`Could not update application ${targetAppId}:`, updateErr);
       }
 
       // Update student details if provided
@@ -517,13 +545,17 @@ export async function PATCH(req: Request) {
       }
 
       return NextResponse.json({ success: true, application: updatedApp });
-    } catch (dbErr) {
-      console.warn("DB application update notice:", dbErr);
+    } catch (dbErr: any) {
+      // Was `console.warn` followed by `{ success: true }` — every database
+      // failure in this handler was reported to the admin as a saved change.
+      console.error("Application PATCH failed:", dbErr);
+      return NextResponse.json(
+        { success: false, error: dbErr?.message || "Database update failed" },
+        { status: 500 }
+      );
     }
-
-    return NextResponse.json({ success: true });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }
 
