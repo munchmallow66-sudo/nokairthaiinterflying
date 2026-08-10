@@ -7,7 +7,7 @@ import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ApplicationWithDetails, PILOT_WORKFLOW_STEPS } from "@/types";
-import { formatDate, formatCurrency, isPdfFile, createBlobUrlFromBase64Pdf, getCloudinaryPdfThumbnail } from "@/lib/utils";
+import { formatDate, formatCurrency, isPdfFile, createBlobUrlFromBase64Pdf, getCloudinaryPdfThumbnail, generateSecurePassword } from "@/lib/utils";
 import { downloadAllDocumentsAsZip } from "@/lib/export";
 import {
   User,
@@ -917,9 +917,12 @@ export default function StudentApplicationsPage() {
       return;
     }
 
+    const appPassword = generateSecurePassword(6);
+
     const newApp: ApplicationWithDetails = {
       id: `app_${Date.now()}`,
       applicationNumber: `TIF-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+      password: appPassword,
       branch: "Bangkok Headquarters",
       status: formStatus as any,
       createdAt: new Date(),
