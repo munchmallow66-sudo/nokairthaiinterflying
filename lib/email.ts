@@ -5,6 +5,11 @@ const SENT_VIA_NOTE_TH =
 const SENT_VIA_NOTE_EN =
   "This message was sent automatically via Nok Air's mail system on behalf of Thai Inter Flying Academy.";
 
+// Links in outgoing mail always point at the live public site, never at an
+// env-derived URL: NEXT_PUBLIC_APP_URL/APP_URL resolve per deployment, so a
+// preview build would mail applicants a *.vercel.app link they can't use.
+const PUBLIC_SITE_URL = "https://nokairthaiinterflying.tif.ac.th";
+
 // Shared transport. From stays on the SMTP account's own domain: nokair.co.th
 // publishes DMARC p=quarantine, so a From that doesn't align with it is junked
 // by policy. The display name carries the Nok Air half too, otherwise
@@ -43,15 +48,18 @@ interface SendConfirmationEmailParams {
   studentName: string;
   applicationNumber: string;
   password: string;
-  lang?: "th" | "en";
 }
 
+/**
+ * Receipt for a submitted application, carrying the applicant's tracking
+ * credentials. Sent bilingual (ไทย / English) in a single message — applicants
+ * come from both language streams and the form doesn't ask which they read.
+ */
 export async function sendApplicationConfirmationEmail({
   toEmail,
   studentName,
   applicationNumber,
   password,
-  lang = "th",
 }: SendConfirmationEmailParams) {
   if (!toEmail) {
     console.warn("Email notification skipped: No recipient email provided.");
@@ -64,48 +72,41 @@ export async function sendApplicationConfirmationEmail({
   }
   const { transporter, from, fromDomain } = mailer;
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || "https://studen-phi.vercel.app";
-  const trackUrl = `${baseUrl}/track`;
-
-  const isEn = lang === "en";
+  const trackUrl = `${PUBLIC_SITE_URL}/track`;
 
   // Clean, professional subject line without brackets to avoid trigger-happy spam filters
-  const subject = isEn
-    ? `Thai Inter Flying Pilot Application Confirmation - ${applicationNumber}`
-    : `ยืนยันการรับใบสมัครนักบิน Thai Inter Flying - หมายเลขใบสมัคร ${applicationNumber}`;
+  const subject = `ยืนยันการรับใบสมัครนักบิน Thai Inter Flying / Application Received - ${applicationNumber}`;
 
   // Plain text fallback (Essential for preventing Junk/Spam classification in Gmail & Outlook)
-  const textContent = isEn
-    ? `Dear ${studentName},
+  const textContent = `เรียนคุณ ${studentName},
 
-Thank you for submitting your pilot cadet application with Thai Inter Flying.
+สถาบันการบิน Thai Inter Flying ขอขอบพระคุณที่ท่านให้ความสนใจสมัครเรียนหลักสูตรนักบิน ระบบได้บันทึกข้อมูลใบสมัครของท่านเรียบร้อยแล้ว
+
+หมายเลขใบสมัคร / Application Number: ${applicationNumber}
+รหัสสำหรับติดตามสถานะ / Tracking Passcode: ${password}
+
+ท่านสามารถนำหมายเลขใบสมัครและรหัสติดตามสถานะ ไปเข้าตรวจสอบสถานะได้ที่: ${trackUrl}
+
+------------------------------------------------------
+
+Dear ${studentName},
+
+Thank you for submitting your pilot cadet application with Thai Inter Flying. Your application has been successfully registered in our system.
 
 Application Number: ${applicationNumber}
 Tracking Passcode: ${password}
 
-You can track your application status at: ${trackUrl}
+You can track your application status at any time at: ${trackUrl}
 
-Thai Inter Flying Academy
-Tel: 02 114 3325 | Email: salemarketing@tif.ac.th
+สถาบันการบิน Thai Inter Flying / Thai Inter Flying Academy
+โทรศัพท์ / Tel: 02 114 3325 | อีเมล / Email: salemarketing@tif.ac.th
 
-${SENT_VIA_NOTE_EN}`
-    : `เรียนคุณ ${studentName},
-
-สถาบันการบิน Thai Inter Flying ขอขอบพระคุณที่ท่านให้ความสนใจสมัครเรียนหลักสูตรนักบิน ระบบได้บันทึกข้อมูลใบสมัครของท่านเรียบร้อยแล้ว
-
-หมายเลขใบสมัคร: ${applicationNumber}
-รหัสสำหรับติดตามสถานะ: ${password}
-
-ท่านสามารถนำหมายเลขใบสมัครและรหัสติดตามสถานะ ไปเข้าตรวจสอบสถานะได้ที่: ${trackUrl}
-
-สถาบันการบิน Thai Inter Flying
-โทรศัพท์: 02 114 3325 | อีเมล: salemarketing@tif.ac.th
-
-${SENT_VIA_NOTE_TH}`;
+${SENT_VIA_NOTE_TH}
+${SENT_VIA_NOTE_EN}`;
 
   const htmlContent = `
     <!DOCTYPE html>
-    <html lang="${lang}">
+    <html lang="th">
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -115,36 +116,44 @@ ${SENT_VIA_NOTE_TH}`;
       <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#f4f6f9; padding:40px 10px;">
         <tr>
           <td align="center">
-            <table width="100%" max-width="600" border="0" cellspacing="0" cellpadding="0" style="max-width:600px; background-color:#ffffff; border-radius:16px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.08); border:1px solid #e2e8f0;">
-              
+            <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width:600px; background-color:#ffffff; border-radius:16px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.08); border:1px solid #e2e8f0;">
+
               <!-- Header -->
               <tr>
                 <td style="background-color:#0b132b; padding:32px 30px; text-align:center; border-bottom:4px solid #d4af37;">
                   <h1 style="color:#d4af37; margin:0 0 6px 0; font-size:24px; font-weight:800; font-family:Georgia, serif;">THAI INTER FLYING</h1>
-                  <p style="color:#94a3b8; margin:0; font-size:13px; font-weight:500; letter-spacing:1px; text-transform:uppercase;">Pilot Training Academy & Online Admission</p>
+                  <p style="color:#94a3b8; margin:0; font-size:13px; font-weight:500; letter-spacing:1px; text-transform:uppercase;">Pilot Training Academy &amp; Online Admission</p>
                 </td>
               </tr>
 
-              <!-- Main Content Body -->
+              <!-- Thai greeting -->
               <tr>
-                <td style="padding:32px 30px;">
-                  <h2 style="color:#0b132b; margin:0 0 16px 0; font-size:20px; font-weight:700;">
-                    ${isEn ? `Dear ${studentName},` : `เรียนคุณ ${studentName},`}
-                  </h2>
-                  <p style="margin:0 0 24px 0; font-size:14px; line-height:1.6; color:#475569;">
-                    ${
-                      isEn
-                        ? "Thank you for submitting your pilot cadet application with Thai Inter Flying. Your application has been successfully registered in our system."
-                        : "สถาบันการบิน Thai Inter Flying ขอขอบพระคุณที่ท่านให้ความสนใจสมัครเรียนหลักสูตรนักบิน ระบบได้บันทึกข้อมูลใบสมัครของท่านเรียบร้อยแล้ว"
-                    }
+                <td style="padding:32px 30px 0 30px;">
+                  <h2 style="color:#0b132b; margin:0 0 12px 0; font-size:20px; font-weight:700;">เรียนคุณ ${studentName},</h2>
+                  <p style="margin:0 0 20px 0; font-size:14px; line-height:1.7; color:#475569;">
+                    สถาบันการบิน Thai Inter Flying ขอขอบพระคุณที่ท่านให้ความสนใจสมัครเรียนหลักสูตรนักบิน ระบบได้บันทึกข้อมูลใบสมัครของท่านเรียบร้อยแล้ว
                   </p>
+                </td>
+              </tr>
 
-                  <!-- Credentials Highlight Card -->
-                  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#f8fafc; border:1px solid #cbd5e1; border-radius:12px; margin-bottom:24px; padding:20px;">
+              <!-- English greeting -->
+              <tr>
+                <td style="padding:0 30px 24px 30px;">
+                  <h2 style="color:#0b132b; margin:0 0 12px 0; font-size:18px; font-weight:700;">Dear ${studentName},</h2>
+                  <p style="margin:0; font-size:14px; line-height:1.7; color:#475569;">
+                    Thank you for submitting your pilot cadet application with Thai Inter Flying. Your application has been successfully registered in our system.
+                  </p>
+                </td>
+              </tr>
+
+              <!-- Credentials Highlight Card -->
+              <tr>
+                <td style="padding:0 30px 24px 30px;">
+                  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#f8fafc; border:1px solid #cbd5e1; border-radius:12px;">
                     <tr>
-                      <td style="padding-bottom:12px;">
-                        <span style="font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; display:block; margin-bottom:4px;">
-                          ${isEn ? "Application Number" : "หมายเลขใบสมัคร (Application No.)"}
+                      <td style="padding:20px 20px 12px 20px;">
+                        <span style="font-size:11px; font-weight:700; color:#64748b; letter-spacing:0.5px; display:block; margin-bottom:4px;">
+                          หมายเลขใบสมัคร / APPLICATION NUMBER
                         </span>
                         <span style="font-size:22px; font-weight:800; font-family:monospace; color:#0b132b;">
                           ${applicationNumber}
@@ -152,9 +161,9 @@ ${SENT_VIA_NOTE_TH}`;
                       </td>
                     </tr>
                     <tr>
-                      <td style="border-top:1px dashed #cbd5e1; padding-top:12px;">
-                        <span style="font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; display:block; margin-bottom:4px;">
-                          ${isEn ? "Tracking Passcode" : "รหัสสำหรับติดตามสถานะ (Tracking Code)"}
+                      <td style="border-top:1px dashed #cbd5e1; padding:12px 20px 20px 20px;">
+                        <span style="font-size:11px; font-weight:700; color:#64748b; letter-spacing:0.5px; display:block; margin-bottom:4px;">
+                          รหัสสำหรับติดตามสถานะ / TRACKING PASSCODE
                         </span>
                         <span style="font-size:22px; font-weight:800; font-family:monospace; color:#d97706;">
                           ${password}
@@ -162,39 +171,52 @@ ${SENT_VIA_NOTE_TH}`;
                       </td>
                     </tr>
                   </table>
+                </td>
+              </tr>
 
-                  <!-- Instructions -->
-                  <div style="background-color:#fffbeb; border:1px solid #fef08a; border-radius:10px; padding:16px; margin-bottom:24px;">
-                    <p style="margin:0 0 8px 0; font-size:13px; font-weight:700; color:#92400e;">
-                      📌 ${isEn ? "Next Steps & Tracking:" : "ขั้นตอนถัดไปและการติดตามสถานะ:"}
-                    </p>
-                    <ul style="margin:0; padding-left:20px; font-size:13px; color:#78350f; line-height:1.6;">
-                      <li>${
-                        isEn
-                          ? "Admissions staff is reviewing your submitted documents."
-                          : "เจ้าหน้าที่กำลังดำเนินการตรวจสอบเอกสารแนบของท่าน"
-                      }</li>
-                      <li>${
-                        isEn
-                          ? "You can track your application status at any time using your Application Number and Passcode."
-                          : "ท่านสามารถนำหมายเลขใบสมัครและรหัสติดตามสถานะ ไปเข้าตรวจสอบสถานะได้ตลอดเวลาที่หน้าเว็บไซต์"
-                      }</li>
-                    </ul>
-                  </div>
+              <!-- Instructions -->
+              <tr>
+                <td style="padding:0 30px 24px 30px;">
+                  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#fffbeb; border:1px solid #fef08a; border-radius:10px;">
+                    <tr>
+                      <td style="padding:16px 18px;">
+                        <p style="margin:0 0 8px 0; font-size:13px; font-weight:700; color:#92400e;">
+                          📌 ขั้นตอนถัดไปและการติดตามสถานะ / Next Steps &amp; Tracking
+                        </p>
+                        <ul style="margin:0 0 10px 0; padding-left:20px; font-size:13px; color:#78350f; line-height:1.6;">
+                          <li>เจ้าหน้าที่กำลังดำเนินการตรวจสอบเอกสารแนบของท่าน</li>
+                          <li>ท่านสามารถนำหมายเลขใบสมัครและรหัสติดตามสถานะ ไปเข้าตรวจสอบสถานะได้ตลอดเวลาที่หน้าเว็บไซต์</li>
+                        </ul>
+                        <ul style="margin:0; padding-left:20px; font-size:13px; color:#78350f; line-height:1.6;">
+                          <li>Our admissions staff is reviewing your submitted documents.</li>
+                          <li>You can track your application status at any time using your Application Number and Passcode.</li>
+                        </ul>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
 
-                  <!-- Call to action button -->
-                  <div style="text-align:center; margin-bottom:28px;">
-                    <a href="${trackUrl}" target="_blank" style="display:inline-block; background-color:#0b132b; color:#d4af37; font-size:14px; font-weight:700; text-decoration:none; padding:14px 28px; border-radius:10px; border:1px solid #d4af37;">
-                      ${isEn ? "Track Application Status" : "ติดตามสถานะการสมัคร"}
-                    </a>
-                  </div>
+              <!-- Call to action button -->
+              <tr>
+                <td style="padding:0 30px 24px 30px; text-align:center;">
+                  <a href="${trackUrl}" target="_blank" rel="noopener" style="display:inline-block; background-color:#0b132b; color:#d4af37; font-size:14px; font-weight:700; text-decoration:none; padding:14px 28px; border-radius:10px; border:1px solid #d4af37;">
+                    🔍 ติดตามสถานะการสมัคร / Track Application Status
+                  </a>
+                  <p style="margin:12px 0 0 0; font-size:11px; color:#94a3b8; line-height:1.5; word-break:break-all;">
+                    ${trackUrl}
+                  </p>
+                </td>
+              </tr>
 
-                  <p style="margin:0; font-size:12px; color:#94a3b8; line-height:1.5;">
-                    ${
-                      isEn
-                        ? "If you have any questions or need assistance, please contact our admissions department."
-                        : "หากมีข้อสงสัยเพิ่มเติมหรือต้องการติดต่อเจ้าหน้าที่ สามารถติดต่อผ่านช่องทางด้านล่างนี้ได้ทันที"
-                    }
+              <!-- Closing note -->
+              <tr>
+                <td style="padding:0 30px 32px 30px;">
+                  <p style="margin:0 0 6px 0; font-size:12px; color:#94a3b8; line-height:1.6;">
+                    หากมีข้อสงสัยเพิ่มเติมหรือต้องการติดต่อเจ้าหน้าที่ สามารถติดต่อผ่านช่องทางด้านล่างนี้ได้ทันที
+                  </p>
+                  <p style="margin:0; font-size:12px; color:#94a3b8; line-height:1.6;">
+                    If you have any questions or need assistance, please contact our admissions department using the details below.
                   </p>
                 </td>
               </tr>
@@ -202,13 +224,13 @@ ${SENT_VIA_NOTE_TH}`;
               <!-- Footer -->
               <tr>
                 <td style="background-color:#f8fafc; padding:20px 30px; border-top:1px solid #e2e8f0; text-align:center;">
-                  <p style="margin:0 0 4px 0; font-size:12px; font-weight:700; color:#475569;">สถาบันการบิน Thai Inter Flying</p>
+                  <p style="margin:0 0 4px 0; font-size:12px; font-weight:700; color:#475569;">สถาบันการบิน Thai Inter Flying / Thai Inter Flying Academy</p>
                   <p style="margin:0; font-size:11px; color:#64748b; line-height:1.5;">
-                    📞 โทรศัพท์: 02 114 3325 | 📧 อีเมล: salemarketing@tif.ac.th<br>
-                    🌐 เว็บไซต์: www.tif.ac.th
+                    📞 โทรศัพท์ / Tel: 02 114 3325 | 📧 อีเมล / Email: salemarketing@tif.ac.th<br>
+                    🌐 เว็บไซต์ / Website: www.tif.ac.th
                   </p>
                   <p style="margin:12px 0 0 0; font-size:10px; color:#94a3b8; line-height:1.5; border-top:1px solid #e2e8f0; padding-top:10px;">
-                    ${isEn ? SENT_VIA_NOTE_EN : SENT_VIA_NOTE_TH}
+                    ${SENT_VIA_NOTE_TH}<br>${SENT_VIA_NOTE_EN}
                   </p>
                 </td>
               </tr>
@@ -282,8 +304,7 @@ export async function sendSelectionRejectionEmail({
   }
   const { transporter, from, fromDomain } = mailer;
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || "https://studen-phi.vercel.app";
-  const coursesUrl = `${baseUrl}/courses`;
+  const coursesUrl = `${PUBLIC_SITE_URL}/courses`;
 
   const isExam = stage === "WRITTEN_EXAM";
   const roundTh = isExam ? "การสอบข้อเขียน" : "การสอบสัมภาษณ์";

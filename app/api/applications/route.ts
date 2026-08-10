@@ -254,7 +254,6 @@ export async function POST(req: Request) {
         studentName,
         applicationNumber: result.application.applicationNumber,
         password: result.password,
-        lang: "th",
       });
       if (!emailResult.success) {
         console.warn("Email send failed:", emailResult.error);
