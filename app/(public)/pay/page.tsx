@@ -40,29 +40,122 @@ export default function PaymentPage() {
   const [joinOpenHouse, setJoinOpenHouse] = useState<boolean | null>(null);
   const [openHouseAttendees, setOpenHouseAttendees] = useState(1);
 
-  const handleSearchApp = (e: React.FormEvent) => {
+  const handleSearchApp = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
     setFoundApp(null);
     setJoinOpenHouse(null);
     setUploadSuccess(false);
 
-    if (!appNumber.trim()) {
+    const cleanInput = appNumber.trim();
+    if (!cleanInput) {
       setErrorMsg("กรุณากรอกหมายเลขใบสมัคร (เช่น TIF-2026-1973) หรือเลขบัตรประชาชน 13 หลัก");
       return;
     }
 
     setSearching(true);
+
+    // 1. Search in local ApplicationContext first
+    const upperInput = cleanInput.toUpperCase();
+    const digitsInput = cleanInput.replace(/\D/g, "");
+
+    const matchedApp = ctxApps.find((app) => {
+      if (app.applicationNumber && app.applicationNumber.toUpperCase() === upperInput) return true;
+      if (digitsInput && app.student?.nationalId === digitsInput) return true;
+      if (digitsInput && app.student?.phone === digitsInput) return true;
+      return false;
+    });
+
+    let alreadyUploaded = false;
+    let studentName = "สมชาย ใจดี (Somchai Jaidee)";
+    let phone = "081-999-8888";
+    let appNum = upperInput.includes("TIF") ? upperInput : `TIF-2026-8812`;
+    let statusText = "รอชำระค่าสมัคร 1,800 บาท";
+    let remarksText = "";
+
+    if (matchedApp) {
+      appNum = matchedApp.applicationNumber || appNum;
+      if (matchedApp.student) {
+        const s = matchedApp.student;
+        studentName = `${s.title || ""} ${s.firstNameTh || s.firstNameEn || ""} ${s.lastNameTh || s.lastNameEn || ""}`.trim();
+        if (s.firstNameEn || s.lastNameEn) {
+          studentName += ` (${s.firstNameEn || ""} ${s.lastNameEn || ""})`.trim();
+        }
+        phone = s.phone || phone;
+      }
+      remarksText = matchedApp.remarks || "";
+
+      // Check if slip was uploaded for this application
+      const isPaidStatus = [
+        "PAYMENT_PENDING",
+        "PAID",
+        "PAYMENT_VERIFIED",
+        "APPLICATION_FEE_PAID",
+        "OPEN_HOUSE_ATTENDED",
+        "PHYSICAL_DOCS_SUBMITTED",
+        "WRITTEN_EXAM",
+        "WRITTEN_EXAM_PASSED",
+        "INTERVIEW_SCHEDULED",
+        "INTERVIEW_PASSED",
+        "MEDICAL_CHECK_CLASS_1",
+        "ACCEPTANCE_CONFIRMED",
+        "ACCEPTED",
+        "ENROLLED",
+      ].includes(matchedApp.status);
+
+      const hasSlipRemark =
+        matchedApp.remarks?.includes("สลิป") ||
+        matchedApp.remarks?.includes("Slip") ||
+        matchedApp.remarks?.includes("โอนเงิน") ||
+        matchedApp.remarks?.includes("เรียบร้อยแล้ว");
+
+      if (isPaidStatus || hasSlipRemark) {
+        alreadyUploaded = true;
+        statusText = (matchedApp.status as string) === "PAID" || (matchedApp.status as string) === "PAYMENT_VERIFIED"
+          ? "ชำระค่าสมัครเรียบร้อยแล้ว (อนุมัติแล้ว)"
+          : "ได้รับสลิปโอนเงินเรียบร้อยแล้ว (อยู่ระหว่างรอเจ้าหน้าที่ตรวจสอบ)";
+      }
+    }
+
+    // 2. Check /api/payments store for existing payment record
+    try {
+      const res = await fetch("/api/payments");
+      if (res.ok) {
+        const payments = await res.json();
+        if (Array.isArray(payments)) {
+          const foundPayment = payments.find(
+            (p: any) =>
+              (p.appNum && p.appNum.toUpperCase() === appNum) ||
+              (digitsInput && p.nationalId === digitsInput)
+          );
+          if (foundPayment) {
+            alreadyUploaded = true;
+            statusText = foundPayment.status === "VERIFIED"
+              ? "ชำระค่าสมัครเรียบร้อยแล้ว (อนุมัติแล้ว)"
+              : "ได้รับสลิปโอนเงินเรียบร้อยแล้ว (อยู่ระหว่างรอเจ้าหน้าที่ตรวจสอบ)";
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Payment fetch check failed:", err);
+    }
+
     setTimeout(() => {
       setSearching(false);
       setFoundApp({
-        appNum: appNumber.trim().toUpperCase().includes("TIF") ? appNumber.trim().toUpperCase() : `TIF-2026-8812`,
-        studentName: "สมชาย ใจดี (Somchai Jaidee)",
-        phone: "081-999-8888",
-        status: "รอชำระค่าสมัคร 1,800 บาท",
+        appNum,
+        studentName,
+        phone,
+        status: statusText,
         amount: 1800,
+        hasUploadedSlip: alreadyUploaded,
+        remarks: remarksText,
+        joinOpenHouse: matchedApp?.joinOpenHouse ?? null,
       });
-    }, 800);
+      if (matchedApp?.joinOpenHouse !== undefined) {
+        setJoinOpenHouse(matchedApp.joinOpenHouse);
+      }
+    }, 600);
   };
 
   const handleUploadSlip = async () => {
@@ -121,6 +214,10 @@ export default function PaymentPage() {
             joinOpenHouse: joinOpenHouse,
           });
         }
+
+        setFoundApp((prev: any) =>
+          prev ? { ...prev, hasUploadedSlip: true, status: "ได้รับสลิปโอนเงินเรียบร้อยแล้ว (อยู่ระหว่างรอเจ้าหน้าที่ตรวจสอบ)" } : prev
+        );
 
         alert(`อัปโหลดสลิปสำเร็จ! ระบบได้ผูกสลิปโอนเงินเข้ากับใบสมัคร ${foundApp?.appNum} และส่งไปยังหน้า Admin เรียบร้อยแล้ว`);
       }, 1200);
@@ -190,24 +287,55 @@ export default function PaymentPage() {
               </div>
 
               <div className="bg-slate-950 border border-slate-800 p-4 rounded-2xl text-right">
-                <span className="text-[10px] text-slate-400 block uppercase font-bold">ยอดเงินที่ต้องชำระ</span>
+                <span className="text-[10px] text-slate-400 block uppercase font-bold">ยอดเงินค่าสมัคร</span>
                 <span className="text-2xl font-bold text-emerald-400 font-mono">1,800 THB</span>
               </div>
             </div>
 
-            {uploadSuccess ? (
-              <div className="bg-emerald-950/80 border border-emerald-500/50 rounded-2xl p-6 text-center space-y-3">
-                <CheckCircle2 className="h-10 w-10 text-emerald-400 mx-auto" />
-                <h4 className="text-lg font-bold text-emerald-300">อัปโหลดสลิปการชำระเงินสำเร็จ!</h4>
-                <p className="text-xs text-emerald-200">
-                  ระบบบันทึกสลิปเรียบร้อยแล้ว เจ้าหน้าที่จะทำการอนุมัติข้อมูลภายใน 24 ชม. สามารถติดตามสถานะได้ในหน้า Track
-                </p>
-                <div className="pt-2">
+            {uploadSuccess || foundApp.hasUploadedSlip ? (
+              <div className="bg-emerald-950/80 border border-emerald-500/50 rounded-2xl p-6 text-center space-y-4">
+                <CheckCircle2 className="h-12 w-12 text-emerald-400 mx-auto" />
+                <div className="space-y-1">
+                  <h4 className="text-xl font-bold text-emerald-300">อัปโหลดสลิปการชำระเงินเรียบร้อยแล้ว</h4>
+                  <p className="text-xs text-emerald-200/90 max-w-md mx-auto">
+                    ระบบบันทึกสลิปโอนเงินค่าสมัคร 1,800 บาทของใบสมัคร <strong className="font-mono text-tif-gold">{foundApp.appNum}</strong> เรียบร้อยแล้ว ไม่จำเป็นต้องอัปโหลดสลิปซ้ำ เจ้าหน้าที่จะทำการตรวจสอบและอนุมัติใบสมัครภายใน 24 ชม.
+                  </p>
+                </div>
+
+                <div className="bg-slate-950/90 border border-slate-800 rounded-xl p-4 text-left max-w-lg mx-auto space-y-2 text-xs text-slate-300">
+                  <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                    <span className="text-slate-400">สถานะการชำระเงิน:</span>
+                    <span className="font-bold text-emerald-400">{foundApp.status || "ได้รับสลิปเรียบร้อย (อยู่ระหว่างรอตรวจสอบ)"}</span>
+                  </div>
+                  {foundApp.joinOpenHouse !== null && foundApp.joinOpenHouse !== undefined && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-400">ลงทะเบียน Open House:</span>
+                      <span className="font-semibold text-tif-gold">
+                        {foundApp.joinOpenHouse ? "มีความประสงค์เข้าร่วมงาน Open House (12 ก.ย. 2569)" : "ไม่ประสงค์เข้าร่วมงาน Open House"}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
                   <Link href="/track">
-                    <Button variant="gold" size="sm">
+                    <Button variant="gold" size="md" className="font-bold">
+                      <Search className="h-4 w-4 mr-1.5" />
                       ติดตามสถานะใบสมัคร (Track Application)
                     </Button>
                   </Link>
+                  <Button
+                    variant="outline"
+                    size="md"
+                    className="text-slate-300 border-slate-700 hover:bg-slate-800"
+                    onClick={() => {
+                      setFoundApp(null);
+                      setAppNumber("");
+                      setUploadSuccess(false);
+                    }}
+                  >
+                    ค้นหาใบสมัครอื่น
+                  </Button>
                 </div>
               </div>
             ) : (

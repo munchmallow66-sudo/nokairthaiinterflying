@@ -331,6 +331,18 @@ export async function PATCH(req: Request) {
       const { getPrisma } = await import("@/lib/prisma");
       const prisma = getPrisma();
 
+      // Resolve real application record whether passed by ID or applicationNumber
+      const targetAppRecord = await prisma.application.findFirst({
+        where: {
+          OR: [
+            { id: id },
+            { applicationNumber: { equals: id, mode: "insensitive" } },
+          ],
+        },
+      });
+
+      const targetAppId = targetAppRecord?.id || id;
+
       // Single-document actions — isolated in their own try/catch so a docId
       // that doesn't resolve to a real DB row (e.g. a client-only document
       // that never made it into Postgres) can't block the rest of this PATCH.
@@ -377,7 +389,7 @@ export async function PATCH(req: Request) {
         try {
           await prisma.document.create({
             data: {
-              applicationId: id,
+              applicationId: targetAppId,
               type: type as any,
               secureUrl: url,
               publicId: `tif_extra_${Date.now()}`,
@@ -391,11 +403,11 @@ export async function PATCH(req: Request) {
       } else if (action === "VERIFY_ALL_DOCS") {
         try {
           await prisma.document.updateMany({
-            where: { applicationId: id },
+            where: { applicationId: targetAppId },
             data: { isVerified: true, isRejected: false, rejectReason: null },
           });
         } catch (docErr) {
-          console.warn(`Could not verify all documents for application ${id}:`, docErr);
+          console.warn(`Could not verify all documents for application ${targetAppId}:`, docErr);
         }
       }
 
@@ -404,16 +416,22 @@ export async function PATCH(req: Request) {
       if (joinOpenHouse !== undefined) updateData.joinOpenHouse = joinOpenHouse;
       if (remarks !== undefined) updateData.remarks = remarks;
 
-      // Update Application status and details
-      const updatedApp = await prisma.application.update({
-        where: { id },
-        data: updateData,
-      });
+      // Update Application status and details in DB
+      let updatedApp: any = null;
+      try {
+        updatedApp = await prisma.application.update({
+          where: { id: targetAppId },
+          data: updateData,
+        });
+      } catch (updateErr) {
+        console.warn(`Could not update application ${targetAppId}:`, updateErr);
+      }
 
       // Update student details if provided
-      if (student && updatedApp.studentId) {
+      if (student && (updatedApp?.studentId || targetAppRecord?.studentId)) {
+        const studentId = updatedApp?.studentId || targetAppRecord?.studentId;
         await prisma.student.update({
-          where: { id: updatedApp.studentId },
+          where: { id: studentId },
           data: {
             ...(student.firstNameTh && { firstNameTh: student.firstNameTh }),
             ...(student.lastNameTh && { lastNameTh: student.lastNameTh }),
@@ -436,7 +454,7 @@ export async function PATCH(req: Request) {
           try {
             await prisma.adminNote.create({
               data: {
-                applicationId: id,
+                applicationId: targetAppId,
                 authorId: session.id,
                 content: adminNotes[0].content,
               },

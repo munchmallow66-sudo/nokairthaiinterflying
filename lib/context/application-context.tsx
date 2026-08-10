@@ -453,19 +453,15 @@ function mergeWithServer(
     if (!localApp) return dbApp;
 
     return {
-      ...dbApp,
       ...localApp,
-      // The DB is the authority on the tracking password — it is what
-      // /api/track verifies against. Local only fills in for a row the server
-      // has no password for (a just-submitted app on the applicant's own
-      // browser), otherwise a cache written while the column was still NULL
-      // would keep shadowing the real value in the admin panel.
+      ...dbApp,
+      // Database from server is authoritative on status, remarks, joinOpenHouse, documents, payments
       password: dbApp.password || localApp.password || null,
-      joinOpenHouse: localApp.joinOpenHouse !== undefined ? localApp.joinOpenHouse : dbApp.joinOpenHouse,
-      remarks: localApp.remarks || dbApp.remarks,
-      status: localApp.status || dbApp.status,
-      documents: localApp.documents && localApp.documents.length > 0 ? localApp.documents : dbApp.documents,
-      payments: localApp.payments && localApp.payments.length > 0 ? localApp.payments : dbApp.payments,
+      joinOpenHouse: dbApp.joinOpenHouse !== undefined && dbApp.joinOpenHouse !== null ? dbApp.joinOpenHouse : localApp.joinOpenHouse,
+      remarks: dbApp.remarks !== undefined && dbApp.remarks !== null ? dbApp.remarks : localApp.remarks,
+      status: dbApp.status || localApp.status,
+      documents: dbApp.documents && dbApp.documents.length > 0 ? dbApp.documents : (localApp.documents || []),
+      payments: dbApp.payments && dbApp.payments.length > 0 ? dbApp.payments : (localApp.payments || []),
     };
   });
 }
@@ -516,6 +512,24 @@ export function ApplicationProvider({ children }: { children: React.ReactNode })
     refetchApplications().catch((err) =>
       console.warn("Failed to fetch applications from DB:", err)
     );
+  }, [refetchApplications]);
+
+  // 2. Real-Time Cross-Device Polling & Window Focus Auto-Sync
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      refetchApplications().catch(() => {});
+    }, 8000);
+
+    const handleFocus = () => {
+      refetchApplications().catch(() => {});
+    };
+
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", handleFocus);
+    };
   }, [refetchApplications]);
 
   // 2. Persist applications state to localStorage whenever modified
