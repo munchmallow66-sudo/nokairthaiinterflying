@@ -34,7 +34,7 @@ import { StepIndicator } from "@/components/admission/step-indicator";
 import { fullApplicationSchema, FullApplicationInput } from "@/schemas/application-schema";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { useApplicationContext } from "@/lib/context/application-context";
-import { formatDocumentFileName, generateSecurePassword } from "@/lib/utils";
+import { formatDocumentFileName } from "@/lib/utils";
 
 
 const DRAFT_STORAGE_KEY = "tif_cadet_application_draft";
@@ -336,7 +336,13 @@ export function MultiStepForm() {
       }
 
       const finalAppNum = responseData.applicationNumber || appNum;
-      const finalPassword = responseData?.password || generateSecurePassword(6);
+
+      // Never invent a password here. Only the server's value is stored in the
+      // DB, so a locally generated fallback would be shown to the applicant and
+      // emailed nowhere — they would hold a password /api/track rejects and the
+      // admin panel does not recognise. If the response carries none, show the
+      // application number alone; the confirmation email still has the real one.
+      const finalPassword: string | undefined = responseData?.password || undefined;
 
       // Save to global ApplicationContext so Admin sees it instantly
       try {
