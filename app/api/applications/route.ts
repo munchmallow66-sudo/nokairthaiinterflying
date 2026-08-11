@@ -433,6 +433,21 @@ export async function PATCH(req: Request) {
       if (joinOpenHouse !== undefined) updateData.joinOpenHouse = joinOpenHouse;
       if (remarks !== undefined) updateData.remarks = remarks;
 
+      // Which round the applicant was rejected in, recorded as data rather than
+      // left for the applicant's page to infer from the wording staff typed.
+      // ANNOUNCE_REJECTION carries the stage explicitly; any other route to
+      // REJECTED is the document review failing, which is the only rejection
+      // the rest of the admin panel can produce. Moving off REJECTED clears it,
+      // so an applicant whose result is reversed carries no stale stage.
+      if (action === "ANNOUNCE_REJECTION" && (stage === "WRITTEN_EXAM" || stage === "INTERVIEW")) {
+        updateData.status = "REJECTED";
+        updateData.rejectedStage = stage;
+      } else if (status === "REJECTED") {
+        updateData.rejectedStage = "DOCUMENT";
+      } else if (status !== undefined) {
+        updateData.rejectedStage = null;
+      }
+
       // Update Application status and details in DB.
       //
       // This must fail loudly. It used to swallow the error and still answer

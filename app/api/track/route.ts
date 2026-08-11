@@ -232,12 +232,16 @@ export async function POST(req: Request) {
           statusLabelTh = "13/13: ยืนยันสิทธิ์เข้าศึกษาสำเร็จ";
           statusLabelEn = "13/13: Seat Acceptance Confirmed";
           break;
+        // The round the applicant was rejected in is read from the column staff
+        // wrote it to. It used to be guessed from keywords in `remarks`, so a
+        // message worded without the word "ข้อเขียน" reported a failed exam as
+        // step 3, "documents incomplete".
         case "REJECTED":
-          if (app.remarks?.includes("สัมภาษณ์") || app.remarks?.includes("Interview")) {
+          if (app.rejectedStage === "INTERVIEW") {
             stepIndex = 11;
             statusLabelTh = "11/13: ประกาศผลสัมภาษณ์ (ขอขอบพระคุณที่เข้าร่วมการคัดเลือก)";
             statusLabelEn = "11/13: Panel Interview Results";
-          } else if (app.remarks?.includes("ข้อเขียน") || app.remarks?.includes("Written Exam") || app.remarks?.includes("ขอบพระคุณ") || app.remarks?.includes("กำลังใจ") || app.remarks?.includes("เกณฑ์") || app.remarks?.includes("สอบ")) {
+          } else if (app.rejectedStage === "WRITTEN_EXAM") {
             stepIndex = 9;
             statusLabelTh = "9/13: ประกาศผลสอบข้อเขียน (ขอขอบพระคุณที่เข้าร่วมการคัดเลือก)";
             statusLabelEn = "9/13: Written Exam Results";
@@ -254,6 +258,9 @@ export async function POST(req: Request) {
       return {
         id: app.id,
         applicationNumber: app.applicationNumber,
+        // Null unless status is REJECTED. The page renders the outcome from
+        // this, never from the wording of `remarks`.
+        rejectedStage: app.rejectedStage ?? null,
         // The tracking password is never echoed back — the client already has
         // it, and shipping it in the response puts it in browser caches, logs
         // and localStorage via ApplicationContext.

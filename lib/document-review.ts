@@ -102,38 +102,40 @@ export function getResubmitDocTypes(
   return { required, optional };
 }
 
+/** The rejection rounds that end an application for good. */
+export type RejectionStageValue = "DOCUMENT" | "WRITTEN_EXAM" | "INTERVIEW";
+
+export interface RejectableApplication {
+  status: string;
+  rejectedStage?: RejectionStageValue | string | null;
+  documents?: { isRejected?: boolean }[] | null;
+}
+
 /**
  * A REJECTED application is not necessarily a failed document review — the same
  * status carries written-exam and interview outcomes, which are final and must
- * never invite an upload. They are told apart by the wording staff sent, the
- * same test the track page uses to pick which message to render.
+ * never invite an upload. Which one it is comes from `rejectedStage`, written
+ * when staff record the result. It used to be guessed from the words staff
+ * typed, so any rejection phrased differently fell through to "documents
+ * incomplete" and handed a knocked-out applicant a re-upload button.
  */
-export function isSelectionRejection(
-  status: string,
-  remarks: string | null | undefined,
-  hasRejectedDocs: boolean
-): boolean {
-  if (status !== "REJECTED" || hasRejectedDocs) return false;
+export function isSelectionRejection(app: RejectableApplication): boolean {
   return (
-    !!remarks &&
-    (remarks.includes("ขอบพระคุณ") ||
-      remarks.includes("กำลังใจ") ||
-      remarks.includes("เกณฑ์") ||
-      remarks.includes("สัมภาษณ์") ||
-      remarks.includes("สอบ"))
+    app.status === "REJECTED" &&
+    (app.rejectedStage === "WRITTEN_EXAM" || app.rejectedStage === "INTERVIEW")
   );
 }
 
 /** True when staff have failed this applicant's document review. */
-export function isDocumentReviewFailed(app: {
-  status: string;
-  remarks?: string | null;
-  documents?: { isRejected?: boolean }[] | null;
-}): boolean {
+export function isDocumentReviewFailed(app: RejectableApplication): boolean {
+  // Checked before the per-document flags: an exam or interview rejection is
+  // final, so a document left flagged from an earlier round must not reopen
+  // uploads for someone who is already out.
+  if (isSelectionRejection(app)) return false;
   const hasRejectedDocs = (app.documents || []).some((d) => !!d.isRejected);
   if (hasRejectedDocs) return true;
   if (app.status === "WAITING_DOCUMENTS") return true;
-  return app.status === "REJECTED" && !isSelectionRejection(app.status, app.remarks, false);
+  return app.status === "REJECTED";
 }
 
 /** Statuses where the applicant's document set is still open for edits. */
@@ -153,10 +155,7 @@ const MEDICAL_STAGE_STATUSES = new Set(["INTERVIEW_PASSED", "MEDICAL_CHECK_CLASS
  * editable while review is still open or has failed; once review has passed,
  * only the Class 1 medical certificate the later steps ask for is accepted.
  */
-export function canReplaceSingleDoc(
-  app: { status: string; remarks?: string | null; documents?: { isRejected?: boolean }[] | null },
-  type: string
-): boolean {
+export function canReplaceSingleDoc(app: RejectableApplication, type: string): boolean {
   if (DOC_STAGE_STATUSES.has(app.status)) return true;
   if (isDocumentReviewFailed(app)) return true;
   return (

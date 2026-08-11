@@ -626,6 +626,9 @@ export function ApplicationProvider({ children }: { children: React.ReactNode })
               ...app,
               ...extraFields,
               status: "REJECTED" as any,
+              // Mirrors what the API records, so the round this applicant was
+              // knocked out in survives in the local cache too.
+              rejectedStage: stage,
               remarks: message,
               adminNotes: [note, ...(app.adminNotes || [])],
               updatedAt: new Date(),

@@ -38,6 +38,8 @@ export interface ApplicationWithDetails {
   branch: string;
   preferredStartDate?: Date | null;
   status: ApplicationStatus;
+  /** Which round a REJECTED applicant was rejected in; null for every other status. */
+  rejectedStage?: "DOCUMENT" | "WRITTEN_EXAM" | "INTERVIEW" | null;
   password?: string | null;
   remarks?: string;
   createdAt: Date;

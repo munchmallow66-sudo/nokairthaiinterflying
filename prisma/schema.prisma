@@ -76,6 +76,17 @@ enum PaymentStatus {
   REJECTED
 }
 
+// Which round an applicant was rejected in. ApplicationStatus has a single
+// REJECTED value carrying three very different outcomes, and the applicant's
+// page used to tell them apart by searching the staff message for words like
+// "ข้อเขียน" — so a rejection worded any other way was rendered as a failed
+// document review, complete with a working re-upload button.
+enum RejectionStage {
+  DOCUMENT
+  WRITTEN_EXAM
+  INTERVIEW
+}
+
 model User {
   id            String          @id @default(cuid())
   name          String?
@@ -238,6 +249,8 @@ model Application {
   branch             String             @default("Bangkok Headquarters")
   preferredStartDate DateTime?
   status             ApplicationStatus  @default(SUBMITTED)
+  // Set whenever status becomes REJECTED; null for every other status.
+  rejectedStage      RejectionStage?
   remarks            String?
   joinOpenHouse      Boolean?
   password           String?

@@ -33,7 +33,13 @@ import { useLanguage } from "@/lib/i18n/language-context";
 import { PILOT_WORKFLOW_STEPS } from "@/types";
 import { compressImageIfNeeded } from "@/lib/image-compressor";
 import { useApplicationContext } from "@/lib/context/application-context";
-import { canonicalDocType, getResubmitDocTypes, isDocumentReviewFailed } from "@/lib/document-review";
+import {
+  canonicalDocType,
+  getResubmitDocTypes,
+  isDocumentReviewFailed,
+  isSelectionRejection,
+  type RejectionStageValue,
+} from "@/lib/document-review";
 
 
 interface ApplicationData {
@@ -48,6 +54,8 @@ interface ApplicationData {
   remarks: string;
   updatedAt: string;
   joinOpenHouse?: boolean | null;
+  /** Which round a REJECTED applicant was rejected in. Null for every other status. */
+  rejectedStage?: RejectionStageValue | null;
   /** Set by /api/track from the payments table. Undefined only for the offline cache. */
   hasPaymentSlip?: boolean;
   paymentStatus?: string | null;
@@ -89,8 +97,14 @@ const getStepGuidance = (app: ApplicationData, lang: "th" | "en" = "th") => {
           app.remarks?.includes("โอนเงิน"))));
   const isEn = lang === "en";
 
-  if (status === "REJECTED" && !hasRejectedDocs && (app.remarks?.includes("ขอบพระคุณ") || app.remarks?.includes("กำลังใจ") || app.remarks?.includes("เกณฑ์") || app.remarks?.includes("สัมภาษณ์") || app.remarks?.includes("สอบ"))) {
-    const isInterview = app.remarks?.includes("สัมภาษณ์") || app.remarks?.includes("Interview");
+  // Which selection round ended the application comes from `rejectedStage`,
+  // recorded by staff at the moment they entered the result. Reading it out of
+  // the wording of `remarks` is what sent exam and interview rejections to the
+  // document-resubmission screen whenever staff phrased the message their own
+  // way — and what re-labelled an exam rejection as an interview one whenever
+  // the message happened to mention สัมภาษณ์.
+  if (isSelectionRejection(app)) {
+    const isInterview = app.rejectedStage === "INTERVIEW";
 
     return {
       condition: isEn
@@ -995,7 +1009,7 @@ export default function TrackStatusPage() {
         ? `${student.title || ""} ${student.firstNameTh || student.firstNameEn || ""} ${student.lastNameTh || student.lastNameEn || ""} (${student.firstNameEn || ""} ${student.lastNameEn || ""})`.trim()
         : t("unknownStudentName");
 
-      const getStatusInfo = (status: string, remarks?: string) => {
+      const getStatusInfo = (status: string, rejectedStage?: RejectionStageValue | null) => {
         switch (status) {
           case "ONLINE_REGISTRATION":
             return { stepIndex: 1, labelTh: "1/13: เปิดรับสมัครออนไลน์", labelEn: "1/13: Online Registration Open" };
@@ -1035,11 +1049,12 @@ export default function TrackStatusPage() {
           case "PILOT_JOURNEY_BEGUN":
           case "ENROLLED":
             return { stepIndex: 13, labelTh: "13/13: ยืนยันสิทธิ์เข้าศึกษาสำเร็จ", labelEn: "13/13: Acceptance Confirmed" };
+          // Same rule as /api/track: the recorded stage decides, not the wording.
           case "REJECTED":
-            if (remarks?.includes("สัมภาษณ์") || remarks?.includes("Interview")) {
+            if (rejectedStage === "INTERVIEW") {
               return { stepIndex: 11, labelTh: "11/13: ประกาศผลสัมภาษณ์ (ขอขอบพระคุณที่เข้าร่วมการคัดเลือก)", labelEn: "11/13: Panel Interview Results" };
             }
-            if (remarks?.includes("ข้อเขียน") || remarks?.includes("Written Exam") || remarks?.includes("ขอบพระคุณ") || remarks?.includes("กำลังใจ") || remarks?.includes("เกณฑ์") || remarks?.includes("สอบ")) {
+            if (rejectedStage === "WRITTEN_EXAM") {
               return { stepIndex: 9, labelTh: "9/13: ประกาศผลสอบข้อเขียน (ขอขอบพระคุณที่เข้าร่วมการคัดเลือก)", labelEn: "9/13: Written Exam Results" };
             }
             return { stepIndex: 3, labelTh: "3/13: ตรวจเอกสารเบื้องต้น (ข้อมูลและเอกสารไม่สมบูรณ์)", labelEn: "3/13: Initial Document Review (Incomplete Information and Documents)" };
@@ -1049,10 +1064,11 @@ export default function TrackStatusPage() {
       };
 
       const applications: ApplicationData[] = localMatches.map((app) => {
-        const info = getStatusInfo(app.status, app.remarks);
+        const info = getStatusInfo(app.status, app.rejectedStage);
         return {
           id: app.id,
           applicationNumber: app.applicationNumber,
+          rejectedStage: app.rejectedStage ?? null,
           courseName: t("trackCourseName"),
           status: app.status,
           statusLabelTh: info.labelTh,

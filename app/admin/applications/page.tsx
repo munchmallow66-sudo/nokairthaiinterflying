@@ -1160,12 +1160,17 @@ export default function StudentApplicationsPage() {
     const updatedAppData = {
       ...selectedApp,
       status: "REJECTED" as any,
+      // A document-review failure, as opposed to a written-exam or interview
+      // one. The applicant's page reads this to decide whether to offer a
+      // re-upload, so it must say which round this rejection came from.
+      rejectedStage: "DOCUMENT" as const,
       remarks: reviewComment,
       adminNotes: [newNote, ...(selectedApp.adminNotes || [])],
     };
 
     updateApplication(selectedApp.id, {
       status: "REJECTED",
+      rejectedStage: "DOCUMENT",
       remarks: reviewComment,
       adminNotes: [newNote, ...(selectedApp.adminNotes || [])],
     });
