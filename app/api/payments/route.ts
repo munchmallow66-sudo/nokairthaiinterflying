@@ -1,10 +1,107 @@
 import { NextResponse } from "next/server";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
 let paymentsStore: any[] = [];
 
-export async function GET() {
+/**
+ * Answers one question for the public slip-upload page: does the applicant
+ * behind this application number / national ID / phone already have a payment
+ * slip on file?
+ *
+ * The page used to work this out from the full payment list, which carries no
+ * national ID, so an applicant who searched by ID was never matched and was
+ * shown the upload form a second time. Resolving it here — against the same
+ * payments table /api/track trusts — is the only way the answer survives a
+ * refresh or a different device.
+ *
+ * Deliberately narrow: it returns the resolved application number and a
+ * yes/no, never the applicant's name or any other personal field, and it is
+ * rate limited because it takes an unauthenticated identifier.
+ */
+async function lookupSlipStatus(req: Request, rawQuery: string) {
+  const ip = getClientIp(req);
+  const rateCheck = checkRateLimit(`slip_check_${ip}`, 20, 60 * 1000);
+  if (!rateCheck.success) {
+    return NextResponse.json(
+      { error: `คุณส่งคำขอตรวจสอบถี่เกินไป กรุณารออีก ${rateCheck.resetInSeconds} วินาที` },
+      { status: 429 }
+    );
+  }
+
+  const trimmed = rawQuery.trim();
+  const digits = trimmed.replace(/\D/g, "");
+
+  if (!trimmed) {
+    return NextResponse.json({ found: false }, { status: 400 });
+  }
+
+  try {
+    const { getPrisma } = await import("@/lib/prisma");
+    const prisma = getPrisma();
+
+    let application: any = null;
+
+    if (trimmed.toUpperCase().startsWith("TIF")) {
+      application = await prisma.application.findFirst({
+        where: { applicationNumber: { equals: trimmed, mode: "insensitive" } },
+        include: { payments: { orderBy: { createdAt: "desc" } } },
+      });
+    }
+
+    if (!application && digits.length > 0) {
+      const student = await prisma.student.findFirst({
+        where: { OR: [{ nationalId: digits }, { phone: digits }] },
+        include: {
+          applications: {
+            include: { payments: { orderBy: { createdAt: "desc" } } },
+            orderBy: { createdAt: "desc" },
+          },
+        },
+      });
+      // An applicant with more than one application is answered with the one
+      // that already carries a slip, not simply the newest. Picking the newest
+      // blind is what would put the upload form back in front of someone who
+      // has paid.
+      const studentApps: any[] = student?.applications || [];
+      application =
+        studentApps.find((a: any) =>
+          (a.payments || []).some((p: any) => p.status !== "REJECTED")
+        ) ||
+        studentApps[0] ||
+        null;
+    }
+
+    if (!application) {
+      return NextResponse.json({ found: false });
+    }
+
+    const paymentRows: any[] = Array.isArray(application.payments) ? application.payments : [];
+    // A rejected slip does not count — that applicant is meant to send a new one.
+    const activePayment = paymentRows.find((p) => p.status !== "REJECTED") || null;
+
+    return NextResponse.json({
+      found: true,
+      appNum: application.applicationNumber,
+      status: application.status,
+      hasSlip: !!activePayment,
+      paymentStatus: paymentRows[0]?.status || null,
+    });
+  } catch (err) {
+    console.warn("Slip status lookup failed:", err);
+    // Undetermined, not "no slip". The caller must not read this as permission
+    // to show the upload form again.
+    return NextResponse.json({ error: "lookup_failed" }, { status: 503 });
+  }
+}
+
+export async function GET(req: Request) {
+  const slipCheck = new URL(req.url).searchParams.get("slipCheck");
+  if (slipCheck !== null) {
+    return lookupSlipStatus(req, slipCheck);
+  }
+
   try {
     const { getPrisma } = await import("@/lib/prisma");
     const prisma = getPrisma();
@@ -57,6 +154,19 @@ export async function GET() {
   return NextResponse.json(paymentsStore);
 }
 
+/** True when the caller is signed in to the admin panel. */
+async function isAdminRequest() {
+  try {
+    const { cookies } = await import("next/headers");
+    const { verifyAdminSessionToken } = await import("@/lib/auth");
+    const cookieStore = await cookies();
+    const sessionToken = cookieStore.get("admin_session")?.value;
+    return sessionToken ? !!(await verifyAdminSessionToken(sessionToken)) : false;
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -73,6 +183,43 @@ export async function POST(req: Request) {
       joinOpenHouse,
       openHouseAttendees,
     } = body;
+
+    // One slip per application, enforced here rather than only in the page.
+    // Hiding the upload button is what an applicant sees; this is what actually
+    // stops a second slip — a stale tab, a back button or a double submit all
+    // reach this handler with the button long gone. Staff are exempt: the admin
+    // panel records payments on an applicant's behalf. A REJECTED slip does not
+    // count, so an applicant asked for a new one can still send it.
+    const requestedAppNum = (appNum || "").toString().trim();
+    if (requestedAppNum && !(await isAdminRequest())) {
+      try {
+        const { getPrisma } = await import("@/lib/prisma");
+        const prisma = getPrisma();
+        const existingPayment = await prisma.payment.findFirst({
+          where: {
+            application: { applicationNumber: { equals: requestedAppNum, mode: "insensitive" } },
+            status: { not: "REJECTED" },
+          },
+          orderBy: { createdAt: "desc" },
+        });
+
+        if (existingPayment) {
+          return NextResponse.json(
+            {
+              success: false,
+              alreadySubmitted: true,
+              error:
+                "ระบบได้รับสลิปโอนเงินของใบสมัครนี้เรียบร้อยแล้ว ไม่ต้องแนบสลิปซ้ำอีก กรุณารอเจ้าหน้าที่ตรวจสอบ",
+            },
+            { status: 409 }
+          );
+        }
+      } catch (dupErr) {
+        // Undetermined. Blocking here would stop a first-time payer, so the
+        // submission proceeds and staff see any duplicate in the payments list.
+        console.warn("Duplicate slip check skipped:", dupErr);
+      }
+    }
 
     let finalSlipUrl = slipUrl || "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=500";
     let cloudinaryOk = true;

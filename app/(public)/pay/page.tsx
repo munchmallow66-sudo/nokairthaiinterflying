@@ -117,27 +117,59 @@ export default function PaymentPage() {
       }
     }
 
-    // 2. Check /api/payments store for existing payment record
+    // 2. Ask the server whether a slip is already on file. The payments table is
+    //    the authority here — the context above is only this device's cache, so
+    //    it cannot answer for an applicant who paid from another browser, and it
+    //    holds nothing at all for someone who searched by national ID. That gap
+    //    is what kept showing the upload form to applicants who had already paid.
+    let serverAnswered = false;
     try {
-      const res = await fetch("/api/payments");
+      const res = await fetch(`/api/payments?slipCheck=${encodeURIComponent(cleanInput)}`);
       if (res.ok) {
-        const payments = await res.json();
-        if (Array.isArray(payments)) {
-          const foundPayment = payments.find(
-            (p: any) =>
-              (p.appNum && p.appNum.toUpperCase() === appNum) ||
-              (digitsInput && p.nationalId === digitsInput)
-          );
-          if (foundPayment) {
+        const info = await res.json();
+        if (info?.found) {
+          serverAnswered = true;
+          // Use the real application number, not the guess made above: a slip
+          // posted against a fabricated number never reaches the applicant's
+          // record, so the next search would invite them to upload yet again.
+          if (info.appNum) {
+            appNum = info.appNum;
+          }
+          if (info.hasSlip) {
             alreadyUploaded = true;
-            statusText = foundPayment.status === "VERIFIED"
-              ? "ชำระค่าสมัครเรียบร้อยแล้ว (อนุมัติแล้ว)"
-              : "ได้รับสลิปโอนเงินเรียบร้อยแล้ว (อยู่ระหว่างรอเจ้าหน้าที่ตรวจสอบ)";
+            statusText =
+              info.paymentStatus === "VERIFIED"
+                ? "ชำระค่าสมัครเรียบร้อยแล้ว (อนุมัติแล้ว)"
+                : "ได้รับสลิปโอนเงินเรียบร้อยแล้ว (อยู่ระหว่างรอเจ้าหน้าที่ตรวจสอบ)";
           }
         }
       }
     } catch (err) {
-      console.warn("Payment fetch check failed:", err);
+      console.warn("Slip status lookup failed:", err);
+    }
+
+    // Fallback only for when the lookup could not answer (database unreachable),
+    // where the in-memory payment store may still know about this slip.
+    if (!serverAnswered && !alreadyUploaded) {
+      try {
+        const res = await fetch("/api/payments");
+        if (res.ok) {
+          const payments = await res.json();
+          if (Array.isArray(payments)) {
+            const foundPayment = payments.find(
+              (p: any) => p.appNum && p.appNum.toUpperCase() === appNum.toUpperCase()
+            );
+            if (foundPayment) {
+              alreadyUploaded = true;
+              statusText = foundPayment.status === "VERIFIED"
+                ? "ชำระค่าสมัครเรียบร้อยแล้ว (อนุมัติแล้ว)"
+                : "ได้รับสลิปโอนเงินเรียบร้อยแล้ว (อยู่ระหว่างรอเจ้าหน้าที่ตรวจสอบ)";
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Payment fetch check failed:", err);
+      }
     }
 
     setTimeout(() => {
@@ -194,6 +226,26 @@ export default function PaymentPage() {
         responseData = await res.json();
       } catch {
         responseData = null;
+      }
+
+      // Already on file server-side (stale tab, back button, double submit).
+      // Not an error to the applicant — show them the paid state instead.
+      if (res.status === 409 || responseData?.alreadySubmitted) {
+        setUploading(false);
+        setFoundApp((prev: any) =>
+          prev
+            ? {
+                ...prev,
+                hasUploadedSlip: true,
+                status: "ได้รับสลิปโอนเงินเรียบร้อยแล้ว (อยู่ระหว่างรอเจ้าหน้าที่ตรวจสอบ)",
+              }
+            : prev
+        );
+        alert(
+          responseData?.error ||
+            "ระบบได้รับสลิปโอนเงินของใบสมัครนี้เรียบร้อยแล้ว ไม่ต้องแนบสลิปซ้ำอีก"
+        );
+        return;
       }
 
       if (!res.ok || responseData?.success === false) {

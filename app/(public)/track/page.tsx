@@ -819,6 +819,25 @@ export default function TrackStatusPage() {
         responseData = null;
       }
 
+      // The server refuses a second slip for an application that already has
+      // one. That is not an upload failure — the applicant is already paid up,
+      // so the record is closed out instead of showing them a red error.
+      if (res.status === 409 || responseData?.alreadySubmitted) {
+        setUploadingSlip(false);
+        setPayModalOpen(false);
+        if (result?.applications) {
+          setResult({
+            ...result,
+            applications: result.applications.map((a) =>
+              a.applicationNumber === activePayAppNum ? { ...a, hasPaymentSlip: true } : a
+            ),
+          });
+        }
+        alert(responseData?.error || t("slipUploadSuccessDesc"));
+        void refreshTracking();
+        return;
+      }
+
       if (!res.ok || responseData?.success === false) {
         throw new Error(responseData?.error || `Upload failed with status ${res.status}`);
       }
