@@ -1384,18 +1384,11 @@ export function MultiStepForm() {
                         {...register(item.field as any)}
                         className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-400 text-tif-gold accent-tif-gold focus:ring-tif-gold cursor-pointer"
                       />
-                      <span className="space-y-1">
-                        <span className="block text-sm text-slate-800 leading-relaxed font-medium">
-                          <span className="font-bold text-tif-navy">
-                            {t("consentItemPrefix")} {idx + 1}:{" "}
-                          </span>
-                          {item.th}
+                      <span className="block text-sm text-slate-800 leading-relaxed font-medium">
+                        <span className="font-bold text-tif-navy">
+                          {t("consentItemPrefix")} {idx + 1}:{" "}
                         </span>
-                        {language === "en" && (
-                          <span className="block text-xs text-slate-500 leading-relaxed italic">
-                            {item.en}
-                          </span>
-                        )}
+                        {language === "en" ? item.en : item.th}
                       </span>
                     </label>
                   ))}
