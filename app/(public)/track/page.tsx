@@ -500,6 +500,8 @@ const getDocTypeLabel = (type: string, t: (key: any) => string): string => {
     MEDICAL_CERTIFICATE_CLASS_1: t("docMedicalCert"),
     MEDICAL_CERT: t("docMedicalCert"),
     TOEIC: t("docToeic"),
+    // Legacy: no longer uploadable, but files already on an older application
+    // still need a name when the applicant views their document list.
     CRIMINAL_RECORD_CHECK: t("docCriminal"),
     MILITARY_SERVICE_EXEMPTION: t("docMilitary"),
     OTHER: t("docOther"),
@@ -2131,7 +2133,6 @@ export default function TrackStatusPage() {
               <option value="TOEIC">{t("docToeic")}</option>
               <option value="MEDICAL_CERTIFICATE_CLASS_1">{t("docMedicalCert")}</option>
               <option value="PHOTO_1_INCH">{t("docPassportPhoto")}</option>
-              <option value="CRIMINAL_RECORD_CHECK">{t("docCriminal")}</option>
               <option value="MILITARY_SERVICE_EXEMPTION">{t("docMilitary")}</option>
             </select>
           </div>

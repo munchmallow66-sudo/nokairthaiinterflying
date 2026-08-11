@@ -89,9 +89,23 @@ test("submits a complete application through the 8-step form", async ({ page, re
       await expect(fileInputs).toHaveCount(remainingBefore - 1);
     }
 
-    await expect(page.getByText(/All 6 documents uploaded successfully/i)).toBeVisible();
+    await expect(page.getByText(/All 5 documents uploaded successfully/i)).toBeVisible();
 
+    // ---- Step 8: Criminal background check consent ----
+    // Replaced the police report upload. All three clauses gate Submit, so the
+    // button must still be locked with a complete document set behind it.
     const submitButton = page.getByRole("button", { name: /submit complete application/i });
+    await expect(submitButton).toBeDisabled();
+
+    for (const field of [
+      "criminalConsentDeclaration",
+      "criminalConsentBackgroundCheck",
+      "criminalConsentRevocation",
+    ]) {
+      await page.locator(`input#${field}`).check();
+    }
+
+    await expect(page.getByText(/You have accepted all three clauses/i)).toBeVisible();
     await expect(submitButton).toBeEnabled();
 
     // Generous timeout: the server awaits a real SMTP send on this request.

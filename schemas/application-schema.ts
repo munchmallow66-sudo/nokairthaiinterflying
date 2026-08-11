@@ -102,6 +102,30 @@ export const step9Schema = z.object({
   ),
 });
 
+/**
+ * Criminal-background-check consent. All three clauses are mandatory on a
+ * public submission — they are what replaced the police report applicants used
+ * to attach, so a submission without them carries no evidence at all.
+ * `required_error` covers a payload that omits the key entirely; the refine
+ * covers an explicit `false`, and both report the same thing.
+ */
+const CONSENT_INCOMPLETE_MESSAGE =
+  "กรุณาติ๊กยินยอมเงื่อนไขการตรวจสอบประวัติอาชญากรรมให้ครบทั้ง 3 ข้อก่อนส่งใบสมัคร";
+
+const consentTick = () =>
+  z
+    .boolean({
+      required_error: CONSENT_INCOMPLETE_MESSAGE,
+      invalid_type_error: CONSENT_INCOMPLETE_MESSAGE,
+    })
+    .refine((v) => v === true, { message: CONSENT_INCOMPLETE_MESSAGE });
+
+export const step10Schema = z.object({
+  criminalConsentDeclaration: consentTick(),
+  criminalConsentBackgroundCheck: consentTick(),
+  criminalConsentRevocation: consentTick(),
+});
+
 export const fullApplicationSchema = step1Schema
   .merge(step2Schema)
   .merge(step3Schema)
@@ -111,16 +135,18 @@ export const fullApplicationSchema = step1Schema
   .merge(step7Schema)
   .merge(step8Schema)
   .merge(step9Schema)
+  .merge(step10Schema)
   .refine(
     (data) => {
       const types = new Set((data.documents || []).map((d) => d.type));
       const isMale = data.gender?.toLowerCase() === "male" || data.gender === "ชาย";
+      // CRIMINAL_RECORD_CHECK is deliberately absent: the police report was
+      // replaced by the step10Schema consent ticks.
       const hasBase =
         types.has("PHOTO_1_INCH") &&
         types.has("NATIONAL_ID_CERTIFIED") &&
         types.has("TRANSCRIPT_CERTIFIED") &&
-        types.has("HOUSE_REGISTRATION_CERTIFIED") &&
-        types.has("CRIMINAL_RECORD_CHECK");
+        types.has("HOUSE_REGISTRATION_CERTIFIED");
       if (isMale) {
         return hasBase && types.has("MILITARY_SERVICE_EXEMPTION");
       }
@@ -269,6 +295,13 @@ export const adminCreateApplicationSchema = z.object({
     )
     .optional()
     .transform((v) => v || []),
+
+  // A walk-in never passed through the consent form, so these stay false and
+  // the admin panel reports "no consent on file" rather than claiming one.
+  // Optional rather than required for the same reason the document set is.
+  criminalConsentDeclaration: z.boolean().optional().transform((v) => v === true),
+  criminalConsentBackgroundCheck: z.boolean().optional().transform((v) => v === true),
+  criminalConsentRevocation: z.boolean().optional().transform((v) => v === true),
 });
 
 export type AdminCreateApplicationInput = z.infer<typeof adminCreateApplicationSchema>;

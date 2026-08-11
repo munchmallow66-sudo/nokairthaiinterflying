@@ -17,10 +17,11 @@ import {
  * reached staff at all.
  *
  * The fixture applicant is female, so the military exemption is not part of the
- * set (see REQUIRED_DOC_TYPES in fixtures.ts) — six required slots, plus the two
- * optional ones the modal always offers.
+ * set (see REQUIRED_DOC_TYPES in fixtures.ts) — five required slots, plus the two
+ * optional ones the modal always offers. The criminal record check is not among
+ * them any more: it became a consent tick on the application form.
  */
-const REQUIRED_SLOTS = 6;
+const REQUIRED_SLOTS = 5;
 const OPTIONAL_SLOTS = 2;
 
 test("re-uploads the whole document set after a failed document review", async ({ page, request }) => {

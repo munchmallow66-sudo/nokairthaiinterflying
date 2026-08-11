@@ -42,6 +42,18 @@ export interface ApplicationWithDetails {
   rejectedStage?: "DOCUMENT" | "WRITTEN_EXAM" | "INTERVIEW" | null;
   password?: string | null;
   remarks?: string;
+  /**
+   * Criminal-background-check consent given on the application form, in place
+   * of the police report applicants used to upload. `criminalConsentAt` is the
+   * server-side timestamp and doubles as the "was this collected at all?"
+   * flag — it is null on records predating the change and on staff-keyed
+   * walk-ins, which must not be read as a refusal to consent.
+   */
+  criminalConsentDeclaration?: boolean;
+  criminalConsentBackgroundCheck?: boolean;
+  criminalConsentRevocation?: boolean;
+  criminalConsentAt?: Date | string | null;
+  criminalConsentVersion?: string | null;
   createdAt: Date;
   updatedAt: Date;
   student: {

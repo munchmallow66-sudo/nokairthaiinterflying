@@ -4,14 +4,20 @@
  * upload the server will reject (and vice versa).
  */
 
-/** The document set every applicant must have on file to pass Step 3 review. */
+/**
+ * The document set every applicant must have on file to pass Step 3 review.
+ *
+ * CRIMINAL_RECORD_CHECK is no longer in it: the police report was replaced by
+ * the consent ticks on the application form (see lib/criminal-consent.ts), so
+ * asking for the file again during a resubmission would demand a document the
+ * applicant has no way to produce.
+ */
 export const BASE_REQUIRED_DOC_TYPES = [
   "PHOTO_1_INCH",
   "NATIONAL_ID_CERTIFIED",
   "TRANSCRIPT_CERTIFIED",
   "HOUSE_REGISTRATION_CERTIFIED",
   "TOEIC",
-  "CRIMINAL_RECORD_CHECK",
 ] as const;
 
 /**
@@ -35,7 +41,12 @@ export const PRESERVED_DOC_TYPES = new Set([
   "MEDICAL_CERTIFICATE",
 ]);
 
-/** DocumentType values an applicant is allowed to upload for themselves. */
+/**
+ * DocumentType values an applicant is allowed to upload for themselves.
+ * CRIMINAL_RECORD_CHECK is not one of them any more, which also keeps
+ * getResubmitDocTypes() from carrying a legacy police report on an older
+ * record forward into the new required set.
+ */
 export const UPLOADABLE_DOC_TYPES = new Set([
   "PHOTO_1_INCH",
   "PHOTO_2_INCH",
@@ -47,7 +58,6 @@ export const UPLOADABLE_DOC_TYPES = new Set([
   "HOUSE_REGISTRATION",
   "MEDICAL_CERTIFICATE_CLASS_1",
   "MEDICAL_CERTIFICATE",
-  "CRIMINAL_RECORD_CHECK",
   "PASSPORT_PHOTO",
   "PASSPORT",
   "GRADUATION_CERTIFICATE",
