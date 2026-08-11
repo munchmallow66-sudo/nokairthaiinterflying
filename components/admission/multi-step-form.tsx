@@ -25,6 +25,7 @@ import {
   Copy,
   Check,
   Mail,
+  ShieldCheck,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -35,9 +36,21 @@ import { fullApplicationSchema, FullApplicationInput } from "@/schemas/applicati
 import { useLanguage } from "@/lib/i18n/language-context";
 import { useApplicationContext } from "@/lib/context/application-context";
 import { formatDocumentFileName } from "@/lib/utils";
+import { CRIMINAL_CONSENT_ITEMS, CRIMINAL_CONSENT_FIELDS } from "@/lib/criminal-consent";
 
 
 const DRAFT_STORAGE_KEY = "tif_cadet_application_draft";
+
+/** Fields the form must always start from, so a restored draft can be layered on top. */
+const FORM_DEFAULTS = {
+  title: "Mr.",
+  nationality: "Thai",
+  gender: "Male",
+  documents: [],
+  criminalConsentDeclaration: false,
+  criminalConsentBackgroundCheck: false,
+  criminalConsentRevocation: false,
+} as any;
 
 export function MultiStepForm() {
   const router = useRouter();
@@ -77,12 +90,7 @@ export function MultiStepForm() {
     formState: { errors },
   } = useForm<FullApplicationInput>({
     resolver: zodResolver(fullApplicationSchema),
-    defaultValues: {
-      title: "Mr.",
-      nationality: "Thai",
-      gender: "Male",
-      documents: [],
-    },
+    defaultValues: FORM_DEFAULTS,
   });
 
   // 1. State Persistence: Restore saved draft from localStorage on mount
@@ -92,7 +100,20 @@ export function MultiStepForm() {
       if (savedDraft) {
         const parsed = JSON.parse(savedDraft);
         if (parsed?.formData) {
-          reset(parsed.formData);
+          // Layered over FORM_DEFAULTS: a draft saved before the consent
+          // section existed has no booleans at all, and reset()ing it raw
+          // would leave the checkboxes as `undefined` — unticked on screen but
+          // failing validation with "Required" instead of the consent message.
+          // A police report saved into an older draft is dropped here too: the
+          // form no longer offers that slot, so it must not ride along into a
+          // submission as a document nobody can see or remove.
+          reset({
+            ...FORM_DEFAULTS,
+            ...parsed.formData,
+            documents: (parsed.formData.documents || []).filter(
+              (d: any) => d?.type !== "CRIMINAL_RECORD_CHECK"
+            ),
+          });
         }
         // Always start at Step 1 for normal user application flow
         setCurrentStep(1);
@@ -155,12 +176,7 @@ export function MultiStepForm() {
       try {
         localStorage.removeItem(DRAFT_STORAGE_KEY);
       } catch (e) {}
-      reset({
-        title: "Mr.",
-        nationality: "Thai",
-        gender: "Male",
-        documents: [],
-      });
+      reset(FORM_DEFAULTS);
       setCurrentStep(1);
       setLastSavedTime(null);
     }
@@ -176,13 +192,12 @@ export function MultiStepForm() {
     { type: "TRANSCRIPT_CERTIFIED", titleTh: "3. สำเนาวุฒิการศึกษา (รับรองสำเนาถูกต้อง)", titleEn: "3. Certified Academic Transcript" },
     { type: "HOUSE_REGISTRATION_CERTIFIED", titleTh: "4. สำเนาทะเบียนบ้าน (รับรองสำเนาถูกต้อง)", titleEn: "4. Certified House Registration" },
     { type: "TOEIC", titleTh: "5. ผลการทดสอบภาษาอังกฤษ (English Proficiency Test Result)", titleEn: "5. English Proficiency Test Result" },
-    { type: "CRIMINAL_RECORD_CHECK", titleTh: "6. ผลตรวจประวัติอาชญากรรม", titleEn: "6. Criminal Record Check" },
     ...(isMale
       ? [
           {
             type: "MILITARY_SERVICE_EXEMPTION",
-            titleTh: "7. ใบสำคัญแสดงการขอยกเว้นการรับราชการทหาร (สด.8 หรือ สด.43)",
-            titleEn: "7. Military Service Exemption Certificate (Sor Dor 8 or Sor Dor 43)",
+            titleTh: "6. ใบสำคัญแสดงการขอยกเว้นการรับราชการทหาร (สด.8 หรือ สด.43)",
+            titleEn: "6. Military Service Exemption Certificate (Sor Dor 8 or Sor Dor 43)",
           },
         ]
       : []),
@@ -193,6 +208,14 @@ export function MultiStepForm() {
   const missingRequiredDocs = REQUIRED_DOCS_CONFIG.filter((doc) => !uploadedDocTypes.has(doc.type));
   const isAllDocsUploaded = missingRequiredDocs.length === 0;
   const totalRequiredCount = REQUIRED_DOCS_CONFIG.length;
+
+  // Criminal background check consent. All three clauses replaced the police
+  // report that used to be uploaded here, so the submit button is gated on
+  // them exactly as it is on the document set.
+  const consentValues = watch(CRIMINAL_CONSENT_FIELDS as any) as (boolean | undefined)[];
+  const uncheckedConsentCount = consentValues.filter((v) => v !== true).length;
+  const isAllConsentChecked = uncheckedConsentCount === 0;
+  const canSubmitApplication = isAllDocsUploaded && isAllConsentChecked;
 
   const lastStepChangeRef = React.useRef<number>(Date.now());
 
@@ -215,6 +238,15 @@ export function MultiStepForm() {
         language === "th"
           ? `กรุณาอัปโหลดเอกสารประกอบการสมัครให้ครบถ้วนทั้ง ${totalRequiredCount} รายการก่อนส่งใบสมัคร\n\nเอกสารที่ยังขาดอยู่ (${missingRequiredDocs.length} รายการ):\n- ${missingTitles}`
           : `Please upload all ${totalRequiredCount} required documents before submitting your application.\n\nMissing documents (${missingRequiredDocs.length}):\n- ${missingTitles}`
+      );
+      return;
+    }
+
+    if (!isAllConsentChecked) {
+      alert(
+        language === "th"
+          ? `กรุณาติ๊กยอมรับ "${t("consentCriminalTitle")}" ให้ครบทั้ง 3 ข้อก่อนส่งใบสมัคร (ยังไม่ได้ติ๊ก ${uncheckedConsentCount} ข้อ)`
+          : `Please accept all 3 clauses under "${t("consentCriminalTitle")}" before submitting (${uncheckedConsentCount} not yet accepted).`
       );
       return;
     }
@@ -282,7 +314,7 @@ export function MultiStepForm() {
       else if (["height", "weight", "bloodType", "medicalConditions", "allergy", "medication"].includes(firstField)) targetStep = 5;
       else if (["toeicScore", "ieltsScore", "icaoLevel", "otherCertificates"].includes(firstField)) targetStep = 6;
       else if (["company", "position", "years"].includes(firstField)) targetStep = 7;
-      else if (["documents"].includes(firstField)) targetStep = 8;
+      else if (["documents", ...CRIMINAL_CONSENT_FIELDS].includes(firstField)) targetStep = 8;
 
       setCurrentStep(targetStep);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -353,6 +385,12 @@ export function MultiStepForm() {
           branch: "Bangkok Headquarters",
           preferredStartDate: new Date("2026-09-01"),
           status: "DOCS_UNDER_REVIEW",
+          criminalConsentDeclaration: data.criminalConsentDeclaration,
+          criminalConsentBackgroundCheck: data.criminalConsentBackgroundCheck,
+          criminalConsentRevocation: data.criminalConsentRevocation,
+          // Approximate — the authoritative stamp is the server's, which the
+          // next sync from /api/applications overwrites this with.
+          criminalConsentAt: new Date(),
           createdAt: new Date(),
           updatedAt: new Date(),
           student: {
@@ -1247,13 +1285,6 @@ export function MultiStepForm() {
                   onUploadSuccess={handleDocumentUpload}
                   onRemove={() => handleDocumentRemove("TOEIC")}
                 />
-                <Uploader
-                  label={t("docCriminalLabel")}
-                  type="CRIMINAL_RECORD_CHECK"
-                  existingFile={documents.find((d: any) => d?.type === "CRIMINAL_RECORD_CHECK")}
-                  onUploadSuccess={handleDocumentUpload}
-                  onRemove={() => handleDocumentRemove("CRIMINAL_RECORD_CHECK")}
-                />
                 {isMale && (
                   <Uploader
                     label={t("docMilitaryLabel")}
@@ -1301,11 +1332,91 @@ export function MultiStepForm() {
                   <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
                   <span>
                     {language === "th"
-                      ? `อัปโหลดเอกสารครบถ้วนทั้ง ${totalRequiredCount} รายการเรียบร้อยแล้ว! สามารถกด "ยืนยันส่งใบสมัครเรียน" ได้ทันที`
-                      : `All ${totalRequiredCount} documents uploaded successfully! You can now click "Submit Application"`}
+                      ? `อัปโหลดเอกสารครบถ้วนทั้ง ${totalRequiredCount} รายการเรียบร้อยแล้ว!`
+                      : `All ${totalRequiredCount} documents uploaded successfully!`}
                   </span>
                 </div>
               )}
+
+              {/* Criminal Background Check — Terms & Consent.
+                  Replaced the police report that used to be a seventh upload
+                  slot above. The clause text is rendered in Thai in both
+                  languages: it is the wording the applicant is bound by, and
+                  the English line below each one is a reading aid only. */}
+              <div className="space-y-4 pt-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-tif-navy font-display flex items-center">
+                      <ShieldCheck className="mr-2.5 h-5 w-5 text-tif-gold" /> {t("consentCriminalTitle")}
+                    </h3>
+                    <p className="text-sm text-slate-500">{t("consentCriminalSubtitle")}</p>
+                  </div>
+
+                  <div
+                    className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-extrabold border shrink-0 ${
+                      isAllConsentChecked
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                        : "bg-amber-50 text-amber-800 border-amber-300"
+                    }`}
+                  >
+                    {isAllConsentChecked ? (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    ) : (
+                      <AlertTriangle className="h-4 w-4 text-amber-600" />
+                    )}
+                    <span>
+                      {CRIMINAL_CONSENT_ITEMS.length - uncheckedConsentCount}/
+                      {CRIMINAL_CONSENT_ITEMS.length}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {CRIMINAL_CONSENT_ITEMS.map((item, idx) => (
+                    <label
+                      key={item.field}
+                      htmlFor={item.field}
+                      className="flex items-start gap-3 p-4 rounded-xl border border-slate-200 bg-slate-50/60 cursor-pointer transition-colors hover:border-tif-gold/60 has-[:checked]:border-emerald-300 has-[:checked]:bg-emerald-50/60"
+                    >
+                      <input
+                        id={item.field}
+                        type="checkbox"
+                        {...register(item.field as any)}
+                        className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-400 text-tif-gold accent-tif-gold focus:ring-tif-gold cursor-pointer"
+                      />
+                      <span className="space-y-1">
+                        <span className="block text-sm text-slate-800 leading-relaxed font-medium">
+                          <span className="font-bold text-tif-navy">
+                            {t("consentItemPrefix")} {idx + 1}:{" "}
+                          </span>
+                          {item.th}
+                        </span>
+                        {language === "en" && (
+                          <span className="block text-xs text-slate-500 leading-relaxed italic">
+                            {item.en}
+                          </span>
+                        )}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+
+                {language === "en" && (
+                  <p className="text-[11px] text-slate-400 leading-relaxed">{t("consentCriminalEnNote")}</p>
+                )}
+
+                {isAllConsentChecked ? (
+                  <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 text-xs flex items-center gap-2.5 font-bold">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+                    <span>{t("consentCriminalComplete")}</span>
+                  </div>
+                ) : (
+                  <div className="p-4 bg-amber-50/90 border border-amber-200 rounded-xl text-amber-900 text-xs flex items-center gap-2.5 font-bold">
+                    <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+                    <span>{t("consentCriminalIncomplete")}</span>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -1328,12 +1439,12 @@ export function MultiStepForm() {
             ) : (
               <Button
                 type="button"
-                variant={isAllDocsUploaded ? "gold" : "outline"}
+                variant={canSubmitApplication ? "gold" : "outline"}
                 size="lg"
                 onClick={handleFinalSubmit}
-                disabled={isSubmitting || !isAllDocsUploaded}
+                disabled={isSubmitting || !canSubmitApplication}
                 className={`w-full sm:w-auto font-extrabold ${
-                  !isAllDocsUploaded
+                  !canSubmitApplication
                     ? "opacity-50 cursor-not-allowed bg-slate-100 text-slate-400 border-slate-300"
                     : "shadow-gold"
                 }`}

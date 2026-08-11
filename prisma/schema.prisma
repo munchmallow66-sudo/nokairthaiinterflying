@@ -57,6 +57,10 @@ enum DocumentType {
   TRANSCRIPT_CERTIFIED
   HOUSE_REGISTRATION_CERTIFIED
   MEDICAL_CERTIFICATE_CLASS_1
+  // Legacy. Applicants no longer upload a police report — they tick the
+  // consent on the application form instead (see Application.criminalConsent*).
+  // The value stays in the enum because documents filed under it are still in
+  // the table; dropping it would make those rows unreadable.
   CRIMINAL_RECORD_CHECK
   PASSPORT_PHOTO
   NATIONAL_ID
@@ -254,6 +258,20 @@ model Application {
   remarks            String?
   joinOpenHouse      Boolean?
   password           String?
+
+  // Criminal-background-check consent, ticked on the application form. It
+  // replaced the "ผลตรวจประวัติอาชญากรรม" document applicants used to upload,
+  // so these columns — not a file — are the evidence that consent was given.
+  // criminalConsentAt is stamped server-side at submission (the browser clock
+  // is not evidence), and criminalConsentVersion pins which wording was agreed
+  // to so a later rewording cannot be read back onto an older application.
+  // Null/false on records predating the change and on staff-keyed walk-ins,
+  // which never pass through the consent form.
+  criminalConsentDeclaration     Boolean   @default(false)
+  criminalConsentBackgroundCheck Boolean   @default(false)
+  criminalConsentRevocation      Boolean   @default(false)
+  criminalConsentAt              DateTime?
+  criminalConsentVersion         String?
 
   documents          Document[]
   payments           Payment[]

@@ -4,6 +4,7 @@ import { fullApplicationSchema, adminCreateApplicationSchema } from "@/schemas/a
 import { generateApplicationNumber, generateSecurePassword, formatDocumentFileName } from "@/lib/utils";
 import { verifyAdminSessionToken } from "@/lib/auth";
 import { sendApplicationConfirmationEmail, sendSelectionRejectionEmail } from "@/lib/email";
+import { CRIMINAL_CONSENT_VERSION, hasFullCriminalConsent } from "@/lib/criminal-consent";
 
 
 export const dynamic = "force-dynamic";
@@ -239,6 +240,12 @@ export async function POST(req: Request) {
 
         const appPassword = body.password || generateSecurePassword(6);
 
+        // Criminal-background-check consent. fullApplicationSchema already
+        // rejects a public submission missing any of the three, so this is
+        // only ever partial for a staff-keyed walk-in — which gets a null
+        // timestamp rather than a stamp for a consent nobody gave.
+        const consentComplete = hasFullCriminalConsent(validated);
+
         const application = await tx.application.create({
           data: {
             applicationNumber: appNumber,
@@ -254,6 +261,14 @@ export async function POST(req: Request) {
             // but /api/track verifies against this column and the admin detail
             // panel reads it back — a NULL here locks the applicant out.
             password: appPassword,
+            criminalConsentDeclaration: validated.criminalConsentDeclaration === true,
+            criminalConsentBackgroundCheck: validated.criminalConsentBackgroundCheck === true,
+            criminalConsentRevocation: validated.criminalConsentRevocation === true,
+            // Stamped here, never taken from the request: the browser clock is
+            // not evidence, and this column is what proves when consent was
+            // given if it is ever challenged under the PDPA.
+            criminalConsentAt: consentComplete ? new Date() : null,
+            criminalConsentVersion: consentComplete ? CRIMINAL_CONSENT_VERSION : null,
             documents: {
               create: (validated.documents || []).map((doc) => ({
                 type: doc.type as any,

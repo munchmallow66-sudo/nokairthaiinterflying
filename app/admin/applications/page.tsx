@@ -7,7 +7,7 @@ import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ApplicationWithDetails, PILOT_WORKFLOW_STEPS } from "@/types";
-import { formatDate, formatCurrency, isPdfFile, createBlobUrlFromBase64Pdf, getCloudinaryPdfThumbnail } from "@/lib/utils";
+import { formatDate, formatDateTime, formatCurrency, isPdfFile, createBlobUrlFromBase64Pdf, getCloudinaryPdfThumbnail } from "@/lib/utils";
 import { downloadAllDocumentsAsZip } from "@/lib/export";
 import {
   User,
@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { useApplicationContext } from "@/lib/context/application-context";
+import { CRIMINAL_CONSENT_ITEMS, hasFullCriminalConsent } from "@/lib/criminal-consent";
 
 function safeDateToInputString(d: Date | string | null | undefined): string {
   if (!d) return "";
@@ -166,7 +167,9 @@ const DOC_TYPE_LABELS: Record<string, string> = {
   TRANSCRIPT_CERTIFIED: "สำเนาวุฒิการศึกษา (รับรองสำเนาถูกต้อง)",
   HOUSE_REGISTRATION_CERTIFIED: "สำเนาทะเบียนบ้าน (รับรองสำเนาถูกต้อง)",
   MEDICAL_CERTIFICATE_CLASS_1: "ใบสำคัญแพทย์ Class 1 (Medical Cert)",
-  CRIMINAL_RECORD_CHECK: "ผลตรวจสอบประวัติอาชญากรรม (ถ้ามี)",
+  // Legacy: applicants tick the consent on the form now instead of uploading a
+  // police report. Kept so files on older applications still render with a name.
+  CRIMINAL_RECORD_CHECK: "ผลตรวจสอบประวัติอาชญากรรม (เอกสารเดิม — ยกเลิกแล้ว)",
   MILITARY_SERVICE_EXEMPTION: "ใบสำคัญแสดงการขอยกเว้นการรับราชการทหาร (สด.8 หรือ สด.43)",
 
   // General / Admin keys
@@ -197,6 +200,84 @@ function isDocApproved(appStatus: string, doc: { type: string; isVerified?: bool
   if (doc.isRejected) return false;
   if (isMedicalCertDoc(doc.type as string)) return false;
   return appStatus !== "SUBMITTED" && appStatus !== "DOCS_UNDER_REVIEW" && appStatus !== "REJECTED";
+}
+
+/**
+ * Criminal-background-check consent, shown where the uploaded police report
+ * used to be. The applicant ticks three clauses on the application form now,
+ * and these columns are the only record that they did — so this panel is the
+ * evidence an officer looks at, and prints the wording that was agreed to
+ * alongside the server-side timestamp.
+ *
+ * Three states, and the difference matters: consented, partially ticked (only
+ * reachable on a staff-keyed record), and no consent collected at all — which
+ * is what an application predating this change looks like, and must never be
+ * shown as a refusal.
+ */
+function CriminalConsentPanel({ app }: { app: ApplicationWithDetails }) {
+  const consented = hasFullCriminalConsent(app);
+  const collected = !!app.criminalConsentAt;
+
+  return (
+    <div
+      className={`p-4 rounded-xl border space-y-3 ${
+        consented ? "bg-emerald-950/20 border-emerald-800/70" : "bg-slate-950/60 border-slate-800"
+      }`}
+    >
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
+        <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center">
+          <ShieldCheck className="mr-2 h-4 w-4 text-tif-gold" />
+          เงื่อนไขและการยินยอมเกี่ยวกับการตรวจสอบประวัติอาชญากรรม
+        </span>
+        <Badge variant={consented ? "success" : collected ? "warning" : "secondary"}>
+          {consented
+            ? `ยินยอมครบ ${CRIMINAL_CONSENT_ITEMS.length}/${CRIMINAL_CONSENT_ITEMS.length} ข้อ`
+            : collected
+            ? "ยินยอมไม่ครบ"
+            : "ไม่มีข้อมูลการยินยอม"}
+        </Badge>
+      </div>
+
+      {consented ? (
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-[11px]">
+          <span className="text-slate-400">
+            วันเวลาที่ยินยอม:{" "}
+            <strong className="text-emerald-300 font-mono">{formatDateTime(app.criminalConsentAt)}</strong>
+          </span>
+          {app.criminalConsentVersion && (
+            <span className="text-slate-400">
+              เวอร์ชันข้อความ:{" "}
+              <strong className="text-slate-200 font-mono">{app.criminalConsentVersion}</strong>
+            </span>
+          )}
+        </div>
+      ) : (
+        <p className="text-[11px] text-amber-300/90 leading-relaxed">
+          {collected
+            ? "ผู้สมัครติ๊กยินยอมไม่ครบทั้ง 3 ข้อ กรุณาตรวจสอบก่อนอนุมัติเอกสาร"
+            : "ใบสมัครนี้ไม่มีบันทึกการยินยอม (เป็นใบสมัครก่อนเปลี่ยนระบบ หรือเจ้าหน้าที่บันทึกเข้าระบบเอง) — ไม่ได้หมายความว่าผู้สมัครปฏิเสธการยินยอม"}
+        </p>
+      )}
+
+      <ul className="space-y-2">
+        {CRIMINAL_CONSENT_ITEMS.map((item, idx) => {
+          const ticked = (app as any)[item.field] === true;
+          return (
+            <li key={item.field} className="flex items-start gap-2.5 text-[11px] leading-relaxed">
+              {ticked ? (
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0 mt-0.5" />
+              ) : (
+                <XCircle className="h-3.5 w-3.5 text-slate-600 shrink-0 mt-0.5" />
+              )}
+              <span className={ticked ? "text-slate-200" : "text-slate-500"}>
+                <strong className="text-tif-gold">ข้อ {idx + 1}:</strong> {item.th}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
 }
 
 function AdminDocumentCard({
@@ -2046,6 +2127,8 @@ export default function StudentApplicationsPage() {
                   </div>
                 )}
 
+                <CriminalConsentPanel app={selectedApp} />
+
                 {selectedApp.documents && selectedApp.documents.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {selectedApp.documents.map((doc) => {
@@ -3017,7 +3100,6 @@ export default function StudentApplicationsPage() {
               <option value="TOEIC">ผลการทดสอบภาษาอังกฤษ (English Proficiency Test Result)</option>
               <option value="MEDICAL_CERTIFICATE_CLASS_1">ใบสำคัญแพทย์ CLASS 1 / ใบรับรองแพทย์เวชศาสตร์การบิน</option>
               <option value="PHOTO_1_INCH">รูปถ่าย 1.5 นิ้ว (1.5-Inch Photo)</option>
-              <option value="CRIMINAL_RECORD_CHECK">ผลตรวจประวัติอาชญากรรม (Criminal Record Check)</option>
               <option value="MILITARY_SERVICE_EXEMPTION">ใบสำคัญแสดงการขอยกเว้นการรับราชการทหาร (สด.8 / สด.43)</option>
             </select>
           </div>

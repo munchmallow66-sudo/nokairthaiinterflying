@@ -65,14 +65,15 @@ export type Applicant = ReturnType<typeof makeApplicant>;
 
 /** Required document types the UI checklist enforces before Submit unlocks
  * (see REQUIRED_DOCS_CONFIG in components/admission/multi-step-form.tsx).
- * MILITARY_SERVICE_EXEMPTION is skipped because fixtures use gender=Female. */
+ * MILITARY_SERVICE_EXEMPTION is skipped because fixtures use gender=Female.
+ * CRIMINAL_RECORD_CHECK is not here: the police report was replaced by the
+ * three consent ticks on the form (see lib/criminal-consent.ts). */
 export const REQUIRED_DOC_TYPES = [
   "PHOTO_1_INCH",
   "NATIONAL_ID_CERTIFIED",
   "TRANSCRIPT_CERTIFIED",
   "HOUSE_REGISTRATION_CERTIFIED",
   "TOEIC",
-  "CRIMINAL_RECORD_CHECK",
 ] as const;
 
 // Smallest possible valid JPEG (1x1 red pixel) so /api/upload has real image
@@ -127,8 +128,13 @@ export function applicationApiPayload(applicant: Applicant, applicationNumber: s
       { type: "NATIONAL_ID_CERTIFIED", secureUrl: "https://example.invalid/id.jpg", publicId: "test_id", originalName: "id.jpg" },
       { type: "TRANSCRIPT_CERTIFIED", secureUrl: "https://example.invalid/transcript.jpg", publicId: "test_transcript", originalName: "transcript.jpg" },
       { type: "HOUSE_REGISTRATION_CERTIFIED", secureUrl: "https://example.invalid/house.jpg", publicId: "test_house", originalName: "house.jpg" },
-      { type: "CRIMINAL_RECORD_CHECK", secureUrl: "https://example.invalid/criminal.jpg", publicId: "test_criminal", originalName: "criminal.jpg" },
+      { type: "TOEIC", secureUrl: "https://example.invalid/toeic.jpg", publicId: "test_toeic", originalName: "toeic.jpg" },
     ],
+    // All three are mandatory — fullApplicationSchema rejects the submission
+    // without them, so a fixture that omits any never reaches the database.
+    criminalConsentDeclaration: true,
+    criminalConsentBackgroundCheck: true,
+    criminalConsentRevocation: true,
   };
 }
 

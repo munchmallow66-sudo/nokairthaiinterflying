@@ -510,9 +510,18 @@ export const translations = {
     docDegreeLabel: "3. สำเนาวุฒิการศึกษา (รับรองสำเนาถูกต้อง) *",
     docHouseLabel: "4. สำเนาทะเบียนบ้าน (รับรองสำเนาถูกต้อง) *",
     docEnglishTestLabel: "5. ผลการทดสอบภาษาอังกฤษ (English Proficiency Test Result) *",
-    docCriminalLabel: "6. ผลตรวจประวัติอาชญากรรม *",
-    docMilitaryLabel: "7. ใบสำคัญแสดงการขอยกเว้นการรับราชการทหาร (สด.8 หรือ สด.43) *",
+    docMilitaryLabel: "6. ใบสำคัญแสดงการขอยกเว้นการรับราชการทหาร (สด.8 หรือ สด.43) *",
     docMilitary: "ใบสำคัญแสดงการขอยกเว้นการรับราชการทหาร (สด.8 หรือ สด.43)",
+
+    // Criminal Background Check Consent (Step 8) — the clause text itself is
+    // NOT here: it is legal wording shown verbatim in Thai in both languages,
+    // and lives in lib/criminal-consent.ts.
+    consentCriminalTitle: "เงื่อนไขและการยินยอมเกี่ยวกับการตรวจสอบประวัติอาชญากรรม",
+    consentCriminalSubtitle: "กรุณาอ่านและติ๊กยอมรับให้ครบทั้ง 3 ข้อ จึงจะส่งใบสมัครได้",
+    consentCriminalIncomplete: "กรุณาติ๊กยอมรับเงื่อนไขให้ครบทั้ง 3 ข้อก่อนส่งใบสมัคร",
+    consentCriminalComplete: "ท่านได้ยอมรับเงื่อนไขครบทั้ง 3 ข้อเรียบร้อยแล้ว",
+    consentCriminalEnNote: "คำแปลภาษาอังกฤษเป็นเพียงคำแปลอย่างไม่เป็นทางการ ให้ยึดข้อความภาษาไทยเป็นสำคัญ",
+    consentItemPrefix: "ข้อ",
 
     // Form Navigation Buttons
     previousStep: "ย้อนกลับ",
@@ -1526,9 +1535,18 @@ export const translations = {
     docDegreeLabel: "3. Certified Copy of Educational Qualification *",
     docHouseLabel: "4. Certified Copy of House Registration *",
     docEnglishTestLabel: "5. English Proficiency Test Result *",
-    docCriminalLabel: "6. Criminal Record Check Result *",
-    docMilitaryLabel: "7. Military Service Exemption Certificate (Sor Dor 8 or Sor Dor 43) *",
+    docMilitaryLabel: "6. Military Service Exemption Certificate (Sor Dor 8 or Sor Dor 43) *",
     docMilitary: "Military Service Exemption Certificate (Sor Dor 8 or Sor Dor 43)",
+
+    // Criminal Background Check Consent (Step 8) — the clause text itself is
+    // NOT here: it is legal wording shown verbatim in Thai in both languages,
+    // and lives in lib/criminal-consent.ts.
+    consentCriminalTitle: "Criminal Background Check — Terms & Consent",
+    consentCriminalSubtitle: "Please read and accept all three clauses to submit your application.",
+    consentCriminalIncomplete: "Please accept all three clauses before submitting your application.",
+    consentCriminalComplete: "You have accepted all three clauses.",
+    consentCriminalEnNote: "The English text is an unofficial translation; the Thai text prevails.",
+    consentItemPrefix: "Clause",
 
     // Form Navigation Buttons
     previousStep: "Previous",
