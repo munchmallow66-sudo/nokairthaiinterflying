@@ -26,6 +26,7 @@ import {
   XCircle,
   Lock,
   Key,
+  ArrowDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -544,6 +545,19 @@ export default function TrackStatusPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [showAllDocsMap, setShowAllDocsMap] = useState<Record<string, boolean>>({});
 
+  const resultRef = React.useRef<HTMLDivElement>(null);
+  const guidanceCardRef = React.useRef<HTMLDivElement>(null);
+
+  const scrollToResult = () => {
+    setTimeout(() => {
+      if (guidanceCardRef.current) {
+        guidanceCardRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else if (resultRef.current) {
+        resultRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 100);
+  };
+
   // Payment Slip Modal States
   const [payModalOpen, setPayModalOpen] = useState(false);
   const [activePayAppNum, setActivePayAppNum] = useState("");
@@ -950,6 +964,7 @@ export default function TrackStatusPage() {
           }
         });
         setLoading(false);
+        scrollToResult();
         return;
       }
 
@@ -1102,6 +1117,7 @@ export default function TrackStatusPage() {
         nationalId: student?.nationalId || queryDigits || "-",
         applications,
       });
+      scrollToResult();
       // Say so. Cached status shown as though it were live is exactly what made
       // admin updates appear to go missing.
       setErrorMsg(
@@ -1277,6 +1293,30 @@ export default function TrackStatusPage() {
                 </>
               )}
             </Button>
+
+            {result && result.found && (
+              <button
+                type="button"
+                onClick={scrollToResult}
+                className="w-full mt-3 group flex items-center justify-between p-3.5 sm:p-4 rounded-xl bg-gradient-to-r from-emerald-500/10 via-amber-500/10 to-emerald-500/10 border border-emerald-500/30 hover:border-emerald-500/60 text-emerald-800 transition-all shadow-sm hover:shadow-md animate-in fade-in duration-300 cursor-pointer"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="relative flex h-3 w-3 shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                  </span>
+                  <span className="text-xs sm:text-sm font-extrabold tracking-wide text-emerald-900 text-left">
+                    {language === "en"
+                      ? "Status found! Click or scroll down to view details"
+                      : "ค้นพบข้อมูลสถานะการสมัครแล้ว! คลิกหรือเลื่อนลงเพื่อดูรายละเอียด"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 text-emerald-700 font-extrabold text-xs sm:text-sm bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-emerald-200 group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-xs shrink-0">
+                  <span>{language === "en" ? "View" : "ดูผลลัพธ์"}</span>
+                  <ArrowDown className="h-4 w-4 animate-bounce text-emerald-600 group-hover:text-white" />
+                </div>
+              </button>
+            )}
           </form>
         </div>
       </section>
@@ -1285,7 +1325,7 @@ export default function TrackStatusPage() {
       {/* TRACKING RESULTS                                                  */}
       {/* ================================================================ */}
       {result && result.found && result.applications && (
-        <section className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 w-full mt-10 pb-24 space-y-6 animate-in fade-in duration-500">
+        <section ref={resultRef} className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 w-full mt-10 pb-24 space-y-6 animate-in fade-in duration-500 scroll-mt-28">
           {/* Result Header Card */}
           <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7 shadow-luxury">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
@@ -1315,7 +1355,7 @@ export default function TrackStatusPage() {
           </div>
 
           {/* Application Cards */}
-          {result.applications.map((app) => (
+          {result.applications.map((app, index) => (
             <div
               key={app.id}
               className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7 shadow-luxury space-y-7"
@@ -1452,7 +1492,10 @@ export default function TrackStatusPage() {
               </div>
 
               {/* Status Detail & Remarks */}
-              <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-7 space-y-6 shadow-luxury">
+              <div
+                ref={index === 0 ? guidanceCardRef : undefined}
+                className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-7 space-y-6 shadow-luxury scroll-mt-28"
+              >
                 {/* Header Metadata Bar */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
                   <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-2">
