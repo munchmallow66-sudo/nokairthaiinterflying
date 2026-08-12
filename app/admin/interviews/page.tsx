@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 import {
   Calendar,
   MapPin,
@@ -243,10 +244,18 @@ export default function InterviewsPage() {
     alert(t("alertEditSuccess"));
   };
 
-  // Delete Interview
-  const handleDelete = (item: any) => {
-    if (!window.confirm(`${t("confirmDeleteInterview")} ${item.candidate} (${item.appNum})`)) return;
+  // Delete Interview States
+  const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
+  const [targetDeleteInterview, setTargetDeleteInterview] = React.useState<any>(null);
 
+  const handleDelete = (item: any) => {
+    setTargetDeleteInterview(item);
+    setDeleteModalOpen(true);
+  };
+
+  const handleConfirmDeleteInterview = () => {
+    if (!targetDeleteInterview) return;
+    const item = targetDeleteInterview;
     const targetApp = applications.find(
       (a) => a.id === item.appId || a.applicationNumber === item.appNum
     );
@@ -260,6 +269,8 @@ export default function InterviewsPage() {
       });
     }
 
+    setDeleteModalOpen(false);
+    setTargetDeleteInterview(null);
     alert(t("alertDeleteSuccess"));
   };
 
@@ -579,6 +590,23 @@ export default function InterviewsPage() {
           </div>
         </div>
       </Modal>
+
+      {/* Confirm Delete Interview Modal */}
+      <ConfirmModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleConfirmDeleteInterview}
+        title="ยืนยันการลบกำหนดการสัมภาษณ์"
+        description="คุณแน่ใจหรือไม่ว่าต้องการลบรายการนัดหมายสัมภาษณ์นี้ออกจากระบบ?"
+        itemName={
+          targetDeleteInterview
+            ? `${targetDeleteInterview.candidate || "ผู้สมัคร"} (${targetDeleteInterview.appNum}) - วันที่ ${formatDate(targetDeleteInterview.date)}`
+            : undefined
+        }
+        confirmText="ยืนยันการลบนัดหมาย"
+        cancelText="ยกเลิก"
+        variant="danger"
+      />
     </div>
   );
 }
