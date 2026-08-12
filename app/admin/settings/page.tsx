@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { formatDateTime } from "@/lib/utils";
 
@@ -115,17 +116,26 @@ export default function AdminSettingsPage() {
     }
   };
 
-  // Delete Staff Account
-  const handleDeleteStaff = async (user: AdminUser) => {
+  // Delete Staff Account States
+  const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
+  const [targetDeleteUser, setTargetDeleteUser] = React.useState<AdminUser | null>(null);
+  const [isDeleting, setIsDeleting] = React.useState(false);
+
+  const handleDeleteStaff = (user: AdminUser) => {
     if (user.email === "admin@tif.ac.th" || user.id === "admin-default") {
       alert(t("alertStaffDeleteDefaultErr"));
       return;
     }
+    setTargetDeleteUser(user);
+    setDeleteModalOpen(true);
+  };
 
-    if (!window.confirm(`${t("deleteStaffConfirm")} (${user.email})`)) return;
+  const handleConfirmDeleteStaff = async () => {
+    if (!targetDeleteUser) return;
+    setIsDeleting(true);
 
     try {
-      const res = await fetch(`/api/admin/users/${user.id}`, {
+      const res = await fetch(`/api/admin/users/${targetDeleteUser.id}`, {
         method: "DELETE",
       });
 
@@ -137,9 +147,13 @@ export default function AdminSettingsPage() {
       }
 
       alert(t("alertStaffDeleteSuccess"));
+      setDeleteModalOpen(false);
+      setTargetDeleteUser(null);
       fetchUsers();
     } catch (err: any) {
       alert(err.message || "เกิดข้อผิดพลาดในการลบข้อมูล");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -397,6 +411,24 @@ export default function AdminSettingsPage() {
           </div>
         </form>
       </Modal>
+
+      {/* Confirm Delete Staff Account Modal */}
+      <ConfirmModal
+        isOpen={deleteModalOpen}
+        onClose={() => !isDeleting && setDeleteModalOpen(false)}
+        onConfirm={handleConfirmDeleteStaff}
+        isLoading={isDeleting}
+        title="ยืนยันการลบบัญชีผู้ใช้เจ้าหน้าที่"
+        description="คุณแน่ใจหรือไม่ว่าต้องการลบบัญชีผู้ใช้เจ้าหน้าที่นี้ออกจากระบบ?"
+        itemName={
+          targetDeleteUser
+            ? `${targetDeleteUser.name || "เจ้าหน้าที่"} (${targetDeleteUser.email}) - สิทธิ์: ${targetDeleteUser.role}`
+            : undefined
+        }
+        confirmText="ยืนยันการลบบัญชี"
+        cancelText="ยกเลิก"
+        variant="danger"
+      />
     </div>
   );
 }

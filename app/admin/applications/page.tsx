@@ -4,6 +4,7 @@ import * as React from "react";
 import { DataTable } from "@/components/ui/data-table";
 import { Drawer } from "@/components/ui/drawer";
 import { Modal } from "@/components/ui/modal";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ApplicationWithDetails, PILOT_WORKFLOW_STEPS } from "@/types";
@@ -496,6 +497,14 @@ export default function StudentApplicationsPage() {
   const [docModalOpen, setDocModalOpen] = React.useState(false);
   const [selectedDoc, setSelectedDoc] = React.useState<any>(null);
 
+  // Document Delete & Application Delete Modal States
+  const [deleteAppModalOpen, setDeleteAppModalOpen] = React.useState(false);
+  const [targetDeleteApp, setTargetDeleteApp] = React.useState<ApplicationWithDetails | null>(null);
+  const [isDeletingApp, setIsDeletingApp] = React.useState(false);
+
+  const [deleteDocModalOpen, setDeleteDocModalOpen] = React.useState(false);
+  const [targetDeleteDoc, setTargetDeleteDoc] = React.useState<{ id: string; name: string } | null>(null);
+
   // Document Correction States
   const [rejectDocModalOpen, setRejectDocModalOpen] = React.useState(false);
   const [targetRejectDoc, setTargetRejectDoc] = React.useState<any>(null);
@@ -558,12 +567,19 @@ export default function StudentApplicationsPage() {
   // 3. Delete Document
   const handleDeleteDoc = (docId: string, docName: string) => {
     if (!selectedApp) return;
-    if (!confirm(`คุณต้องการลบเอกสาร "${docName}" ใช่หรือไม่?`)) return;
-    deleteDocument(selectedApp.id, docId);
+    setTargetDeleteDoc({ id: docId, name: docName });
+    setDeleteDocModalOpen(true);
+  };
+
+  const handleConfirmDeleteDoc = () => {
+    if (!selectedApp || !targetDeleteDoc) return;
+    deleteDocument(selectedApp.id, targetDeleteDoc.id);
     setSelectedApp({
       ...selectedApp,
-      documents: selectedApp.documents.filter((d) => d.id !== docId),
+      documents: selectedApp.documents.filter((d) => d.id !== targetDeleteDoc.id),
     });
+    setDeleteDocModalOpen(false);
+    setTargetDeleteDoc(null);
   };
 
   // 4. Add Extra Document
@@ -1261,25 +1277,31 @@ export default function StudentApplicationsPage() {
     alert("แจ้งปฏิเสธเอกสารเรียบร้อยแล้ว — ระบบได้แสดงคำแนะนำให้ผู้สมัครแก้ไขแล้ว");
   };
 
-  const handleDeleteApp = async (id: string) => {
-    if (!window.confirm("คุณต้องการลบข้อมูลใบสมัครนี้ออกจากระบบใช่หรือไม่? (Action cannot be undone)")) return;
+  const handleDeleteApp = (id: string) => {
+    const appFound = applications.find((a) => a.id === id) || (selectedApp?.id === id ? selectedApp : null);
+    setTargetDeleteApp(appFound || null);
+    setDeleteAppModalOpen(true);
+  };
 
+  const handleConfirmDeleteApp = async () => {
+    if (!targetDeleteApp) return;
+    setIsDeletingApp(true);
     try {
-      await deleteApplication(id);
+      await deleteApplication(targetDeleteApp.id);
+      if (selectedApp?.id === targetDeleteApp.id) {
+        setDrawerOpen(false);
+        setSelectedApp(null);
+      }
+      setDeleteAppModalOpen(false);
+      setTargetDeleteApp(null);
+      alert("ลบข้อมูลใบสมัครเรียบร้อยแล้ว");
     } catch (err: any) {
-      // The row is restored by the context on failure; saying "deleted" here
-      // would hide an applicant that every other browser still sees.
       alert(
         `ลบข้อมูลใบสมัครไม่สำเร็จ — ข้อมูลยังอยู่ในระบบ กรุณาลองใหม่อีกครั้ง\n(${err?.message || "unknown error"})`
       );
-      return;
+    } finally {
+      setIsDeletingApp(false);
     }
-
-    if (selectedApp?.id === id) {
-      setDrawerOpen(false);
-      setSelectedApp(null);
-    }
-    alert("ลบข้อมูลใบสมัครเรียบร้อยแล้ว");
   };
 
   return (
@@ -3316,6 +3338,37 @@ export default function StudentApplicationsPage() {
           </div>
         </div>
       </Modal>
+
+      {/* Confirm Delete Application Modal */}
+      <ConfirmModal
+        isOpen={deleteAppModalOpen}
+        onClose={() => !isDeletingApp && setDeleteAppModalOpen(false)}
+        onConfirm={handleConfirmDeleteApp}
+        isLoading={isDeletingApp}
+        title="ยืนยันการลบใบสมัครผู้สมัคร"
+        description="คุณแน่ใจหรือไม่ว่าต้องการลบใบสมัครนี้ออกจากระบบ? ข้อมูลประวัติและเอกสารของผู้สมัครจะถูกลบออกทั้งหมด การดำเนินการนี้ไม่สามารถย้อนกลับได้"
+        itemName={
+          targetDeleteApp
+            ? `${targetDeleteApp.student?.title || ""}${targetDeleteApp.student?.firstNameTh || ""} ${targetDeleteApp.student?.lastNameTh || ""} (${targetDeleteApp.applicationNumber || targetDeleteApp.id})`
+            : undefined
+        }
+        confirmText="ยืนยันการลบใบสมัคร"
+        cancelText="ยกเลิก"
+        variant="danger"
+      />
+
+      {/* Confirm Delete Document Modal */}
+      <ConfirmModal
+        isOpen={deleteDocModalOpen}
+        onClose={() => setDeleteDocModalOpen(false)}
+        onConfirm={handleConfirmDeleteDoc}
+        title="ยืนยันการลบเอกสาร"
+        description="คุณแน่ใจหรือไม่ว่าต้องการลบไฟล์เอกสารนี้ออกจากระบบ?"
+        itemName={targetDeleteDoc?.name}
+        confirmText="ยืนยันการลบเอกสาร"
+        cancelText="ยกเลิก"
+        variant="danger"
+      />
     </div>
   );
 }

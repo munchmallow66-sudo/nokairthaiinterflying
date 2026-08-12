@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { formatCurrency, formatDate, isPdfFile } from "@/lib/utils";
 import { Modal } from "@/components/ui/modal";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { useApplicationContext } from "@/lib/context/application-context";
 
@@ -247,8 +248,19 @@ export default function PaymentsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm("คุณต้องการลบรายการชำระเงินนี้ใช่หรือไม่?")) return;
+  const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
+  const [targetDeletePayment, setTargetDeletePayment] = React.useState<any>(null);
+  const [isDeleting, setIsDeleting] = React.useState(false);
+
+  const handleDelete = (pay: any) => {
+    setTargetDeletePayment(pay);
+    setDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!targetDeletePayment) return;
+    const id = targetDeletePayment.id;
+    setIsDeleting(true);
 
     // Optimistic UI update
     setPayments((prev) => prev.filter((p) => p.id !== id));
@@ -260,6 +272,8 @@ export default function PaymentsPage() {
       const data = await res.json();
       if (data.success) {
         fetchPayments();
+        setDeleteModalOpen(false);
+        setTargetDeletePayment(null);
         alert("ลบรายการชำระเงินเรียบร้อยแล้ว");
       } else {
         alert("เกิดข้อผิดพลาดในการลบ: " + (data.error || "ไม่สามารถลบได้"));
@@ -269,6 +283,8 @@ export default function PaymentsPage() {
       console.error("Delete payment error:", err);
       alert("เกิดข้อผิดพลาดในการลบข้อมูล");
       fetchPayments();
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -474,7 +490,7 @@ export default function PaymentsPage() {
                   <Button
                     size="sm"
                     variant="danger"
-                    onClick={() => handleDelete(pay.id)}
+                    onClick={() => handleDelete(pay)}
                     className="h-8 px-2.5 rounded-xl"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -553,7 +569,7 @@ export default function PaymentsPage() {
                           <Edit3 className="h-3.5 w-3.5" />
                         </button>
                         <button
-                          onClick={() => handleDelete(pay.id)}
+                          onClick={() => handleDelete(pay)}
                           title="ลบ"
                           className="p-1.5 rounded-lg bg-rose-600/20 border border-rose-500/30 text-rose-400 hover:bg-rose-600 hover:text-white transition"
                         >
@@ -728,6 +744,24 @@ export default function PaymentsPage() {
           </Button>
         </div>
       </Modal>
+
+      {/* Confirm Delete Payment Modal */}
+      <ConfirmModal
+        isOpen={deleteModalOpen}
+        onClose={() => !isDeleting && setDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        isLoading={isDeleting}
+        title="ยืนยันการลบรายการชำระเงิน"
+        description="คุณแน่ใจหรือไม่ว่าต้องการลบรายการชำระเงินนี้ออกจากระบบ?"
+        itemName={
+          targetDeletePayment
+            ? `${targetDeletePayment.candidate || "ไม่ระบุชื่อ"} - ${formatCurrency(targetDeletePayment.amount || 0)} (${targetDeletePayment.refNo || targetDeletePayment.id})`
+            : undefined
+        }
+        confirmText="ยืนยันการลบรายการ"
+        cancelText="ยกเลิก"
+        variant="danger"
+      />
     </div>
   );
 }
