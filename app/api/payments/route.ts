@@ -314,7 +314,7 @@ export async function POST(req: Request) {
             const openHouseNote =
               typeof joinOpenHouse === "boolean"
                 ? joinOpenHouse
-                  ? ` | ลงทะเบียนเข้าร่วมงาน Open House วันที่ 12 ก.ย. 2569${
+                  ? ` | ลงทะเบียนเข้าร่วมงาน Open House วันที่ 19 ก.ย. 2569${
                       Number(openHouseAttendees) > 0 ? ` (จำนวน ${Number(openHouseAttendees)} ท่าน)` : ""
                     }`
                   : " | ไม่ประสงค์เข้าร่วมงาน Open House"

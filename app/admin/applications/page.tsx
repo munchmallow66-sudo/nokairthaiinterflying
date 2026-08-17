@@ -1383,7 +1383,7 @@ export default function StudentApplicationsPage() {
                           </span>
                           {hasOpenHouseYes && (
                             <span className="text-xs font-bold text-purple-300 bg-purple-950/80 px-2.5 py-0.5 rounded-full border border-purple-700/60 flex items-center gap-1 shadow-sm">
-                              <Calendar className="h-3 w-3 text-purple-400" /> เข้าร่วม Open House (12 ก.ย.)
+                              <Calendar className="h-3 w-3 text-purple-400" /> เข้าร่วม Open House (19 ก.ย.)
                             </span>
                           )}
                           {hasOpenHouseNo && (
@@ -1702,7 +1702,7 @@ export default function StudentApplicationsPage() {
                 {/* Open House RSVP Status Card */}
                 <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3">
                   <h4 className="text-xs font-bold text-tif-gold uppercase tracking-wider flex items-center border-b border-slate-800 pb-2">
-                    <Calendar className="mr-2 h-4 w-4 text-tif-gold" /> การลงทะเบียนงาน Open House (12 กันยายน 2569)
+                    <Calendar className="mr-2 h-4 w-4 text-tif-gold" /> การลงทะเบียนงาน Open House (19 กันยายน 2569)
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                     <div className={`p-3 rounded-xl border flex flex-col justify-between space-y-2 ${
@@ -1774,7 +1774,7 @@ export default function StudentApplicationsPage() {
                     <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80 space-y-1">
                       <span className="text-slate-400 text-[11px] block">กำหนดการและสถานที่</span>
                       <p className="font-medium text-slate-200 text-xs">
-                        12 ก.ย. 2026 (09:00 - 15:00 น.) ณ Best Western Plus Wanda Grand Hotel ( Ballroom A )
+                        19 ก.ย. 2026 (09:00 - 15:00 น.) ณ Best Western Plus Wanda Grand Hotel ( Ballroom A )
                       </p>
                     </div>
                   </div>

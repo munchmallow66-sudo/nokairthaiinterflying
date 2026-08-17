@@ -238,8 +238,8 @@ const getStepGuidance = (app: ApplicationData, lang: "th" | "en" = "th") => {
           : "เจ้าหน้าที่ได้ตรวจสอบและอนุมัติการชำระค่าสมัคร 1,800 บาทของท่านเรียบร้อยแล้ว ท่านไม่ต้องโอนเงินหรือแนบสลิปเพิ่มเติมอีก",
         nextActionTitle: isEn ? "Next Action for Applicant:" : "สิ่งที่ผู้สมัครต้องทำถัดไป:",
         nextAction: isEn
-          ? "No action needed. Prepare to join the Open House event on September 12, 2026."
-          : "ไม่ต้องดำเนินการใดๆ เพิ่มเติม กรุณาเตรียมความพร้อมเข้าร่วมงาน Open House ในวันที่ 12 กันยายน 2569",
+          ? "No action needed. Prepare to join the Open House event on September 19, 2026."
+          : "ไม่ต้องดำเนินการใดๆ เพิ่มเติม กรุณาเตรียมความพร้อมเข้าร่วมงาน Open House ในวันที่ 19 กันยายน 2569",
         actionType: "PAYMENT_APPROVED",
       };
 
@@ -321,8 +321,8 @@ const getStepGuidance = (app: ApplicationData, lang: "th" | "en" = "th") => {
           : "เจ้าหน้าที่ยืนยันการชำระค่าสมัคร 1,800 บาทสำเร็จแล้ว ท่านได้รับสิทธิ์ในการเข้าร่วมกิจกรรมแนะนำโครงการ Open House",
         nextActionTitle: isEn ? "Next Action for Applicant:" : "สิ่งที่ผู้สมัครต้องทำถัดไป:",
         nextAction: isEn
-          ? "Prepare to join Open House on September 12, 2026, 09:00 - 15:00 at Best Western Plus Wanda Grand Hotel (Ballroom A)."
-          : "เตรียมความพร้อมเข้าร่วมงาน Open House ในวันที่ 12 กันยายน 2026 เวลา 09:00 - 15:00 น. ณ โรงแรม Best Western Plus Wanda Grand Hotel (Ballroom A)",
+          ? "Prepare to join Open House on September 19, 2026, 09:00 - 15:00 at Best Western Plus Wanda Grand Hotel (Ballroom A)."
+          : "เตรียมความพร้อมเข้าร่วมงาน Open House ในวันที่ 19 กันยายน 2026 เวลา 09:00 - 15:00 น. ณ โรงแรม Best Western Plus Wanda Grand Hotel (Ballroom A)",
         actionType: "OPEN_HOUSE",
       };
 
@@ -2067,7 +2067,7 @@ export default function TrackStatusPage() {
               {/* Minimal Event Summary when YES */}
               {joinOpenHouse && (
                 <div className="p-2 rounded-lg bg-white border border-amber-200 text-[10px] text-slate-700 flex flex-wrap items-center justify-between gap-1 shadow-2xs">
-                  <span>📅 12 Sep 2026 (09:00 - 15:00 น.)</span>
+                  <span>📅 19 Sep 2026 (09:00 - 15:00 น.)</span>
                   <a
                     href="https://maps.app.goo.gl/Dou74zVtK9MWUbW18"
                     target="_blank"

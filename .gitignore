@@ -33,6 +33,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# Rollback snapshots written by the scripts/ data-fix jobs. They contain live
+# applicant remarks copied out of the database and must not leave the machine.
+/scripts/*-backup-*.json
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

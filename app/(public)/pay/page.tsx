@@ -253,7 +253,7 @@ export default function PaymentPage() {
       }
 
       const openHouseRemarks = joinOpenHouse
-        ? ` | ลงทะเบียนเข้าร่วมงาน Open House วันที่ 12 ก.ย. 2569 (จำนวน ${openHouseAttendees} ท่าน)`
+        ? ` | ลงทะเบียนเข้าร่วมงาน Open House วันที่ 19 ก.ย. 2569 (จำนวน ${openHouseAttendees} ท่าน)`
         : ` | ไม่ประสงค์เข้าร่วมงาน Open House`;
 
       setTimeout(() => {
@@ -363,7 +363,7 @@ export default function PaymentPage() {
                     <div className="flex justify-between items-center">
                       <span className="text-slate-400">ลงทะเบียน Open House:</span>
                       <span className="font-semibold text-tif-gold">
-                        {foundApp.joinOpenHouse ? "มีความประสงค์เข้าร่วมงาน Open House (12 ก.ย. 2569)" : "ไม่ประสงค์เข้าร่วมงาน Open House"}
+                        {foundApp.joinOpenHouse ? "มีความประสงค์เข้าร่วมงาน Open House (19 ก.ย. 2569)" : "ไม่ประสงค์เข้าร่วมงาน Open House"}
                       </span>
                     </div>
                   )}
@@ -461,7 +461,7 @@ export default function PaymentPage() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <p className="flex items-center text-slate-200">
                             <Calendar className="h-3.5 w-3.5 mr-1.5 text-tif-gold shrink-0" />
-                            <span><strong>Date:</strong> 12 September 2026</span>
+                            <span><strong>Date:</strong> 19 September 2026</span>
                           </p>
                           <p className="flex items-center text-slate-200">
                             <Clock className="h-3.5 w-3.5 mr-1.5 text-tif-gold shrink-0" />

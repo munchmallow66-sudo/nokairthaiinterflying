@@ -14,6 +14,7 @@
     "backfill:passwords": "npx ts-node -O \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/backfill-application-passwords.ts",
     "backfill:rejected-stage": "npx ts-node -O \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/backfill-rejected-stage.ts",
     "resend:password": "npx ts-node -O \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/resend-application-password.ts",
+    "fix:open-house-date": "npx ts-node -O \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/fix-open-house-date.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:report": "playwright show-report"
