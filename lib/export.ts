@@ -4,6 +4,7 @@ import autoTable from "jspdf-autotable";
 import { ApplicationWithDetails } from "@/types";
 import { formatDate } from "@/lib/utils";
 import { genderExportLabel } from "@/lib/gender";
+import { openHouseExportLabel } from "@/lib/open-house";
 
 export function exportApplicationsToExcel(applications: ApplicationWithDetails[]) {
   const data = applications.map((app) => ({
@@ -16,6 +17,9 @@ export function exportApplicationsToExcel(applications: ApplicationWithDetails[]
     "Course": app?.course?.name || "-",
     "Branch": app?.branch || "-",
     "Status": app?.status || "-",
+    // Three states, not two: "Not answered" means the applicant has not reached
+    // the fee-payment step where the question is put to them.
+    "Open House": openHouseExportLabel(app || {}),
     "Phone": app?.student?.phone || "-",
     "Email": app?.student?.user?.email || "-",
     "National ID": app?.student?.nationalId || "-",
