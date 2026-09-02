@@ -45,6 +45,7 @@ import {
 import { useLanguage } from "@/lib/i18n/language-context";
 import { useApplicationContext } from "@/lib/context/application-context";
 import { CRIMINAL_CONSENT_ITEMS, hasFullCriminalConsent } from "@/lib/criminal-consent";
+import { resolveOpenHouseChoice } from "@/lib/open-house";
 
 function safeDateToInputString(d: Date | string | null | undefined): string {
   if (!d) return "";
@@ -1341,25 +1342,11 @@ export default function StudentApplicationsPage() {
           size="xl"
         >
           {(() => {
-            const remarksText = selectedApp.remarks || "";
-            const explicitChoice = (selectedApp as any).joinOpenHouse;
-
-            const isExplicitYes =
-              explicitChoice === true ||
-              (explicitChoice === undefined &&
-                (remarksText.includes("ลงทะเบียนเข้าร่วมงาน Open House") ||
-                  remarksText.includes("มีความประสงค์เข้าร่วม") ||
-                  (remarksText.includes("เข้าร่วมงาน Open House") && !remarksText.includes("ไม่ประสงค์"))));
-
-            const isExplicitNo =
-              explicitChoice === false ||
-              (explicitChoice === undefined &&
-                (remarksText.includes("ไม่ประสงค์เข้าร่วม") ||
-                  remarksText.includes("ไม่เข้าร่วม") ||
-                  (selectedApp.adminNotes || []).some((n) => n.content?.includes("ไม่ประสงค์เข้าร่วม"))));
-
-            const hasOpenHouseYes = isExplicitYes;
-            const hasOpenHouseNo = isExplicitNo && !isExplicitYes;
+            // Shared with the applications list and the Excel export, so the
+            // badge here can never disagree with what a report shows.
+            const openHouseChoice = resolveOpenHouseChoice(selectedApp);
+            const hasOpenHouseYes = openHouseChoice === "joining";
+            const hasOpenHouseNo = openHouseChoice === "not-joining";
 
             return (
               <div className="space-y-5 text-slate-200">

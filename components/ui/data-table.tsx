@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { ApplicationWithDetails, PILOT_WORKFLOW_STEPS } from "@/types";
 import { exportApplicationsToExcel, exportApplicationsToPDF } from "@/lib/export";
 import { formatDate } from "@/lib/utils";
+import { resolveOpenHouseChoice } from "@/lib/open-house";
 
 import { useLanguage } from "@/lib/i18n/language-context";
 
@@ -41,6 +42,7 @@ export function DataTable({ data, onSelectApplication, onEditApplication, onDele
   const { t, language } = useLanguage();
   const [searchTerm, setSearchTerm] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<string>("ALL");
+  const [openHouseFilter, setOpenHouseFilter] = React.useState<string>("ALL");
   const [sortField, setSortField] = React.useState<string>("createdAt");
   const [sortOrder, setSortOrder] = React.useState<"asc" | "desc">("desc");
   const [currentPage, setCurrentPage] = React.useState(1);
@@ -61,9 +63,14 @@ export function DataTable({ data, onSelectApplication, onEditApplication, onDele
 
       const statusMatches = statusFilter === "ALL" || app.status === statusFilter;
 
-      return searchMatches && statusMatches;
+      // Narrowing here also narrows what the Excel/PDF buttons export, since
+      // both are handed the filtered-and-sorted rows.
+      const openHouseMatches =
+        openHouseFilter === "ALL" || resolveOpenHouseChoice(app) === openHouseFilter;
+
+      return searchMatches && statusMatches && openHouseMatches;
     });
-  }, [data, searchTerm, statusFilter]);
+  }, [data, searchTerm, statusFilter, openHouseFilter]);
 
   // Sort logic
   const sortedData = React.useMemo(() => {
@@ -102,6 +109,34 @@ export function DataTable({ data, onSelectApplication, onEditApplication, onDele
       setSortField(field);
       setSortOrder("asc");
     }
+  };
+
+  // Open House RSVP Badge Component
+  const getOpenHouseBadge = (app: ApplicationWithDetails) => {
+    const choice = resolveOpenHouseChoice(app);
+
+    if (choice === "joining") {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-950/80 text-purple-300 border border-purple-700/60">
+          <Calendar className="h-3 w-3 text-purple-400" /> {t("openHouseJoining")}
+        </span>
+      );
+    }
+
+    if (choice === "not-joining") {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-950/90 text-slate-400 border border-slate-800">
+          {t("openHouseNotJoining")}
+        </span>
+      );
+    }
+
+    // Amber, not grey: an unanswered RSVP is someone to chase, not a settled no.
+    return (
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/30">
+        {t("openHouseUnanswered")}
+      </span>
+    );
   };
 
   // Status Badge Component
@@ -171,6 +206,24 @@ export function DataTable({ data, onSelectApplication, onEditApplication, onDele
                 </option>
               ))}
               <option value="REJECTED" className="bg-slate-900 text-rose-400">❌ ไม่อนุมัติ / Rejected</option>
+            </select>
+          </div>
+
+          {/* Open House RSVP Filter */}
+          <div className="flex items-center space-x-1.5 border border-slate-800 rounded-xl px-3 py-2 bg-slate-950/60 text-xs">
+            <Calendar className="h-3.5 w-3.5 text-purple-400" />
+            <select
+              value={openHouseFilter}
+              onChange={(e) => {
+                setOpenHouseFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="bg-transparent font-medium text-slate-300 focus:outline-none cursor-pointer max-w-[200px]"
+            >
+              <option value="ALL" className="bg-slate-900 text-slate-200">{t("filterOpenHouseAll")}</option>
+              <option value="joining" className="bg-slate-900 text-purple-300">✓ {t("openHouseJoining")}</option>
+              <option value="not-joining" className="bg-slate-900 text-slate-400">✕ {t("openHouseNotJoining")}</option>
+              <option value="unanswered" className="bg-slate-900 text-amber-400">? {t("openHouseUnanswered")}</option>
             </select>
           </div>
 
@@ -272,6 +325,7 @@ export function DataTable({ data, onSelectApplication, onEditApplication, onDele
                     <span className="font-mono text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-full">
                       1,800 THB
                     </span>
+                    <div>{getOpenHouseBadge(app)}</div>
                     <div>{getStatusBadge(app.status)}</div>
                   </div>
 
@@ -318,12 +372,12 @@ export function DataTable({ data, onSelectApplication, onEditApplication, onDele
         /* Fixed-Width 100% Fit Table Layout with Mobile Scroll Support */
         <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/80 backdrop-blur-xl shadow-xl">
           <div className="w-full overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-300 min-w-[700px] border-collapse">
+            <table className="w-full text-left text-xs text-slate-300 min-w-[820px] border-collapse">
               <thead className="bg-slate-950/90 text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-800">
                 <tr>
                   <th
                     onClick={() => handleSort("appNum")}
-                    className="w-[15%] cursor-pointer px-3 py-3 hover:text-tif-gold transition"
+                    className="w-[14%] cursor-pointer px-3 py-3 hover:text-tif-gold transition"
                   >
                     <div className="flex items-center">
                       {t("appNumberHeader")} <ArrowUpDown className="ml-1 h-3 w-3 opacity-60" />
@@ -331,14 +385,14 @@ export function DataTable({ data, onSelectApplication, onEditApplication, onDele
                   </th>
                   <th
                     onClick={() => handleSort("name")}
-                    className="w-[32%] cursor-pointer px-3 py-3 hover:text-tif-gold transition"
+                    className="w-[26%] cursor-pointer px-3 py-3 hover:text-tif-gold transition"
                   >
                     <div className="flex items-center">
                       {t("studentNameHeader")} <ArrowUpDown className="ml-1 h-3 w-3 opacity-60" />
                     </div>
                   </th>
-                  <th className="w-[16%] px-3 py-3">{t("phoneLabel")}</th>
-                  <th className="w-[10%] px-3 py-3">{t("appFeeHeader")}</th>
+                  <th className="w-[14%] px-3 py-3">{t("phoneLabel")}</th>
+                  <th className="w-[8%] px-3 py-3">{t("appFeeHeader")}</th>
                   <th
                     onClick={() => handleSort("status")}
                     className="w-[14%] cursor-pointer px-3 py-3 hover:text-tif-gold transition"
@@ -347,7 +401,8 @@ export function DataTable({ data, onSelectApplication, onEditApplication, onDele
                       {t("statusHeader")} <ArrowUpDown className="ml-1 h-3 w-3 opacity-60" />
                     </div>
                   </th>
-                  <th className="w-[13%] px-3 py-3 text-right">{t("actionHeader")}</th>
+                  <th className="w-[12%] px-3 py-3">{t("openHouseHeader")}</th>
+                  <th className="w-[12%] px-3 py-3 text-right">{t("actionHeader")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
@@ -382,6 +437,7 @@ export function DataTable({ data, onSelectApplication, onEditApplication, onDele
                         1,800
                       </td>
                       <td className="px-3 py-3">{getStatusBadge(app.status)}</td>
+                      <td className="px-3 py-3">{getOpenHouseBadge(app)}</td>
                       <td className="px-3 py-3 text-right">
                         <div className="flex items-center justify-end space-x-1" onClick={(e) => e.stopPropagation()}>
                           <button
@@ -415,7 +471,7 @@ export function DataTable({ data, onSelectApplication, onEditApplication, onDele
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="px-5 py-12 text-center text-slate-500">
+                    <td colSpan={7} className="px-5 py-12 text-center text-slate-500">
                       {t("noAppsFound")}
                     </td>
                   </tr>
