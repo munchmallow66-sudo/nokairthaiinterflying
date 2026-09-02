@@ -8,6 +8,7 @@ import {
   DollarSign,
   Calendar,
   Users,
+  UserRound,
   TrendingUp,
   ArrowUpRight,
   ShieldCheck,
@@ -18,6 +19,7 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { PILOT_WORKFLOW_STEPS } from "@/types";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { useApplicationContext } from "@/lib/context/application-context";
+import { countByGender } from "@/lib/gender";
 
 export default function AdminDashboardPage() {
   const { t, language } = useLanguage();
@@ -43,6 +45,11 @@ export default function AdminDashboardPage() {
   }).length;
 
   const totalAppsCount = applications.length;
+
+  // Gender split. countByGender normalises the free-form Student.gender and
+  // keeps blanks in their own bucket, so an unanswered field never lands in
+  // the male column the way the applicant drawer's display default would.
+  const genderCounts = countByGender(applications);
 
   // Revenue from verified payments
   const verifiedPayments = payments.filter((p) => p.status === "VERIFIED");
@@ -105,7 +112,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Real-time Dynamic KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {/* Today Apps */}
         <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition shadow-xl group">
           <div className="flex items-center justify-between">
@@ -135,6 +142,27 @@ export default function AdminDashboardPage() {
           </p>
           <span className="text-[11px] text-emerald-400 font-semibold flex items-center mt-2">
             <TrendingUp className="h-3 w-3 mr-1" /> ใบสมัครทั้งหมด
+          </span>
+        </div>
+
+        {/* Gender Split */}
+        <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition shadow-xl group">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">{t("genderSplitLabel")}</span>
+            <div className="p-2.5 bg-sky-500/10 text-sky-400 rounded-xl border border-sky-500/20 group-hover:scale-110 transition-transform">
+              <UserRound className="h-4 w-4" />
+            </div>
+          </div>
+          <p className="text-3xl font-bold font-display mt-3 font-mono flex items-baseline gap-1.5">
+            <span className="text-sky-400">{genderCounts.male}</span>
+            <span className="text-xl text-slate-600">/</span>
+            <span className="text-pink-400">{genderCounts.female}</span>
+          </p>
+          <span className="text-[11px] text-slate-400 font-medium mt-2 block">
+            {t("genderSplitCaption")}
+            {genderCounts.unspecified > 0 && (
+              <span className="text-amber-400"> · {t("genderUnspecifiedShort")} {genderCounts.unspecified}</span>
+            )}
           </span>
         </div>
 

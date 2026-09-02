@@ -3,12 +3,16 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { ApplicationWithDetails } from "@/types";
 import { formatDate } from "@/lib/utils";
+import { genderExportLabel } from "@/lib/gender";
 
 export function exportApplicationsToExcel(applications: ApplicationWithDetails[]) {
   const data = applications.map((app) => ({
     "App Number": app?.applicationNumber || "-",
     "Student Name (EN)": `${app?.student?.firstNameEn || "-"} ${app?.student?.lastNameEn || ""}`.trim(),
     "Student Name (TH)": `${app?.student?.firstNameTh || "-"} ${app?.student?.lastNameTh || ""}`.trim(),
+    // Normalised rather than passed through: Student.gender is free-form text,
+    // so raw values would break a pivot table or a COUNTIF on this column.
+    "Gender": genderExportLabel(app?.student?.gender),
     "Course": app?.course?.name || "-",
     "Branch": app?.branch || "-",
     "Status": app?.status || "-",
