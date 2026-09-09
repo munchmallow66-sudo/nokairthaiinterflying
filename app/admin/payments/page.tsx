@@ -95,7 +95,9 @@ export default function PaymentsPage() {
 
   React.useEffect(() => {
     fetchPayments();
-    const interval = setInterval(fetchPayments, 3000);
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") fetchPayments();
+    }, 30_000);
     return () => clearInterval(interval);
   }, [fetchPayments]);
 

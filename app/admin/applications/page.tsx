@@ -451,6 +451,7 @@ export default function StudentApplicationsPage() {
     deleteApplication,
     addApplication,
     resetToSampleData,
+    loadApplicationDetails,
   } = useApplicationContext();
 
   const [selectedApp, setSelectedApp] = React.useState<ApplicationWithDetails | null>(null);
@@ -596,9 +597,15 @@ export default function StudentApplicationsPage() {
   const [interviewerName, setInterviewerName] = React.useState("Capt. Thanawat (Chief Flight Instructor)");
   const [interviewLocation, setInterviewLocation] = React.useState("TIF Headquarters Room 302");
 
-  const handleSelectApp = (app: ApplicationWithDetails) => {
-    setSelectedApp(app);
-    setDrawerOpen(true);
+  const handleSelectApp = async (app: ApplicationWithDetails) => {
+    try {
+      const detail = await loadApplicationDetails(app.id);
+      setSelectedApp(detail);
+      setDrawerOpen(true);
+    } catch (error) {
+      console.error("Failed to load application details:", error);
+      alert("ไม่สามารถโหลดรายละเอียดใบสมัครได้ กรุณาลองใหม่อีกครั้ง");
+    }
   };
 
   const [writtenExamModalOpen, setWrittenExamModalOpen] = React.useState(false);
@@ -880,7 +887,7 @@ export default function StudentApplicationsPage() {
     setAddModalOpen(true);
   };
 
-  const handleOpenEdit = (app: ApplicationWithDetails) => {
+  const populateEditForm = (app: ApplicationWithDetails) => {
     setEditingApp(app);
     setEditTab("personal");
 
@@ -933,6 +940,16 @@ export default function StudentApplicationsPage() {
     setFormIcaoLevel(app.student.english?.icaoLevel ?? "");
 
     setEditModalOpen(true);
+  };
+
+  const handleOpenEdit = async (app: ApplicationWithDetails) => {
+    try {
+      const detail = await loadApplicationDetails(app.id);
+      populateEditForm(detail);
+    } catch (error) {
+      console.error("Failed to load application for editing:", error);
+      alert("ไม่สามารถโหลดข้อมูลสำหรับแก้ไขได้ กรุณาลองใหม่อีกครั้ง");
+    }
   };
 
   const handleSaveEdit = () => {

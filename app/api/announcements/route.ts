@@ -15,6 +15,7 @@ export async function GET(req: Request) {
       const dbItems = await (prisma as any).announcement.findMany({
         where: includeAll ? {} : { isActive: true },
         orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
+        ...(includeAll ? {} : { take: 12 }),
       });
 
       if (Array.isArray(dbItems)) {

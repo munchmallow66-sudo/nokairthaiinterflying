@@ -18,56 +18,38 @@ import { Button } from "@/components/ui/button";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { PILOT_WORKFLOW_STEPS } from "@/types";
 import { useLanguage } from "@/lib/i18n/language-context";
-import { useApplicationContext } from "@/lib/context/application-context";
-import { countByGender } from "@/lib/gender";
+
+interface DashboardStats {
+  totalApplications: number;
+  todayApplications: number;
+  genders: { male: number; female: number; unspecified: number };
+  verifiedPaymentCount: number;
+  totalRevenue: number;
+  pendingPayments: number;
+  upcomingInterviews: number;
+  recentApplications: any[];
+}
 
 export default function AdminDashboardPage() {
   const { t, language } = useLanguage();
-  const { applications } = useApplicationContext();
-  const [payments, setPayments] = React.useState<any[]>([]);
+  const [stats, setStats] = React.useState<DashboardStats | null>(null);
 
-  // Fetch payments to compute real-time financial stats
   React.useEffect(() => {
-    fetch("/api/payments")
-      .then((res) => (res.ok ? res.json() : []))
+    fetch("/api/admin/dashboard-stats")
+      .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (Array.isArray(data)) setPayments(data);
+        if (data) setStats(data);
       })
-      .catch((err) => console.warn("Failed fetching payments for dashboard:", err));
+      .catch((err) => console.warn("Failed fetching dashboard statistics:", err));
   }, []);
 
-  // Compute Live Real-Time Dashboard Statistics
-  const todayStr = new Date().toISOString().split("T")[0];
-  const todayAppsCount = applications.filter((app) => {
-    if (!app.createdAt) return false;
-    const d = new Date(app.createdAt).toISOString().split("T")[0];
-    return d === todayStr;
-  }).length;
-
-  const totalAppsCount = applications.length;
-
-  // Gender split. countByGender normalises the free-form Student.gender and
-  // keeps blanks in their own bucket, so an unanswered field never lands in
-  // the male column the way the applicant drawer's display default would.
-  const genderCounts = countByGender(applications);
-
-  // Revenue from verified payments
-  const verifiedPayments = payments.filter((p) => p.status === "VERIFIED");
-  const totalRevenue = verifiedPayments.reduce((sum, p) => sum + (Number(p.amount) || 1800), 0);
-  const pendingPaymentsCount = payments.filter((p) => p.status === "PENDING" || p.status === "SLIP_ATTACHED").length;
-
-  // Upcoming interviews count
-  const upcomingInterviewsCount = applications.filter((app) => {
-    if (app.status === "INTERVIEW_SCHEDULED") return true;
-    return app.interviews?.some((i) => i.passed === undefined);
-  }).length;
-
-  // Top 5 Recent Applications
-  const recentApplications = React.useMemo(() => {
-    return [...applications]
-      .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
-      .slice(0, 5);
-  }, [applications]);
+  const todayAppsCount = stats?.todayApplications || 0;
+  const totalAppsCount = stats?.totalApplications || 0;
+  const genderCounts = stats?.genders || { male: 0, female: 0, unspecified: 0 };
+  const totalRevenue = stats?.totalRevenue || 0;
+  const pendingPaymentsCount = stats?.pendingPayments || 0;
+  const upcomingInterviewsCount = stats?.upcomingInterviews || 0;
+  const recentApplications = stats?.recentApplications || [];
 
   const getStatusBadge = (status: string) => {
     const stepDef = PILOT_WORKFLOW_STEPS.find((s) => s.key === status);
@@ -122,7 +104,7 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           <p className="text-3xl font-bold text-white font-display mt-3">
-            {todayAppsCount > 0 ? todayAppsCount : totalAppsCount}
+            {todayAppsCount}
           </p>
           <span className="text-[11px] text-emerald-400 font-semibold flex items-center mt-2">
             <TrendingUp className="h-3 w-3 mr-1" /> Real-time Sync
@@ -178,7 +160,7 @@ export default function AdminDashboardPage() {
             {totalRevenue > 0 ? `${totalRevenue.toLocaleString()} THB` : "0 THB"}
           </p>
           <span className="text-[11px] text-slate-400 font-medium mt-2 block">
-            {verifiedPayments.length} สลิปที่อนุมัติแล้ว
+            {stats?.verifiedPaymentCount || 0} สลิปที่อนุมัติแล้ว
           </span>
         </div>
 
