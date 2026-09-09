@@ -17,11 +17,10 @@ async function getAdminSession() {
   return sessionToken ? await verifyAdminSessionToken(sessionToken) : null;
 }
 
-// Admin-only: this returns every applicant's full record — national ID,
-// passport, contact details, and the plaintext tracking password. The
-// middleware guard only covers /admin page routes, not /api, so the check
-// has to live here.
-export async function GET() {
+// Admin-only. List requests return a compact operational summary; a request
+// with ?id=... returns the full record needed by the detail/edit drawer. The
+// middleware guard only covers /admin pages, so the API enforces auth itself.
+export async function GET(req: Request) {
   try {
     const session = await getAdminSession();
     if (!session) {
@@ -30,33 +29,107 @@ export async function GET() {
 
     const { getPrisma } = await import("@/lib/prisma");
     const prisma = getPrisma();
-    const applications = await prisma.application.findMany({
-      include: {
-        student: {
-          include: {
-            user: true,
-            address: true,
-            education: true,
-            emergency: true,
-            parent: true,
-            medical: true,
-            english: true,
+
+    const detailId = new URL(req.url).searchParams.get("id")?.trim();
+    if (detailId) {
+      const application = await prisma.application.findFirst({
+        where: {
+          OR: [
+            { id: detailId },
+            { applicationNumber: { equals: detailId, mode: "insensitive" } },
+          ],
+        },
+        include: {
+          student: {
+            include: {
+              user: true,
+              address: true,
+              education: true,
+              emergency: true,
+              parent: true,
+              medical: true,
+              english: true,
+            },
+          },
+          course: true,
+          documents: { orderBy: { uploadedAt: "asc" } },
+          payments: { orderBy: { createdAt: "desc" } },
+          interviews: { orderBy: { createdAt: "desc" } },
+          adminNotes: {
+            include: { author: true },
+            orderBy: { createdAt: "desc" },
           },
         },
-        course: true,
-        documents: true,
-        payments: true,
-        interviews: true,
-        adminNotes: {
-          include: {
-            author: true,
+      });
+
+      if (!application) {
+        return NextResponse.json({ error: "Application not found" }, { status: 404 });
+      }
+      return NextResponse.json(application);
+    }
+
+    // The list intentionally contains only fields used by tables, filters and
+    // the interviews page. Sensitive/large relations are loaded on demand via
+    // ?id=... when an officer opens a record.
+    const applications = await prisma.application.findMany({
+      select: {
+        id: true,
+        applicationNumber: true,
+        branch: true,
+        preferredStartDate: true,
+        status: true,
+        rejectedStage: true,
+        remarks: true,
+        joinOpenHouse: true,
+        createdAt: true,
+        updatedAt: true,
+        student: {
+          select: {
+            id: true,
+            firstNameTh: true,
+            lastNameTh: true,
+            firstNameEn: true,
+            lastNameEn: true,
+            nickname: true,
+            gender: true,
+            phone: true,
+            user: { select: { email: true, image: true } },
           },
+        },
+        course: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            price: true,
+            duration: true,
+          },
+        },
+        interviews: {
+          select: {
+            id: true,
+            scheduledAt: true,
+            location: true,
+            interviewer: true,
+            result: true,
+            passed: true,
+          },
+          orderBy: { createdAt: "desc" },
         },
       },
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json(applications);
+    // Preserve the existing client shape while avoiding document URLs,
+    // payments, notes, medical records, addresses and tracking passwords.
+    return NextResponse.json(
+      applications.map((application) => ({
+        ...application,
+        documents: [],
+        payments: [],
+        adminNotes: [],
+      }))
+    );
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

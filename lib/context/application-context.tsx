@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { usePathname } from "next/navigation";
 import { ApplicationWithDetails } from "@/types";
 
 const STORAGE_KEY = "tif_global_applications_database_v2";
@@ -404,6 +405,9 @@ export const INITIAL_SAMPLE_APPLICATIONS: ApplicationWithDetails[] = [
 
 interface ApplicationContextType {
   applications: ApplicationWithDetails[];
+  isLoadingApplications: boolean;
+  refetchApplications: () => Promise<void>;
+  loadApplicationDetails: (appId: string) => Promise<ApplicationWithDetails>;
   updateApplication: (appId: string, updatedFields: Partial<ApplicationWithDetails>) => void;
   syncApplicationFromServer: (appId: string, updatedFields: Partial<ApplicationWithDetails>) => void;
   announceRejection: (
@@ -456,6 +460,14 @@ function mergeWithServer(
     return {
       ...localApp,
       ...dbApp,
+      student: {
+        ...(localApp.student || {}),
+        ...(dbApp.student || {}),
+        user: {
+          ...(localApp.student?.user || {}),
+          ...(dbApp.student?.user || {}),
+        },
+      },
       // Database from server is authoritative on status, remarks, joinOpenHouse, documents, payments
       password: dbApp.password || localApp.password || null,
       joinOpenHouse: dbApp.joinOpenHouse !== undefined && dbApp.joinOpenHouse !== null ? dbApp.joinOpenHouse : localApp.joinOpenHouse,
@@ -463,63 +475,72 @@ function mergeWithServer(
       status: dbApp.status || localApp.status,
       documents: dbApp.documents && dbApp.documents.length > 0 ? dbApp.documents : (localApp.documents || []),
       payments: dbApp.payments && dbApp.payments.length > 0 ? dbApp.payments : (localApp.payments || []),
+      adminNotes: dbApp.adminNotes && dbApp.adminNotes.length > 0 ? dbApp.adminNotes : (localApp.adminNotes || []),
     };
   });
 }
 
 export function ApplicationProvider({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const [applications, setApplications] = React.useState<ApplicationWithDetails[]>([]);
-  const [isInitialized, setIsInitialized] = React.useState(false);
+  const [isLoadingApplications, setIsLoadingApplications] = React.useState(false);
+  const isAdminDataPage = ["/admin/applications", "/admin/interviews", "/admin/payments"].some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`)
+  );
 
   // Re-reads the authoritative list. Throws on a bad response so callers can
   // tell "the server says this list is empty" apart from "the server did not
   // answer" — only the former may clear rows off the screen.
   const refetchApplications = React.useCallback(async () => {
-    const res = await fetch("/api/applications");
-    if (!res.ok) {
-      throw new Error(`Failed to load applications (${res.status})`);
+    setIsLoadingApplications(true);
+    try {
+      const res = await fetch("/api/applications");
+      if (!res.ok) {
+        throw new Error(`Failed to load applications (${res.status})`);
+      }
+      const dbApps = await res.json();
+      if (!Array.isArray(dbApps)) {
+        throw new Error("Unexpected applications payload from server");
+      }
+      setApplications((prev) => mergeWithServer(prev, dbApps));
+    } finally {
+      setIsLoadingApplications(false);
     }
-    const dbApps = await res.json();
-    if (!Array.isArray(dbApps)) {
-      throw new Error("Unexpected applications payload from server");
-    }
-    setApplications((prev) => mergeWithServer(prev, dbApps));
   }, []);
 
-  // 1. Clear legacy tombstones, load the local cache, then sync with Server DB
+  const loadApplicationDetails = React.useCallback(async (appId: string) => {
+    const res = await fetch(`/api/applications?id=${encodeURIComponent(appId)}`);
+    const detail = await res.json().catch(() => null);
+    if (!res.ok || !detail?.id) {
+      throw new Error(detail?.error || `Failed to load application (${res.status})`);
+    }
+    setApplications((prev) =>
+      prev.map((app) =>
+        app.id === detail.id || app.applicationNumber === detail.applicationNumber ? detail : app
+      )
+    );
+    return detail as ApplicationWithDetails;
+  }, []);
+
+  // Do not fetch the admin applicant database from public pages, and do not
+  // retain full personal/medical/document records in localStorage.
   React.useEffect(() => {
     try {
       localStorage.removeItem(LEGACY_DELETED_KEY);
+      localStorage.removeItem(STORAGE_KEY);
     } catch (e) {}
-
-    // Load initial local cache while fetching server
-    try {
-      const savedData = localStorage.getItem(STORAGE_KEY);
-      if (savedData !== null) {
-        const parsed = JSON.parse(savedData);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setApplications(parsed);
-        } else {
-          setApplications(INITIAL_SAMPLE_APPLICATIONS);
-        }
-      } else {
-        setApplications(INITIAL_SAMPLE_APPLICATIONS);
-      }
-    } catch (err) {
-      setApplications(INITIAL_SAMPLE_APPLICATIONS);
-    }
-    setIsInitialized(true);
-
-    refetchApplications().catch((err) =>
-      console.warn("Failed to fetch applications from DB:", err)
-    );
-  }, [refetchApplications]);
+    if (!isAdminDataPage) return;
+    refetchApplications().catch((err) => console.warn("Failed to fetch applications from DB:", err));
+  }, [isAdminDataPage, refetchApplications]);
 
   // 2. Real-Time Cross-Device Polling & Window Focus Auto-Sync
   React.useEffect(() => {
+    if (!isAdminDataPage) return;
     const interval = setInterval(() => {
-      refetchApplications().catch(() => {});
-    }, 8000);
+      if (document.visibilityState === "visible") {
+        refetchApplications().catch(() => {});
+      }
+    }, 30_000);
 
     const handleFocus = () => {
       refetchApplications().catch(() => {});
@@ -531,17 +552,7 @@ export function ApplicationProvider({ children }: { children: React.ReactNode })
       clearInterval(interval);
       window.removeEventListener("focus", handleFocus);
     };
-  }, [refetchApplications]);
-
-  // 2. Persist applications state to localStorage whenever modified
-  React.useEffect(() => {
-    if (!isInitialized) return;
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(applications));
-    } catch (err) {
-      console.error("Failed to save global ApplicationContext cache:", err);
-    }
-  }, [applications, isInitialized]);
+  }, [isAdminDataPage, refetchApplications]);
 
   // Applies values that came *from* the server to the local copy, without
   // PATCHing them straight back.
@@ -866,6 +877,9 @@ export function ApplicationProvider({ children }: { children: React.ReactNode })
     <ApplicationContext.Provider
       value={{
         applications,
+        isLoadingApplications,
+        refetchApplications,
+        loadApplicationDetails,
         updateApplication,
         syncApplicationFromServer,
         announceRejection,

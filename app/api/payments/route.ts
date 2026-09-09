@@ -102,6 +102,12 @@ export async function GET(req: Request) {
     return lookupSlipStatus(req, slipCheck);
   }
 
+  // The full list contains applicant names and private slip URLs. Public pages
+  // use the narrow slipCheck lookup above and must never receive this dataset.
+  if (!(await isAdminRequest())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const { getPrisma } = await import("@/lib/prisma");
     const prisma = getPrisma();
@@ -381,6 +387,9 @@ export async function POST(req: Request) {
 }
 
 export async function PATCH(req: Request) {
+  if (!(await isAdminRequest())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   try {
     const body = await req.json();
     const { id, appNum, student, amount, status, receiptNo, invoiceNo } = body;
@@ -445,6 +454,9 @@ export async function PATCH(req: Request) {
 }
 
 export async function DELETE(req: Request) {
+  if (!(await isAdminRequest())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   try {
     const { searchParams } = new URL(req.url);
     let id = searchParams.get("id");

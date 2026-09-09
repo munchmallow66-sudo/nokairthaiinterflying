@@ -122,13 +122,11 @@ export default function PaymentPage() {
     //    it cannot answer for an applicant who paid from another browser, and it
     //    holds nothing at all for someone who searched by national ID. That gap
     //    is what kept showing the upload form to applicants who had already paid.
-    let serverAnswered = false;
     try {
       const res = await fetch(`/api/payments?slipCheck=${encodeURIComponent(cleanInput)}`);
       if (res.ok) {
         const info = await res.json();
         if (info?.found) {
-          serverAnswered = true;
           // Use the real application number, not the guess made above: a slip
           // posted against a fabricated number never reaches the applicant's
           // record, so the next search would invite them to upload yet again.
@@ -146,30 +144,6 @@ export default function PaymentPage() {
       }
     } catch (err) {
       console.warn("Slip status lookup failed:", err);
-    }
-
-    // Fallback only for when the lookup could not answer (database unreachable),
-    // where the in-memory payment store may still know about this slip.
-    if (!serverAnswered && !alreadyUploaded) {
-      try {
-        const res = await fetch("/api/payments");
-        if (res.ok) {
-          const payments = await res.json();
-          if (Array.isArray(payments)) {
-            const foundPayment = payments.find(
-              (p: any) => p.appNum && p.appNum.toUpperCase() === appNum.toUpperCase()
-            );
-            if (foundPayment) {
-              alreadyUploaded = true;
-              statusText = foundPayment.status === "VERIFIED"
-                ? "ชำระค่าสมัครเรียบร้อยแล้ว (อนุมัติแล้ว)"
-                : "ได้รับสลิปโอนเงินเรียบร้อยแล้ว (อยู่ระหว่างรอเจ้าหน้าที่ตรวจสอบ)";
-            }
-          }
-        }
-      } catch (err) {
-        console.warn("Payment fetch check failed:", err);
-      }
     }
 
     setTimeout(() => {
