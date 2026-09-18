@@ -4,12 +4,11 @@ import { Button } from "@/components/ui/button";
  * Whether admissions are currently open.
  *
  * Controlled by NEXT_PUBLIC_ADMISSIONS_OPEN (public, inlined into the client
- * bundle at build time because every consumer here is a client component).
- * Anything other than "false" means open, so the flag defaults to open when
- * unset — the same behaviour the site had before the flag existed.
+ * bundle at build time). Defaults to false (closed). Set
+ * NEXT_PUBLIC_ADMISSIONS_OPEN="true" to re-open applications.
  */
 export function admissionsAreOpen(): boolean {
-  return process.env.NEXT_PUBLIC_ADMISSIONS_OPEN !== "false";
+  return process.env.NEXT_PUBLIC_ADMISSIONS_OPEN === "true";
 }
 
 /**
