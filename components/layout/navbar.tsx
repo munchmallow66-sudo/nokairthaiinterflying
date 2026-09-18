@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/ui/brand-logo";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import { useLanguage } from "@/lib/i18n/language-context";
+import { ApplyCta, admissionsAreOpen } from "@/lib/admissions";
 
 export function Navbar() {
   const [isScrolled, setIsScrolled] = React.useState(false);
@@ -93,14 +94,11 @@ export function Navbar() {
           <LanguageSwitcher variant="glass" className="scale-90 min-[380px]:scale-95 sm:scale-100 origin-right" />
 
           {/* Apply Now Gold Pill Button */}
-          <Link href="/apply" className="hidden sm:inline-block">
-            <Button
-              variant="gold"
-              size="sm"
+          <Link href="/apply" className="hidden sm:inline-block" aria-disabled={!admissionsAreOpen()}>
+            <ApplyCta
+              label={t("applyNow")}
               className="rounded-full shadow-gold font-bold text-xs px-4 sm:px-5 py-2 hover:scale-105 transition-all duration-200"
-            >
-              {t("applyNow")}
-            </Button>
+            />
           </Link>
 
           {/* Mobile Menu Toggle Button */}
@@ -156,10 +154,11 @@ export function Navbar() {
           </nav>
 
           <div className="pt-3 border-t border-tif-gold/20">
-            <Link href="/apply" onClick={() => setMobileMenuOpen(false)}>
-              <Button variant="gold" className="w-full rounded-full font-bold shadow-gold py-3 text-sm">
-                {t("applyNow")}
-              </Button>
+            <Link href="/apply" onClick={() => setMobileMenuOpen(false)} aria-disabled={!admissionsAreOpen()}>
+              <ApplyCta
+                label={t("applyNow")}
+                className="w-full rounded-full font-bold shadow-gold py-3 text-sm"
+              />
             </Link>
           </div>
         </div>

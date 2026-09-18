@@ -5,6 +5,7 @@ import { generateApplicationNumber, generateSecurePassword, formatDocumentFileNa
 import { verifyAdminSessionToken } from "@/lib/auth";
 import { sendApplicationConfirmationEmail, sendSelectionRejectionEmail } from "@/lib/email";
 import { CRIMINAL_CONSENT_VERSION, hasFullCriminalConsent } from "@/lib/criminal-consent";
+import { admissionsAreOpen } from "@/lib/admissions";
 
 
 export const dynamic = "force-dynamic";
@@ -154,6 +155,15 @@ export async function POST(req: Request) {
   const isAdminCreate = body?.adminCreate === true;
   if (isAdminCreate && !(await getAdminSession())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Public submissions are blocked while admissions are closed. Admin-keyed
+  // walk-ins still go through so an officer can register someone in person.
+  if (!isAdminCreate && !admissionsAreOpen()) {
+    return NextResponse.json(
+      { error: " Admissions are currently closed. หมดเขตรับสมัครแล้วในขณะนี้" },
+      { status: 403 }
+    );
   }
 
   if (!isAdminCreate) {

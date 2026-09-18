@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Clock, CheckCircle2, ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Clock, CheckCircle2 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { TranslationKey } from "@/lib/i18n/translations";
+import { ApplyCta, admissionsAreOpen } from "@/lib/admissions";
 
 interface CourseItem {
   id: string;
@@ -150,10 +150,8 @@ export default function CoursesPage() {
                   {formatCurrency(course.price)}
                 </span>
               </div>
-              <Link href="/apply">
-                <Button variant="gold" size="sm" className="text-xs">
-                  {t("applyCourseBtn")} <ArrowRight className="ml-1 h-3 w-3" />
-                </Button>
+              <Link href="/apply" aria-disabled={!admissionsAreOpen()}>
+                <ApplyCta label={t("applyCourseBtn")} className="text-xs" size="sm" />
               </Link>
             </div>
           </div>

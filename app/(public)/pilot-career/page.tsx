@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, DollarSign } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { DollarSign } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/language-context";
+import { ApplyCta, admissionsAreOpen } from "@/lib/admissions";
 
 export default function PilotCareerPage() {
   const { t } = useLanguage();
@@ -82,10 +82,8 @@ export default function PilotCareerPage() {
       </div>
 
       <div className="text-center pt-4">
-        <Link href="/apply">
-          <Button variant="gold" size="lg">
-            {t("applyCareerBtn")} <ArrowRight className="ml-2 h-5 w-5" />
-          </Button>
+        <Link href="/apply" aria-disabled={!admissionsAreOpen()}>
+          <ApplyCta label={t("applyCareerBtn")} size="lg" />
         </Link>
       </div>
     </div>

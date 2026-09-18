@@ -420,6 +420,10 @@ export const translations = {
     applyPageTitle: "แบบฟอร์มสมัครเรียนการบินออนไลน์",
     applyPageSub: "กรุณากรอกข้อมูลให้ครบถ้วนทั้ง 9 ขั้นตอน พร้อมแนบเอกสารรับรองสำเนาถูกต้อง",
 
+    // Admissions closed banner
+    admissionsClosedTitle: "ปิดรับสมัครแล้ว",
+    admissionsClosedDesc: "ขณะนี้หมดเขตรับสมัครเรียนแล้ว กรุณาติดตามประกาศรอบถัดไปทางหน้าแรก หรือติดต่อเจ้าหน้าที่ที่ Line Official / โทรศัพท์",
+
     // 9-Step Application Form
     step1Title: "ข้อมูลส่วนตัว",
     step1Sub: "Personal Information",
@@ -1452,6 +1456,10 @@ export const translations = {
     // Application Wrapper Page
     applyPageTitle: "Online Cadet Application Form",
     applyPageSub: "Please complete all 9 steps carefully and upload certified copy documents.",
+
+    // Admissions closed banner
+    admissionsClosedTitle: "Admissions Closed",
+    admissionsClosedDesc: "Applications are currently closed. Please check the homepage for the next intake, or contact us via Line Official / phone.",
 
     // 9-Step Application Form
     step1Title: "Personal Information",

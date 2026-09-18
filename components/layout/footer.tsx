@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Mail, Phone, MapPin, ShieldCheck, Award } from "lucide-react";
 import { BrandLogo } from "@/components/ui/brand-logo";
 import { useLanguage } from "@/lib/i18n/language-context";
+import { admissionsAreOpen } from "@/lib/admissions";
 
 export function Footer() {
   const { t } = useLanguage();
@@ -37,9 +38,9 @@ export function Footer() {
             </h4>
             <ul className="space-y-3 text-sm font-medium">
               <li>
-                <Link href="/apply" className="text-slate-300 hover:text-tif-gold transition-colors flex items-center space-x-2">
+                <Link href="/apply" aria-disabled={!admissionsAreOpen()} className="text-slate-300 hover:text-tif-gold transition-colors flex items-center space-x-2">
                   <span className="text-tif-gold">•</span>
-                  <span>{t("applyNow")}</span>
+                  <span>{admissionsAreOpen() ? t("applyNow") : "ปิดรับสมัคร"}</span>
                 </Link>
               </li>
               <li>

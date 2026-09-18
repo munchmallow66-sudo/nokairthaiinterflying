@@ -28,6 +28,7 @@ import { Card3D } from "@/components/ui/card-3d";
 import { Mascot3D } from "@/components/ui/mascot-3d";
 import { AnnouncementPopup } from "@/components/home/announcement-popup";
 import { RecruitmentJourney } from "@/components/home/recruitment-journey";
+import { ApplyCta, admissionsAreOpen } from "@/lib/admissions";
 
 export default function HomePage() {
   const { t } = useLanguage();
@@ -82,15 +83,11 @@ export default function HomePage() {
 
               {/* CTAs */}
               <div className="flex flex-col sm:flex-row gap-3.5 pt-2 animate-hero-cta">
-                <Link href="/apply">
-                  <Button
-                    variant="gold"
-                    size="lg"
+                <Link href="/apply" aria-disabled={!admissionsAreOpen()}>
+                  <ApplyCta
+                    label={t("startAdmission")}
                     className="w-full sm:w-auto text-base font-bold group shadow-gold hover:scale-[1.03] transition-all duration-300 rounded-full px-8 py-3.5"
-                  >
-                    {t("startAdmission")}
-                    <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
-                  </Button>
+                  />
                 </Link>
 
                 <Link href="/track">

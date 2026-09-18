@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { CheckCircle2, ShieldCheck, ArrowRight, FileText } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { CheckCircle2, ShieldCheck, FileText } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/language-context";
+import { ApplyCta, admissionsAreOpen } from "@/lib/admissions";
 
 export default function AdmissionPage() {
   const { t } = useLanguage();
@@ -61,10 +61,8 @@ export default function AdmissionPage() {
             <li>{t("digitalDoc7")}</li>
           </ul>
           <div className="pt-4 border-t border-slate-100">
-            <Link href="/apply">
-              <Button variant="gold" className="w-full">
-                {t("beginAppBtn")} <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+            <Link href="/apply" aria-disabled={!admissionsAreOpen()}>
+              <ApplyCta label={t("beginAppBtn")} className="w-full" />
             </Link>
           </div>
         </div>
