@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/ui/brand-logo";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import { useLanguage } from "@/lib/i18n/language-context";
-import { ApplyCta, admissionsAreOpen } from "@/lib/admissions";
+import { ApplyCta, useAdmissions } from "@/lib/admissions";
 
 export function Navbar() {
   const [isScrolled, setIsScrolled] = React.useState(false);
@@ -16,6 +16,7 @@ export function Navbar() {
 
   const pathname = usePathname();
   const { t } = useLanguage();
+  const { isOpen } = useAdmissions();
 
   React.useEffect(() => {
     const handleScroll = () => {
@@ -94,7 +95,14 @@ export function Navbar() {
           <LanguageSwitcher variant="glass" className="scale-90 min-[380px]:scale-95 sm:scale-100 origin-right" />
 
           {/* Apply Now Gold Pill Button */}
-          <Link href="/apply" className="hidden sm:inline-block" aria-disabled={!admissionsAreOpen()}>
+          <Link
+            href="/apply"
+            className={`hidden sm:inline-block ${!isOpen ? "pointer-events-none opacity-80" : ""}`}
+            aria-disabled={!isOpen}
+            onClick={(e) => {
+              if (!isOpen) e.preventDefault();
+            }}
+          >
             <ApplyCta
               label={t("applyNow")}
               className="rounded-full shadow-gold font-bold text-xs px-4 sm:px-5 py-2 hover:scale-105 transition-all duration-200"
@@ -154,7 +162,18 @@ export function Navbar() {
           </nav>
 
           <div className="pt-3 border-t border-tif-gold/20">
-            <Link href="/apply" onClick={() => setMobileMenuOpen(false)} aria-disabled={!admissionsAreOpen()}>
+            <Link
+              href="/apply"
+              onClick={(e) => {
+                if (!isOpen) {
+                  e.preventDefault();
+                  return;
+                }
+                setMobileMenuOpen(false);
+              }}
+              aria-disabled={!isOpen}
+              className={!isOpen ? "pointer-events-none opacity-80" : ""}
+            >
               <ApplyCta
                 label={t("applyNow")}
                 className="w-full rounded-full font-bold shadow-gold py-3 text-sm"

@@ -37,6 +37,7 @@ import { useLanguage } from "@/lib/i18n/language-context";
 import { useApplicationContext } from "@/lib/context/application-context";
 import { formatDocumentFileName } from "@/lib/utils";
 import { CRIMINAL_CONSENT_ITEMS, CRIMINAL_CONSENT_FIELDS } from "@/lib/criminal-consent";
+import { useAdmissions } from "@/lib/admissions";
 
 
 const DRAFT_STORAGE_KEY = "tif_cadet_application_draft";
@@ -57,6 +58,7 @@ export function MultiStepForm() {
   const [copied, setCopied] = React.useState(false);
   const { t, language } = useLanguage();
   const { addApplication } = useApplicationContext();
+  const { refresh: refreshAdmissions } = useAdmissions();
   const [currentStep, setCurrentStep] = React.useState(1);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitSuccess, setSubmitSuccess] = React.useState<{ appNum: string; password?: string } | null>(null);
@@ -363,6 +365,12 @@ export function MultiStepForm() {
         return;
       }
 
+      if (res.status === 403 || responseData?.quotaFull) {
+        refreshAdmissions?.();
+        setSubmitError({ message: responseData?.error || "ขออภัย โควตารับสมัครเต็มแล้ว ระบบปิดรับสมัครเรียบร้อยแล้ว" });
+        return;
+      }
+
       if (!res.ok || responseData?.success === false) {
         throw new Error(responseData?.error || `Request failed with status ${res.status}`);
       }
@@ -484,14 +492,22 @@ export function MultiStepForm() {
       } catch (e) {}
 
       setSubmitSuccess({ appNum: finalAppNum, password: finalPassword });
+      refreshAdmissions?.();
     } catch (err: any) {
       console.warn("Application submit failed:", err);
+      refreshAdmissions?.();
+
+      const isQuotaErr =
+        err?.message?.includes("โควตา") ||
+        err?.message?.includes("ปิดรับสมัคร") ||
+        err?.message?.includes("closed");
 
       // Keep the local admin-visibility fallback (business logic unchanged),
       // but do NOT clear the draft and do NOT report success — the server
       // never confirmed this submission actually reached the database.
-      try {
-        addApplication({
+      if (!isQuotaErr) {
+        try {
+          addApplication({
           id: `app_${Date.now()}`,
           applicationNumber: appNum,
           branch: "Bangkok Headquarters",
@@ -578,6 +594,7 @@ export function MultiStepForm() {
       } catch (ctxErr) {
         console.warn("Context save warning:", ctxErr);
       }
+    }
 
       setSubmitError({ message: err?.message });
     } finally {

@@ -4,10 +4,11 @@ import Link from "next/link";
 import { Mail, Phone, MapPin, ShieldCheck, Award } from "lucide-react";
 import { BrandLogo } from "@/components/ui/brand-logo";
 import { useLanguage } from "@/lib/i18n/language-context";
-import { admissionsAreOpen } from "@/lib/admissions";
+import { useAdmissions } from "@/lib/admissions";
 
 export function Footer() {
   const { t } = useLanguage();
+  const { isOpen } = useAdmissions();
 
   return (
     <footer className="bg-[#051329] text-slate-300 border-t-2 border-tif-gold/40 pt-16 pb-12 relative overflow-hidden">
@@ -38,9 +39,16 @@ export function Footer() {
             </h4>
             <ul className="space-y-3 text-sm font-medium">
               <li>
-                <Link href="/apply" aria-disabled={!admissionsAreOpen()} className="text-slate-300 hover:text-tif-gold transition-colors flex items-center space-x-2">
+                <Link
+                  href="/apply"
+                  aria-disabled={!isOpen}
+                  onClick={(e) => {
+                    if (!isOpen) e.preventDefault();
+                  }}
+                  className={`text-slate-300 hover:text-tif-gold transition-colors flex items-center space-x-2 ${!isOpen ? "pointer-events-none opacity-60" : ""}`}
+                >
                   <span className="text-tif-gold">•</span>
-                  <span>{admissionsAreOpen() ? t("applyNow") : "ปิดรับสมัคร"}</span>
+                  <span>{isOpen ? t("applyNow") : "ปิดรับสมัคร"}</span>
                 </Link>
               </li>
               <li>

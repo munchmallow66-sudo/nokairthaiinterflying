@@ -6,6 +6,12 @@ import { verifyAdminSessionToken } from "@/lib/auth";
 import { sendApplicationConfirmationEmail, sendSelectionRejectionEmail } from "@/lib/email";
 import { CRIMINAL_CONSENT_VERSION, hasFullCriminalConsent } from "@/lib/criminal-consent";
 import { admissionsAreOpen } from "@/lib/admissions";
+import {
+  getAdmissionStatus,
+  checkAndConsumeAdmissionQuota,
+  QuotaExceededError,
+  AdmissionsClosedError,
+} from "@/lib/admission-service";
 
 
 export const dynamic = "force-dynamic";
@@ -157,13 +163,19 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Public submissions are blocked while admissions are closed. Admin-keyed
+  // Public submissions are blocked while admissions are closed or quota is full. Admin-keyed
   // walk-ins still go through so an officer can register someone in person.
-  if (!isAdminCreate && !admissionsAreOpen()) {
-    return NextResponse.json(
-      { error: " Admissions are currently closed. หมดเขตรับสมัครแล้วในขณะนี้" },
-      { status: 403 }
-    );
+  if (!isAdminCreate) {
+    const admissionStatus = await getAdmissionStatus();
+    if (!admissionStatus.isOpen) {
+      return NextResponse.json(
+        {
+          error: "Admissions are currently closed. หมดเขตรับสมัครแล้วในขณะนี้ หรือที่นั่งเต็มแล้ว",
+          quotaFull: admissionStatus.remaining === 0,
+        },
+        { status: 403 }
+      );
+    }
   }
 
   if (!isAdminCreate) {
@@ -228,6 +240,11 @@ export async function POST(req: Request) {
 
     const dbTransactionPromise = prisma.$transaction(
       async (tx) => {
+        // Atomic quota consumption guard: verifies quota and automatically marks admissions closed
+        if (!isAdminCreate) {
+          await checkAndConsumeAdmissionQuota(tx);
+        }
+
         const user = await tx.user.create({
           data: {
             name: `${validated.firstNameEn} ${validated.lastNameEn}`,
@@ -405,6 +422,27 @@ export async function POST(req: Request) {
       id: result.application.id,
     });
   } catch (err: any) {
+    if (err instanceof QuotaExceededError || err?.name === "QuotaExceededError") {
+      return NextResponse.json(
+        {
+          success: false,
+          quotaFull: true,
+          error: err.message || "ขออภัย โควตารับสมัครเต็มแล้ว ระบบปิดรับสมัครเรียบร้อยแล้ว",
+        },
+        { status: 403 }
+      );
+    }
+
+    if (err instanceof AdmissionsClosedError || err?.name === "AdmissionsClosedError") {
+      return NextResponse.json(
+        {
+          success: false,
+          error: err.message || "ขณะนี้ปิดรับสมัครแล้ว",
+        },
+        { status: 403 }
+      );
+    }
+
     console.error("API error creating application:", err instanceof Error ? err.stack : err);
     return NextResponse.json(
       {

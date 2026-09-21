@@ -416,3 +416,15 @@ model Announcement {
   @@map("announcements")
 }
 
+model AdmissionSetting {
+  id            String    @id @default("default")
+  isOpen        Boolean   @default(false)
+  quota         Int?      @default(1)
+  acceptedCount Int       @default(0)
+  openedAt      DateTime?
+  closedAt      DateTime?
+  updatedAt     DateTime  @updatedAt
+
+  @@map("admission_settings")
+}
+
