@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { compressImageIfNeeded } from "@/lib/image-compressor";
 import { useApplicationContext } from "@/lib/context/application-context";
+import { uploadFileToCloudinary } from "@/lib/cloudinary-upload";
 
 export default function PaymentPage() {
   const { t } = useLanguage();
@@ -177,12 +178,7 @@ export default function PaymentPage() {
     setSlipUploadError(false);
 
     try {
-      const slipDataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = () => reject(reader.error || new Error("Failed to read slip file"));
-        reader.readAsDataURL(slipFile);
-      });
+      const uploadedSlip = await uploadFileToCloudinary(slipFile, "APPLICATION_FEE_SLIP");
 
       const res = await fetch("/api/payments", {
         method: "POST",
@@ -191,7 +187,8 @@ export default function PaymentPage() {
           appNum: foundApp?.appNum || "TIF-2026-1973",
           studentName: foundApp?.studentName || "สมชาย ใจดี",
           amount: 1800,
-          slipUrl: slipDataUrl,
+          slipUrl: uploadedSlip.secureUrl,
+          slipPublicId: uploadedSlip.publicId,
         }),
       });
 

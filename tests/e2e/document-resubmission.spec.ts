@@ -4,6 +4,7 @@ import {
   applicationApiPayload,
   generateApplicationNumber,
   deleteApplication,
+  adminLoginRequest,
   tinyJpegBuffer,
 } from "./fixtures";
 
@@ -40,6 +41,8 @@ test("re-uploads the whole document set after a failed document review", async (
 
   try {
     // ---- Staff fail the document review ----
+    const loginRes = await adminLoginRequest(request);
+    expect(loginRes.ok(), await loginRes.text()).toBeTruthy();
     const patchRes = await request.patch("/api/applications", {
       data: {
         id: applicationNumber,
@@ -102,7 +105,7 @@ test("re-uploads the whole document set after a failed document review", async (
     expect(app.status).toBe("DOCS_UNDER_REVIEW");
     expect(app.documents).toHaveLength(REQUIRED_SLOTS);
     // Every placeholder the fixture seeded has been superseded by a real upload.
-    expect(app.documents.some((d: any) => d.secureUrl.includes("example.invalid"))).toBeFalsy();
+    expect(app.documents.some((d: any) => d.publicId?.startsWith("test_"))).toBeFalsy();
     // A replacement always re-enters the queue unreviewed.
     expect(app.documents.every((d: any) => !d.isVerified && !d.isRejected)).toBeTruthy();
   } finally {

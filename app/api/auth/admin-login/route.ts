@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getPrisma } from "@/lib/prisma";
-import { createAdminSessionToken, verifyPassword } from "@/lib/auth";
+import { verifyPassword } from "@/lib/auth";
+import { createAdminSessionToken } from "@/lib/session-auth";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
@@ -35,12 +36,19 @@ export async function POST(request: Request) {
       where: { email: trimmedEmail, role: { notIn: ["STUDENT", "GUEST"] } },
     });
 
-    // Default admin fallback credentials check
-    const isDefaultAdmin =
-      trimmedEmail === "admin@tif.ac.th" && password === "!Admin_TIF@8649.";
+    // Optional bootstrap account for installations whose first admin row does
+    // not have a password hash yet. Credentials live in deployment env only.
+    const bootstrapEmail = process.env.ADMIN_BOOTSTRAP_EMAIL?.toLowerCase().trim();
+    const bootstrapPassword = process.env.ADMIN_BOOTSTRAP_PASSWORD;
+    const isBootstrapAdmin = Boolean(
+      bootstrapEmail &&
+        bootstrapPassword &&
+        trimmedEmail === bootstrapEmail &&
+        password === bootstrapPassword
+    );
 
     let isValidUser = false;
-    if (isDefaultAdmin) {
+    if (isBootstrapAdmin) {
       isValidUser = true;
       // Ensure the bypass account has a real User row so downstream writes
       // that reference authorId (e.g. admin notes) have a valid FK target
@@ -48,7 +56,7 @@ export async function POST(request: Request) {
       if (!user) {
         user = await prisma.user.create({
           data: {
-            email: "admin@tif.ac.th",
+            email: trimmedEmail,
             name: "Academy Administrator",
             role: "SUPER_ADMIN",
           },
@@ -66,7 +74,7 @@ export async function POST(request: Request) {
     }
 
     const sessionPayload = {
-      id: user?.id || "admin-default",
+      id: user?.id || "admin-bootstrap",
       email: trimmedEmail,
       name: user?.name || "Academy Administrator",
       role: user?.role || "ADMIN",

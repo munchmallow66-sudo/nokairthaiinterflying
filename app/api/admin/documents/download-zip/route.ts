@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import JSZip from "jszip";
 import jsPDF from "jspdf";
+import { isAdminRequest } from "@/lib/admin-auth";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -30,11 +32,20 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  if (!(await isAdminRequest())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const rateCheck = checkRateLimit(`zip_${getClientIp(req)}`, 3, 60 * 1000);
+  if (!rateCheck.success) {
+    return NextResponse.json({ error: "Too many ZIP requests" }, { status: 429 });
+  }
+
   try {
     const body = await req.json();
     const { documents, appNumber = "TIF-Doc", studentName = "Cadet" } = body;
 
-    if (!documents || !Array.isArray(documents) || documents.length === 0) {
+    if (!documents || !Array.isArray(documents) || documents.length === 0 || documents.length > 20) {
       return NextResponse.json({ error: "No documents provided" }, { status: 400 });
     }
 
@@ -45,6 +56,8 @@ export async function POST(req: Request) {
     const folder = zip.folder(zipName) || zip;
 
     let addedCount = 0;
+    let totalFetchedBytes = 0;
+    const maxTotalBytes = 50 * 1024 * 1024;
 
     for (let i = 0; i < documents.length; i++) {
       const doc = documents[i];
@@ -59,22 +72,29 @@ export async function POST(req: Request) {
 
       try {
         if (rawUrl.startsWith("data:")) {
-          const parts = rawUrl.split(",");
-          const mimeType = parts[0];
-          const base64Data = parts[1];
+          const match = rawUrl.match(
+            /^data:(image\/[a-zA-Z0-9.+-]+|application\/pdf);base64,([\s\S]+)$/
+          );
+          if (!match) continue;
 
-          if (base64Data) {
-            if (mimeType.includes("image/")) {
-              // Convert base64 image to real PDF document
-              const imgBuffer = Buffer.from(base64Data, "base64");
-              const pdfBuffer = convertImageToPdfBuffer(imgBuffer);
-              folder.file(fileName, pdfBuffer);
-            } else {
-              folder.file(fileName, base64Data, { base64: true });
-            }
-            addedCount++;
+          const estimatedBytes = Math.ceil((match[2].length * 3) / 4);
+          if (estimatedBytes > 10 * 1024 * 1024 || totalFetchedBytes + estimatedBytes > maxTotalBytes) {
+            continue;
           }
+
+          const sourceBuffer = Buffer.from(match[2], "base64");
+          totalFetchedBytes += sourceBuffer.length;
+          const outputBuffer = match[1].startsWith("image/")
+            ? convertImageToPdfBuffer(sourceBuffer)
+            : sourceBuffer;
+          folder.file(fileName, outputBuffer);
+          addedCount++;
         } else {
+          const parsedUrl = new URL(rawUrl);
+          if (parsedUrl.protocol !== "https:" || parsedUrl.hostname !== "res.cloudinary.com") {
+            console.warn(`Skipped non-Cloudinary document URL: ${parsedUrl.hostname}`);
+            continue;
+          }
           // Attempt 1: Fetch raw PDF directly or via fl_attachment flag
           let pdfFetchedBuffer: Buffer | null = null;
 
@@ -93,8 +113,16 @@ export async function POST(req: Request) {
               });
               if (res.ok) {
                 const contentType = res.headers.get("content-type") || "";
+                const contentLength = Number(res.headers.get("content-length") || 0);
+                if (contentLength > 10 * 1024 * 1024 || totalFetchedBytes + contentLength > maxTotalBytes) {
+                  continue;
+                }
                 const arrayBuffer = await res.arrayBuffer();
                 const buffer = Buffer.from(arrayBuffer);
+                if (buffer.length > 10 * 1024 * 1024 || totalFetchedBytes + buffer.length > maxTotalBytes) {
+                  continue;
+                }
+                totalFetchedBytes += buffer.length;
 
                 if (contentType.includes("application/pdf") || buffer.toString("utf-8", 0, 4) === "%PDF") {
                   pdfFetchedBuffer = buffer;

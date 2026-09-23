@@ -10,6 +10,7 @@ import {
   getResubmitDocTypes,
   isDocumentReviewFailed,
 } from "@/lib/document-review";
+import { isTrustedCloudinaryUpload } from "@/lib/cloudinary-url";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -97,6 +98,12 @@ export async function POST(req: Request) {
       if (!secureUrl) {
         return NextResponse.json(
           { success: false, error: "ไม่พบไฟล์ที่อัปโหลดสำหรับเอกสารบางรายการ" },
+          { status: 400 }
+        );
+      }
+      if (!isTrustedCloudinaryUpload(secureUrl, ["tif_cadet_"])) {
+        return NextResponse.json(
+          { success: false, error: "ไฟล์เอกสารต้องอัปโหลดผ่าน Cloudinary เท่านั้น" },
           { status: 400 }
         );
       }

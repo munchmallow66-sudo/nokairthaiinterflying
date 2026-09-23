@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { fullApplicationSchema, adminCreateApplicationSchema } from "@/schemas/application-schema";
 import { generateApplicationNumber, generateSecurePassword, formatDocumentFileName } from "@/lib/utils";
-import { verifyAdminSessionToken } from "@/lib/auth";
+import { verifyAdminSessionToken } from "@/lib/session-auth";
 import { sendApplicationConfirmationEmail, sendSelectionRejectionEmail } from "@/lib/email";
 import { CRIMINAL_CONSENT_VERSION, hasFullCriminalConsent } from "@/lib/criminal-consent";
 import { admissionsAreOpen } from "@/lib/admissions";
@@ -12,6 +12,7 @@ import {
   QuotaExceededError,
   AdmissionsClosedError,
 } from "@/lib/admission-service";
+import { isTrustedCloudinaryUpload } from "@/lib/cloudinary-url";
 
 
 export const dynamic = "force-dynamic";
@@ -198,6 +199,18 @@ export async function POST(req: Request) {
     const validated = isAdminCreate
       ? adminCreateApplicationSchema.parse(body)
       : fullApplicationSchema.parse(body);
+
+    if (
+      !isAdminCreate &&
+      (validated.documents || []).some(
+        (doc) => !isTrustedCloudinaryUpload(doc.secureUrl, ["tif_cadet_"])
+      )
+    ) {
+      return NextResponse.json(
+        { error: "Invalid document upload URL" },
+        { status: 400 }
+      );
+    }
 
     // Duplicate check: national ID is the only field that blocks a resubmission.
     // Email and phone are allowed to repeat (e.g. siblings sharing a parent's
@@ -455,6 +468,9 @@ export async function POST(req: Request) {
 }
 
 export async function PATCH(req: Request) {
+  if (!(await getAdminSession())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   try {
     const body = await req.json();
     const {
@@ -711,6 +727,9 @@ export async function PATCH(req: Request) {
 }
 
 export async function DELETE(req: Request) {
+  if (!(await getAdminSession())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   try {
     const { searchParams } = new URL(req.url);
     let id = searchParams.get("id");

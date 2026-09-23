@@ -26,6 +26,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const queryInput = body.query || body.nationalId || body.appNumber || "";
     const inputPassword = (body.password || "").toString().trim();
+    const statusOnly = body.mode === "status-only";
 
     if (!queryInput || typeof queryInput !== "string") {
       return NextResponse.json(
@@ -61,7 +62,19 @@ export async function POST(req: Request) {
             course: true,
             interviews: { orderBy: { createdAt: "desc" }, take: 1 },
             payments: { orderBy: { createdAt: "desc" } },
-            documents: { orderBy: { uploadedAt: "asc" } },
+            documents: statusOnly
+              ? {
+                  select: {
+                    id: true,
+                    type: true,
+                    originalName: true,
+                    isVerified: true,
+                    isRejected: true,
+                    rejectReason: true,
+                  },
+                  orderBy: { uploadedAt: "asc" },
+                }
+              : { orderBy: { uploadedAt: "asc" } },
           },
         });
         if (dbApplication) {
@@ -83,7 +96,19 @@ export async function POST(req: Request) {
                 course: true,
                 interviews: { orderBy: { createdAt: "desc" }, take: 1 },
                 payments: { orderBy: { createdAt: "desc" } },
-                documents: { orderBy: { uploadedAt: "asc" } },
+                documents: statusOnly
+                  ? {
+                      select: {
+                        id: true,
+                        type: true,
+                        originalName: true,
+                        isVerified: true,
+                        isRejected: true,
+                        rejectReason: true,
+                      },
+                      orderBy: { uploadedAt: "asc" },
+                    }
+                  : { orderBy: { uploadedAt: "asc" } },
               },
               orderBy: { createdAt: "desc" },
             },
@@ -293,7 +318,7 @@ export async function POST(req: Request) {
         documents: (Array.isArray(app.documents) ? app.documents : []).map((doc: any) => ({
           id: doc.id,
           type: doc.type,
-          secureUrl: doc.secureUrl,
+          ...(!statusOnly && doc.secureUrl ? { secureUrl: doc.secureUrl } : {}),
           originalName: doc.originalName,
           isVerified: !!doc.isVerified,
           isRejected: !!doc.isRejected,

@@ -533,27 +533,6 @@ export function ApplicationProvider({ children }: { children: React.ReactNode })
     refetchApplications().catch((err) => console.warn("Failed to fetch applications from DB:", err));
   }, [isAdminDataPage, refetchApplications]);
 
-  // 2. Real-Time Cross-Device Polling & Window Focus Auto-Sync
-  React.useEffect(() => {
-    if (!isAdminDataPage) return;
-    const interval = setInterval(() => {
-      if (document.visibilityState === "visible") {
-        refetchApplications().catch(() => {});
-      }
-    }, 30_000);
-
-    const handleFocus = () => {
-      refetchApplications().catch(() => {});
-    };
-
-    window.addEventListener("focus", handleFocus);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener("focus", handleFocus);
-    };
-  }, [isAdminDataPage, refetchApplications]);
-
   // Applies values that came *from* the server to the local copy, without
   // PATCHing them straight back.
   //

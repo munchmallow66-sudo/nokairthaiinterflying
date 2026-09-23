@@ -95,8 +95,18 @@ export const step9Schema = z.object({
   documents: z.array(
     z.object({
       type: z.string(),
-      secureUrl: z.string(),
-      publicId: z.string(),
+      secureUrl: z
+        .string()
+        .url()
+        .refine((value) => {
+          try {
+            const parsed = new URL(value);
+            return parsed.protocol === "https:" && parsed.hostname === "res.cloudinary.com";
+          } catch {
+            return false;
+          }
+        }, "Document must be uploaded to Cloudinary"),
+      publicId: z.string().min(1),
       originalName: z.string(),
     })
   ),

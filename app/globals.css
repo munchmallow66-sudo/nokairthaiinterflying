@@ -2,11 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
-/*
-  Fonts are loaded with next/font in app/layout.tsx (self-hosted, preloaded).
-  The old @import made the browser fetch fonts.googleapis.com CSS before it
-  could paint — an extra render-blocking round trip on every page load.
-*/
+:root {
+  --font-inter: Arial, "Noto Sans Thai", sans-serif;
+  --font-cinzel: Georgia, "Times New Roman", serif;
+}
 
 @layer base {
   body {

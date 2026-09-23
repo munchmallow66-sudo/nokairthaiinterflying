@@ -39,6 +39,7 @@ dev-server.log
 # Rollback snapshots written by the scripts/ data-fix jobs. They contain live
 # applicant remarks copied out of the database and must not leave the machine.
 /scripts/*-backup-*.json
+/.scratch-cleanup/
 
 # typescript
 *.tsbuildinfo

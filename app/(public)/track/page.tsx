@@ -33,6 +33,7 @@ import { Modal } from "@/components/ui/modal";
 import { useLanguage } from "@/lib/i18n/language-context";
 import { PILOT_WORKFLOW_STEPS } from "@/types";
 import { compressImageIfNeeded } from "@/lib/image-compressor";
+import { uploadFileToCloudinary } from "@/lib/cloudinary-upload";
 import { useApplicationContext } from "@/lib/context/application-context";
 import {
   canonicalDocType,
@@ -63,7 +64,7 @@ interface ApplicationData {
   documents?: {
     id: string;
     type: string;
-    secureUrl: string;
+    secureUrl?: string;
     originalName: string;
     isVerified: boolean;
     isRejected?: boolean;
@@ -618,16 +619,7 @@ export default function TrackStatusPage() {
    * a URL that only exists in this browser is not a document staff can open.
    */
   const uploadDocumentFile = async (file: File, type: string) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("type", type);
-
-    const res = await fetch("/api/upload", { method: "POST", body: formData });
-    const data = await res.json().catch(() => null);
-
-    if (!res.ok || !data?.secureUrl) {
-      throw new Error(data?.error || t("fullReuploadUploadErr"));
-    }
+    const data = await uploadFileToCloudinary(file, type);
 
     return {
       type,
@@ -822,12 +814,7 @@ export default function TrackStatusPage() {
     setSlipUploadError(false);
 
     try {
-      const slipDataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = () => reject(reader.error || new Error("Failed to read slip file"));
-        reader.readAsDataURL(slipFile);
-      });
+      const uploadedSlip = await uploadFileToCloudinary(slipFile, "APPLICATION_FEE_SLIP");
 
       const res = await fetch("/api/payments", {
         method: "POST",
@@ -836,7 +823,8 @@ export default function TrackStatusPage() {
           appNum: activePayAppNum || "TIF-2026-1973",
           studentName: result?.studentName || "Somchai Jaidee",
           amount: 1800,
-          slipUrl: slipDataUrl,
+          slipUrl: uploadedSlip.secureUrl,
+          slipPublicId: uploadedSlip.publicId,
           joinOpenHouse,
           openHouseAttendees: joinOpenHouse ? openHouseAttendees : 0,
         }),
@@ -1132,31 +1120,63 @@ export default function TrackStatusPage() {
     setLoading(false);
   };
 
-  // Real-Time Polling Effect: Periodically query POST /api/track to fetch status updates live
+  // Lightweight status refresh: document file URLs are deliberately omitted by
+  // the API and merged from the initial response, avoiding repeated multi-MB data URLs.
   React.useEffect(() => {
-    if (!result || !result.found || !nationalId.trim() || !password.trim()) return;
+    if (!result?.found || !nationalId.trim() || !password.trim()) return;
 
-    const interval = setInterval(async () => {
+    const refreshStatus = async () => {
+      if (document.visibilityState !== "visible") return;
       try {
         const res = await fetch("/api/track", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: nationalId.trim(), password: password.trim() }),
+          body: JSON.stringify({
+            query: nationalId.trim(),
+            password: password.trim(),
+            mode: "status-only",
+          }),
         });
         if (res.ok) {
           const data = await res.json();
           if (data.found && Array.isArray(data.applications)) {
-            const isDiff = JSON.stringify(data.applications) !== JSON.stringify(result.applications);
-            if (isDiff) {
-              setResult(data);
-            }
+            setResult((previous) => {
+              if (!previous?.applications) return data;
+
+              const oldApps = new Map(
+                previous.applications.map((app) => [app.applicationNumber || app.id, app])
+              );
+              const applications = data.applications.map((app: ApplicationData) => {
+                const oldApp = oldApps.get(app.applicationNumber || app.id);
+                const oldDocs = new Map((oldApp?.documents || []).map((doc) => [doc.id, doc]));
+                return {
+                  ...oldApp,
+                  ...app,
+                  documents: (app.documents || []).map((doc) => ({
+                    ...oldDocs.get(doc.id),
+                    ...doc,
+                  })),
+                };
+              });
+
+              if (JSON.stringify(applications) === JSON.stringify(previous.applications)) {
+                return previous;
+              }
+              return { ...previous, ...data, applications };
+            });
           }
         }
       } catch (err) {}
-    }, 6000);
+    };
 
-    return () => clearInterval(interval);
-  }, [result, nationalId, password]);
+    const interval = window.setInterval(refreshStatus, 60_000);
+    window.addEventListener("focus", refreshStatus);
+
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refreshStatus);
+    };
+  }, [result?.found, nationalId, password]);
 
 
   const steps = [

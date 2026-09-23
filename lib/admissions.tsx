@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { usePathname } from "next/navigation";
 import { Button, ButtonProps } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -25,18 +26,19 @@ export function admissionsAreOpen(): boolean {
 }
 
 export function AdmissionsProvider({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = React.useState<boolean>(() => admissionsAreOpen());
   const [quota, setQuota] = React.useState<number | null>(1);
   const [acceptedCount, setAcceptedCount] = React.useState<number>(0);
   const [remaining, setRemaining] = React.useState<number | null>(null);
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
-  const fetchStatus = React.useCallback(async () => {
+  const requestStatus = React.useCallback(async (bypassCache = false) => {
     try {
-      const res = await fetch("/api/admissions/status", {
-        cache: "no-store",
-        headers: { "Cache-Control": "no-cache" },
-      });
+      const url = bypassCache
+        ? `/api/admissions/status?refresh=${Date.now()}`
+        : "/api/admissions/status";
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         setIsOpen(Boolean(data.isOpen));
@@ -51,19 +53,29 @@ export function AdmissionsProvider({ children }: { children: React.ReactNode }) 
     }
   }, []);
 
-  React.useEffect(() => {
-    fetchStatus();
+  const refresh = React.useCallback(() => requestStatus(true), [requestStatus]);
 
-    // Re-check periodically every 20 seconds to keep clients in sync
-    const interval = setInterval(fetchStatus, 20000);
-    const onFocus = () => fetchStatus();
+  React.useEffect(() => {
+    if (pathname.startsWith("/admin")) {
+      setIsLoading(false);
+      return;
+    }
+
+    void requestStatus();
+
+    // Public status changes infrequently. CDN caching plus a five-minute refresh
+    // keeps calls low while focus refresh still makes returning users current.
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") void requestStatus();
+    }, 5 * 60_000);
+    const onFocus = () => void requestStatus();
     window.addEventListener("focus", onFocus);
 
     return () => {
-      clearInterval(interval);
+      window.clearInterval(interval);
       window.removeEventListener("focus", onFocus);
     };
-  }, [fetchStatus]);
+  }, [pathname, requestStatus]);
 
   const value = React.useMemo(
     () => ({
@@ -72,9 +84,9 @@ export function AdmissionsProvider({ children }: { children: React.ReactNode }) 
       acceptedCount,
       remaining,
       isLoading,
-      refresh: fetchStatus,
+      refresh,
     }),
-    [isOpen, quota, acceptedCount, remaining, isLoading, fetchStatus]
+    [isOpen, quota, acceptedCount, remaining, isLoading, refresh]
   );
 
   return (

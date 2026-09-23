@@ -88,9 +88,12 @@ export function tinyJpegBuffer(): Buffer {
 /** Builds the JSON body /api/applications expects, for tests that create a
  * fixture application directly via the API instead of driving the 8-step UI
  * form (that path is exercised end-to-end by apply.spec.ts). Documents are
- * dummy placeholder rows — the schema only checks doc *type* presence, not
- * that secureUrl points to a real uploaded file. */
+ * placeholder Cloudinary URLs. UI upload behavior is covered separately. */
 export function applicationApiPayload(applicant: Applicant, applicationNumber: string) {
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME || "demo";
+  const uploaded = (publicId: string) =>
+    `https://res.cloudinary.com/${cloudName}/image/upload/tif_cadet_test/${publicId}.jpg`;
+
   return {
     applicationNumber,
     title: applicant.title,
@@ -124,11 +127,11 @@ export function applicationApiPayload(applicant: Applicant, applicationNumber: s
     weight: Number(applicant.weight),
     bloodType: applicant.bloodType,
     documents: [
-      { type: "PHOTO_1_INCH", secureUrl: "https://example.invalid/photo.jpg", publicId: "test_photo", originalName: "photo.jpg" },
-      { type: "NATIONAL_ID_CERTIFIED", secureUrl: "https://example.invalid/id.jpg", publicId: "test_id", originalName: "id.jpg" },
-      { type: "TRANSCRIPT_CERTIFIED", secureUrl: "https://example.invalid/transcript.jpg", publicId: "test_transcript", originalName: "transcript.jpg" },
-      { type: "HOUSE_REGISTRATION_CERTIFIED", secureUrl: "https://example.invalid/house.jpg", publicId: "test_house", originalName: "house.jpg" },
-      { type: "TOEIC", secureUrl: "https://example.invalid/toeic.jpg", publicId: "test_toeic", originalName: "toeic.jpg" },
+      { type: "PHOTO_1_INCH", secureUrl: uploaded("test_photo"), publicId: "test_photo", originalName: "photo.jpg" },
+      { type: "NATIONAL_ID_CERTIFIED", secureUrl: uploaded("test_id"), publicId: "test_id", originalName: "id.jpg" },
+      { type: "TRANSCRIPT_CERTIFIED", secureUrl: uploaded("test_transcript"), publicId: "test_transcript", originalName: "transcript.jpg" },
+      { type: "HOUSE_REGISTRATION_CERTIFIED", secureUrl: uploaded("test_house"), publicId: "test_house", originalName: "house.jpg" },
+      { type: "TOEIC", secureUrl: uploaded("test_toeic"), publicId: "test_toeic", originalName: "toeic.jpg" },
     ],
     // All three are mandatory — fullApplicationSchema rejects the submission
     // without them, so a fixture that omits any never reaches the database.
@@ -152,6 +155,7 @@ export function generateApplicationNumber(seed = 0) {
  * transiently refuse a connection ("Can't reach database server"); without
  * a retry a single blip leaves a real row behind in the shared database. */
 export async function deleteApplication(request: APIRequestContext, applicationNumberOrId: string) {
+  await adminLoginRequest(request);
   for (let attempt = 1; attempt <= 3; attempt++) {
     const res = await request.delete(`/api/applications?id=${encodeURIComponent(applicationNumberOrId)}`, {
       timeout: 30_000,
@@ -163,7 +167,12 @@ export async function deleteApplication(request: APIRequestContext, applicationN
 }
 
 export async function adminLoginRequest(request: APIRequestContext) {
+  const email = process.env.ADMIN_BOOTSTRAP_EMAIL;
+  const password = process.env.ADMIN_BOOTSTRAP_PASSWORD;
+  if (!email || !password) {
+    throw new Error("ADMIN_BOOTSTRAP_EMAIL and ADMIN_BOOTSTRAP_PASSWORD are required for admin E2E tests");
+  }
   return request.post("/api/auth/admin-login", {
-    data: { email: "admin@tif.ac.th", password: "!Admin_TIF@8649." },
+    data: { email, password },
   });
 }

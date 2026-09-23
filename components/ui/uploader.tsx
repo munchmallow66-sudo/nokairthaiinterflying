@@ -5,6 +5,7 @@ import { UploadCloud, FileText, CheckCircle2, AlertCircle, Trash2, RefreshCw } f
 import { cn } from "@/lib/utils";
 
 import { compressImageIfNeeded } from "@/lib/image-compressor";
+import { uploadFileToCloudinary } from "@/lib/cloudinary-upload";
 
 interface UploadedFile {
   type: string;
@@ -62,35 +63,19 @@ export function Uploader({
         return;
       }
 
-      // Simulate Cloudinary secure direct upload
-      const formData = new FormData();
-      formData.append("file", selectedFile);
-      formData.append("type", type);
-
       setProgress(60);
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-      // Call API upload route with timeout guard
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-        signal: controller.signal,
-      });
+      const data = await uploadFileToCloudinary(selectedFile, type, controller.signal);
       clearTimeout(timeoutId);
-
-      if (!res.ok) {
-        throw new Error("Upload failed");
-      }
-
-      const data = await res.json();
       setProgress(100);
 
       const uploaded: UploadedFile = {
         type,
-        secureUrl: data.secureUrl || URL.createObjectURL(selectedFile),
-        publicId: data.publicId || `tif_${Date.now()}`,
+        secureUrl: data.secureUrl,
+        publicId: data.publicId,
         originalName: selectedFile.name,
         fileSize: selectedFile.size,
       };
@@ -99,16 +84,12 @@ export function Uploader({
       onUploadSuccess(uploaded);
     } catch (err: unknown) {
       console.error("Upload error:", err);
-      // Fallback for demonstration if no server/cloudinary keys configured
-      const fallbackFile: UploadedFile = {
-        type,
-        secureUrl: URL.createObjectURL(selectedFile),
-        publicId: `tif_demo_${Date.now()}`,
-        originalName: selectedFile.name,
-        fileSize: selectedFile.size,
-      };
-      setFile(fallbackFile);
-      onUploadSuccess(fallbackFile);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "อัปโหลดไฟล์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง (Upload failed)"
+      );
+      setProgress(0);
     } finally {
       setIsUploading(false);
     }

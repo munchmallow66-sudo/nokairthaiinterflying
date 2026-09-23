@@ -1,15 +1,13 @@
 import { test, expect } from "./fixtures";
 
-/**
- * Logs in with the real admin bypass credential hard-coded in
- * app/api/auth/admin-login/route.ts (admin@tif.ac.th / !Admin_TIF@8649.),
- * then walks every /admin/* page to confirm middleware.ts + AdminAuthGuard
- * let an authenticated officer through instead of redirecting to /admin/login.
- */
 test("admin can log in and reach every admin section", async ({ page }) => {
+  const email = process.env.ADMIN_BOOTSTRAP_EMAIL;
+  const password = process.env.ADMIN_BOOTSTRAP_PASSWORD;
+  test.skip(!email || !password, "Admin bootstrap credentials are not configured");
+
   await page.goto("/admin/login");
-  await page.locator('input[type="email"]').fill("admin@tif.ac.th");
-  await page.locator('input[type="password"]').fill("!Admin_TIF@8649.");
+  await page.locator('input[type="email"]').fill(email!);
+  await page.locator('input[type="password"]').fill(password!);
   await page.locator('button[type="submit"]').click();
 
   await page.waitForURL("**/admin");

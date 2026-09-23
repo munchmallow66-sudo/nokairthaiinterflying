@@ -78,7 +78,8 @@ test("submits a complete application through the 8-step form", async ({ page, re
     for (let i = 0; i < REQUIRED_DOC_TYPES.length; i++) {
       const remainingBefore = REQUIRED_DOC_TYPES.length + 1 - i;
       const uploadResponse = page.waitForResponse(
-        (res) => res.url().includes("/api/upload") && res.request().method() === "POST"
+        (res) =>
+          res.url().includes("api.cloudinary.com") && res.request().method() === "POST"
       );
       await fileInputs.first().setInputFiles({
         name: `${REQUIRED_DOC_TYPES[i].toLowerCase()}.jpg`,

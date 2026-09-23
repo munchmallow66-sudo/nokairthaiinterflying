@@ -12,6 +12,7 @@ env:
   CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY || '123456789012345' }}
   CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET || 'dummy_secret_key' }}
   NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET || 'fallback-secret-for-ci-build-only-32chars' }}
+  JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-only-jwt-secret-at-least-32-characters' }}
   NEXT_TELEMETRY_DISABLED: 1
   CI: "true"
 

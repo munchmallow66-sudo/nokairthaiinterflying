@@ -38,6 +38,7 @@ import { useApplicationContext } from "@/lib/context/application-context";
 import { formatDocumentFileName } from "@/lib/utils";
 import { CRIMINAL_CONSENT_ITEMS, CRIMINAL_CONSENT_FIELDS } from "@/lib/criminal-consent";
 import { useAdmissions } from "@/lib/admissions";
+import { uploadFileToCloudinary } from "@/lib/cloudinary-upload";
 
 
 const DRAFT_STORAGE_KEY = "tif_cadet_application_draft";
@@ -616,23 +617,30 @@ export function MultiStepForm() {
     setUploadingSlip(true);
 
     try {
-      const slipDataUrl = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.readAsDataURL(slipFile);
-      });
+      const uploadedSlip = await uploadFileToCloudinary(slipFile, "APPLICATION_FEE_SLIP");
 
-      await fetch("/api/payments", {
+      const paymentRes = await fetch("/api/payments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           appNum: submitSuccess?.appNum || "TIF-2026-1973",
           studentName: watchedValues?.firstNameTh ? `${watchedValues.firstNameTh} ${watchedValues.lastNameTh}` : "สมชาย ใจดี",
           amount: 1800,
-          slipUrl: slipDataUrl,
+          slipUrl: uploadedSlip.secureUrl,
+          slipPublicId: uploadedSlip.publicId,
         }),
       });
-    } catch (e) {}
+
+      if (!paymentRes.ok) {
+        const detail = await paymentRes.json().catch(() => null);
+        throw new Error(detail?.error || "Payment slip submission failed");
+      }
+    } catch (e) {
+      console.error("Payment slip upload failed:", e);
+      setUploadingSlip(false);
+      alert(e instanceof Error ? e.message : "อัปโหลดสลิปไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+      return;
+    }
 
     setTimeout(() => {
       setUploadingSlip(false);

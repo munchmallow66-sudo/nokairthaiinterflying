@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { verifyAdminSessionToken } from "@/lib/auth";
+import { verifyAdminSessionToken } from "@/lib/session-auth";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -27,48 +27,9 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  const response = NextResponse.next();
-
-  // 2. Security Headers
-  response.headers.set("X-Frame-Options", "SAMEORIGIN");
-  response.headers.set("X-Content-Type-Options", "nosniff");
-  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-  response.headers.set(
-    "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=()"
-  );
-
-  // Strict Transport Security (HSTS) for production
-  if (process.env.NODE_ENV === "production") {
-    response.headers.set(
-      "Strict-Transport-Security",
-      "max-age=31536000; includeSubDomains; preload"
-    );
-  }
-
-  // 3. Content Security Policy (CSP)
-  const cspHeader = `
-    default-src 'self';
-    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://res.cloudinary.com https://vercel.live https://*.vercel.app;
-    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-    img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com;
-    font-src 'self' https://fonts.gstatic.com data:;
-    connect-src 'self' https://res.cloudinary.com https://*.neon.tech https://vercel.live wss://vercel.live;
-    frame-src 'self' data: blob: https://res.cloudinary.com https://www.google.com https://maps.google.com https://vercel.live;
-    frame-ancestors 'self';
-    upgrade-insecure-requests;
-  `.replace(/\s{2,}/g, " ").trim();
-
-  response.headers.set("Content-Security-Policy", cspHeader);
-
-  return response;
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for static files (_next/static, _next/image, favicon.ico)
-     */
-    "/((?!_next/static|_next/image|favicon.ico).*)",
-  ],
+  matcher: ["/admin/:path*"],
 };

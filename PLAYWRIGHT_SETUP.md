@@ -44,7 +44,7 @@ npm run test:e2e:report      # View last report
 - Verify student details & status display
 
 ### ✅ Admin Authentication (2 tests)
-- Login with bypass credential (`admin@tif.ac.th` / `!Admin_TIF@8649.`)
+- Login with bootstrap credentials supplied through `ADMIN_BOOTSTRAP_EMAIL` and `ADMIN_BOOTSTRAP_PASSWORD`
 - Auth guard redirects (protect /admin/* routes)
 - All admin pages accessible (dashboard, applications, payments, interviews, announcements, settings)
 

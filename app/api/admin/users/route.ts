@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { getPrisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
+import { isAdminRequest } from "@/lib/admin-auth";
 
 export async function GET() {
+  if (!(await isAdminRequest())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   try {
     const prisma = getPrisma();
 
@@ -61,6 +65,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (!(await isAdminRequest())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   try {
     const body = await request.json();
     const { name, email, password, role } = body;

@@ -1,13 +1,25 @@
 import { NextResponse } from "next/server";
 import { getAnnouncementsStore } from "@/lib/announcements-store";
+import { isAdminRequest } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const includeAll = searchParams.get("all") === "true" || searchParams.get("admin") === "true";
+    if (includeAll && !(await isAdminRequest())) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const responseOptions: ResponseInit = includeAll
+      ? { headers: { "Cache-Control": "private, no-store" } }
+      : {
+          headers: {
+            "Cache-Control": "public, max-age=30, s-maxage=60, stale-while-revalidate=300",
+            "Vercel-CDN-Cache-Control": "public, max-age=60",
+          },
+        };
 
     try {
       const { getPrisma } = await import("@/lib/prisma");
@@ -19,7 +31,7 @@ export async function GET(req: Request) {
       });
 
       if (Array.isArray(dbItems)) {
-        return NextResponse.json({ success: true, announcements: dbItems });
+        return NextResponse.json({ success: true, announcements: dbItems }, responseOptions);
       }
     } catch (dbErr) {
       console.warn("DB announcements fetch notice (using memory store fallback):", dbErr);
@@ -34,7 +46,7 @@ export async function GET(req: Request) {
     // Sort by priority desc, createdAt desc
     items.sort((a: any, b: any) => (b.priority - a.priority) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-    return NextResponse.json({ success: true, announcements: items });
+    return NextResponse.json({ success: true, announcements: items }, responseOptions);
   } catch (error: any) {
     return NextResponse.json(
       { success: false, error: error.message || "Failed to fetch announcements" },
@@ -44,6 +56,9 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  if (!(await isAdminRequest())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   try {
     const body = await req.json();
     const {

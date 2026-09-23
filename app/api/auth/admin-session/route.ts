@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { verifyAdminSessionToken } from "@/lib/auth";
+import { verifyAdminSessionToken } from "@/lib/session-auth";
 
 export async function GET() {
   try {

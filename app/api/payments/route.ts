@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { isTrustedCloudinaryUpload } from "@/lib/cloudinary-url";
 
 export const dynamic = "force-dynamic";
 
@@ -164,7 +165,7 @@ export async function GET(req: Request) {
 async function isAdminRequest() {
   try {
     const { cookies } = await import("next/headers");
-    const { verifyAdminSessionToken } = await import("@/lib/auth");
+    const { verifyAdminSessionToken } = await import("@/lib/session-auth");
     const cookieStore = await cookies();
     const sessionToken = cookieStore.get("admin_session")?.value;
     return sessionToken ? !!(await verifyAdminSessionToken(sessionToken)) : false;
@@ -184,11 +185,14 @@ export async function POST(req: Request) {
       amount,
       status,
       slipUrl,
+      slipPublicId,
       invoiceNo,
       receiptNo,
       joinOpenHouse,
       openHouseAttendees,
     } = body;
+
+    const callerIsAdmin = await isAdminRequest();
 
     // One slip per application, enforced here rather than only in the page.
     // Hiding the upload button is what an applicant sees; this is what actually
@@ -197,7 +201,7 @@ export async function POST(req: Request) {
     // panel records payments on an applicant's behalf. A REJECTED slip does not
     // count, so an applicant asked for a new one can still send it.
     const requestedAppNum = (appNum || "").toString().trim();
-    if (requestedAppNum && !(await isAdminRequest())) {
+    if (requestedAppNum && !callerIsAdmin) {
       try {
         const { getPrisma } = await import("@/lib/prisma");
         const prisma = getPrisma();
@@ -227,29 +231,27 @@ export async function POST(req: Request) {
       }
     }
 
-    let finalSlipUrl = slipUrl || "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=500";
-    let cloudinaryOk = true;
+    let finalSlipUrl = typeof slipUrl === "string" ? slipUrl.trim() : "";
+    if (finalSlipUrl.startsWith("data:")) {
+      return NextResponse.json(
+        { success: false, error: "Base64 payment slips are no longer accepted" },
+        { status: 400 }
+      );
+    }
 
-    // If slipUrl is a base64 Data URL, attempt uploading to Cloudinary
-    if (typeof slipUrl === "string" && slipUrl.startsWith("data:")) {
-      try {
-        const { uploadToCloudinary } = await import("@/lib/cloudinary");
-        const parts = slipUrl.split(",");
-        if (parts.length === 2) {
-          const buffer = Buffer.from(parts[1], "base64");
-          const uploaded = await uploadToCloudinary(buffer, "tif_slips", "image");
-          if (uploaded?.url) {
-            finalSlipUrl = uploaded.url;
-          } else {
-            cloudinaryOk = false;
-          }
-        } else {
-          cloudinaryOk = false;
-        }
-      } catch (cErr) {
-        console.warn("Cloudinary slip upload fallback:", cErr);
-        cloudinaryOk = false;
+    if (!callerIsAdmin) {
+      const isCloudinaryUrl = isTrustedCloudinaryUpload(finalSlipUrl, ["tif_slips"]);
+
+      if (!requestedAppNum || !isCloudinaryUrl) {
+        return NextResponse.json(
+          { success: false, error: "Please upload the payment slip before submitting" },
+          { status: 400 }
+        );
       }
+    }
+
+    if (!finalSlipUrl) {
+      finalSlipUrl = "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=500";
     }
 
     const newPayment = {
@@ -284,7 +286,7 @@ export async function POST(req: Request) {
             invoiceNo: newPayment.invoiceNo,
             receiptNo: newPayment.receiptNo,
             slipUrl: newPayment.slipUrl,
-            slipPublicId: "tif_slip",
+            slipPublicId: (slipPublicId || "tif_slip").toString(),
             status: newPayment.status === "VERIFIED" ? "VERIFIED" : "PENDING",
           } as any,
         });
@@ -302,7 +304,7 @@ export async function POST(req: Request) {
         // of the 13 workflow steps the admin panel knows — would misreport the
         // application to staff. The payment row itself is what tells the track
         // page the fee has been paid.
-        if (cloudinaryOk) {
+        {
           const appUpdate: any = {};
 
           if (typeof joinOpenHouse === "boolean") {
@@ -364,13 +366,13 @@ export async function POST(req: Request) {
       dbError = e instanceof Error ? e.message : "Unknown database error while saving payment.";
     }
 
-    const overallOk = dbWriteOk && cloudinaryOk;
+    const overallOk = dbWriteOk;
 
     return NextResponse.json(
       {
         success: overallOk,
         payment: newPayment,
-        ...(overallOk ? {} : { error: dbError || "Payment slip was not fully processed (upload fallback used)." }),
+        ...(overallOk ? {} : { error: dbError || "Payment slip could not be saved." }),
       },
       { status: overallOk ? 200 : 500 }
     );
